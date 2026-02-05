@@ -128,7 +128,7 @@
                         </svg>
                     </div>
                     <div class="stat-info">
-                        <span class="stat-value" id="totalRevenue">LKR 0</span>
+                        <span class="stat-value" id="totalRevenue">Rs. 0</span>
                         <span class="stat-label">Total Revenue</span>
                     </div>
                 </div>
@@ -311,26 +311,31 @@
         <section id="publicationsSection" class="admin-section">
             <div class="section-header">
                 <h1>Publications</h1>
-                <p>Manage newspapers and publication rates</p>
+                <p>Manage newspapers, publication groups, and rates</p>
             </div>
 
             <div class="section-toolbar">
                 <div class="toolbar-filters">
                     <select id="pubGroupFilter">
                         <option value="">All Groups</option>
-                        <option value="lake-house">Lake House</option>
-                        <option value="wijeya">Wijeya</option>
-                        <option value="upali">Upali</option>
-                        <option value="express">Express</option>
                     </select>
                 </div>
-                <button class="btn btn-primary" id="addPublication">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <line x1="12" y1="5" x2="12" y2="19"/>
-                        <line x1="5" y1="12" x2="19" y2="12"/>
-                    </svg>
-                    Add Publication
-                </button>
+                <div class="toolbar-actions">
+                    <button class="btn btn-ghost" id="addPubGroup">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Add Group
+                    </button>
+                    <button class="btn btn-primary" id="addPublication">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Add Publication
+                    </button>
+                </div>
             </div>
 
             <div class="publications-grid" id="publicationsGrid">
@@ -403,10 +408,10 @@
             <form id="recordPaymentForm">
                 <div class="form-group">
                     <label class="form-label">Quotation Number</label>
-                    <input type="text" id="paymentQuotationNum" required placeholder="QM-2026-0001">
+                    <input type="text" id="paymentQuotationNum" required placeholder="ADM-2026-0001">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Amount (LKR)</label>
+                    <label class="form-label">Amount (Rs.)</label>
                     <input type="number" id="paymentAmount" required min="0" step="0.01">
                 </div>
                 <div class="form-group">
@@ -435,52 +440,68 @@
 
     <!-- Add/Edit Publication Modal -->
     <div id="publicationModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content modal-large">
             <button class="modal-close">&times;</button>
             <h2 id="pubModalTitle">Add Publication</h2>
             <form id="publicationForm">
                 <input type="hidden" id="pubId">
-                <div class="form-group">
-                    <label class="form-label">Publication Group</label>
-                    <select id="pubGroup" required>
-                        <option value="lake-house">Lake House</option>
-                        <option value="wijeya">Wijeya</option>
-                        <option value="upali">Upali</option>
-                        <option value="express">Express</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Newspaper Name</label>
-                    <input type="text" id="pubName" required placeholder="Daily News">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Language</label>
-                    <select id="pubLanguage" required>
-                        <option value="english">English</option>
-                        <option value="sinhala">Sinhala</option>
-                        <option value="tamil">Tamil</option>
-                    </select>
-                </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">Box Ad Rate (per sq cm)</label>
-                        <input type="number" id="pubBoxRate" required min="0" step="0.01">
+                        <label class="form-label">Publication Group</label>
+                        <select id="pubGroup" required>
+                            <!-- Populated by JavaScript -->
+                        </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Color Multiplier</label>
-                        <input type="number" id="pubColorMultiplier" value="1.5" min="1" step="0.1">
+                        <label class="form-label">Newspaper Name</label>
+                        <input type="text" id="pubName" required placeholder="Daily News">
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">Classified Rate (per word)</label>
-                        <input type="number" id="pubClassifiedRate" required min="0" step="0.01">
+                        <label class="form-label">Language</label>
+                        <select id="pubLanguage" required>
+                            <option value="english">English</option>
+                            <option value="sinhala">Sinhala</option>
+                            <option value="tamil">Tamil</option>
+                        </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Min Words</label>
-                        <input type="number" id="pubMinWords" value="15" min="1">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="pubIsSunday">
+                            <span>Sunday Paper</span>
+                        </label>
                     </div>
                 </div>
+
+                <h4 class="form-section-title">Box Ad Rates</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">B&W Rate (per sq cm)</label>
+                        <input type="number" id="pubBwRate" required min="0" step="0.01" placeholder="180">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Color Rate (per sq cm)</label>
+                        <input type="number" id="pubColorRate" required min="0" step="0.01" placeholder="320">
+                    </div>
+                </div>
+
+                <h4 class="form-section-title">Classified Ad Rates</h4>
+                <div class="form-row three-col">
+                    <div class="form-group">
+                        <label class="form-label">Base Price (Rs.)</label>
+                        <input type="number" id="pubClassifiedBase" required min="0" step="0.01" placeholder="1800">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Free Words</label>
+                        <input type="number" id="pubClassifiedFreeWords" required min="1" placeholder="20">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Extra Word Rate (Rs.)</label>
+                        <input type="number" id="pubClassifiedExtraRate" required min="0" step="0.01" placeholder="45">
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label class="checkbox-label">
                         <input type="checkbox" id="pubActive" checked>
@@ -495,6 +516,33 @@
         </div>
     </div>
 
+    <!-- Add Publication Group Modal -->
+    <div id="publicationGroupModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close">&times;</button>
+            <h2 id="groupModalTitle">Add Publication Group</h2>
+            <form id="publicationGroupForm">
+                <input type="hidden" id="groupId">
+                <div class="form-group">
+                    <label class="form-label">Group Name</label>
+                    <input type="text" id="groupName" required placeholder="e.g., English Newspapers">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Primary Language</label>
+                    <select id="groupLanguage" required>
+                        <option value="english">English</option>
+                        <option value="sinhala">Sinhala</option>
+                        <option value="tamil">Tamil</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-ghost modal-cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Group</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Send Invoice Modal -->
     <div id="sendInvoiceModal" class="modal">
         <div class="modal-content">
@@ -503,7 +551,7 @@
             <p>Send invoice to customer for quotation <strong id="invoiceQuoteNum"></strong></p>
             <div class="form-group">
                 <label class="form-label">Customer Email</label>
-                <input type="email" id="invoiceEmail" readonly>
+                <input type="email" id="invoiceEmail">
             </div>
             <div class="form-group">
                 <label class="form-label">Additional Message (Optional)</label>

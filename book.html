@@ -53,7 +53,7 @@
                 <!-- Booking Form -->
                 <div class="booking-form-wrapper">
                     <form id="bookingForm" class="booking-form">
-                        
+
                         <!-- Step 1: Ad Selection with Cart -->
                         <div class="form-step active" data-step="1">
                             <div class="step-header">
@@ -112,14 +112,17 @@
                             <!-- Box Ad Configuration -->
                             <div id="boxAdConfig" class="ad-config-section">
                                 <div class="config-header">
-                                    <h3>📐 Configure Box Ad</h3>
-                                    <p>Formula: Height × Width × Rate (Max height: 40cm)</p>
+                                    <h3>Configure Box Ad</h3>
+                                    <p>Formula: Height (cm) x Column Width (cm) x Rate + 10% Commission</p>
                                 </div>
-                                
+
                                 <div class="form-row three-col">
                                     <div class="form-group">
-                                        <label class="form-label">Width (cm)</label>
-                                        <input type="number" id="adWidth" name="adWidth" value="10" min="1" max="30" step="0.5">
+                                        <label class="form-label">Columns</label>
+                                        <select id="adColumns" name="adColumns">
+                                            <option value="1">1 col (3.0 cm)</option>
+                                        </select>
+                                        <span class="input-hint">Width varies by language</span>
                                     </div>
                                     <div class="form-group">
                                         <label class="form-label">Height (cm)</label>
@@ -148,15 +151,26 @@
                                     </div>
                                 </div>
 
-                                <div class="ad-preview">
-                                    <div class="preview-label">Preview</div>
-                                    <div class="preview-box" id="adPreview">
-                                        <span id="previewDimensions">10 × 10 cm</span>
+                                <!-- Ad Preview -->
+                                <div class="ad-preview-section">
+                                    <div class="ad-preview-basic">
+                                        <div class="preview-label">Ad Size Preview</div>
+                                        <div class="preview-box" id="adPreview">
+                                            <span id="previewDimensions">3.0 x 10 cm</span>
+                                        </div>
+                                        <div class="preview-info">
+                                            <div><span>Area:</span> <strong id="previewArea">30.0</strong> sq cm</div>
+                                            <div><span>Rate:</span> <strong id="previewRate">Rs. 0</strong>/sq cm</div>
+                                            <div><span>Total:</span> <strong id="previewTotal">Rs. 0</strong></div>
+                                        </div>
                                     </div>
-                                    <div class="preview-info">
-                                        <div><span>Area:</span> <strong id="previewArea">100</strong> sq cm</div>
-                                        <div><span>Rate:</span> <strong id="previewRate">Rs. 0</strong>/sq cm</div>
-                                        <div><span>Total:</span> <strong id="previewTotal">Rs. 0</strong></div>
+
+                                    <!-- Newspaper Preview (52cm x 38cm) -->
+                                    <div class="newspaper-preview-container">
+                                        <div class="preview-label">Newspaper Preview (52 x 38 cm)</div>
+                                        <div id="newspaperPreview" class="newspaper-preview">
+                                            <!-- Populated by JavaScript -->
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -164,7 +178,7 @@
                             <!-- Classified Ad Configuration -->
                             <div id="classifiedConfig" class="ad-config-section" style="display: none;">
                                 <div class="config-header">
-                                    <h3>📝 Configure Classified Ad</h3>
+                                    <h3>Configure Classified Ad</h3>
                                     <p>Enter your ad text below</p>
                                 </div>
 
@@ -194,8 +208,12 @@
                                             <strong id="basePrice">Rs. 0</strong>
                                         </div>
                                         <div class="breakdown-row extra" id="extraWordsRow" style="display: none;">
-                                            <span>Extra Words (<span id="extraWordCount">0</span> × Rs. <span id="extraWordRate">0</span>):</span>
+                                            <span>Extra Words (<span id="extraWordCount">0</span> x Rs. <span id="extraWordRate">0</span>):</span>
                                             <strong id="extraPrice">Rs. 0</strong>
+                                        </div>
+                                        <div class="breakdown-row" id="serviceChargeRow" style="display: none;">
+                                            <span>Service Charge:</span>
+                                            <strong id="serviceChargeAmount">Rs. 100.00</strong>
                                         </div>
                                         <div class="breakdown-total">
                                             <span>Classified Total:</span>
@@ -209,19 +227,21 @@
                             <div class="form-group">
                                 <label class="form-label">Publication Date</label>
                                 <input type="date" id="pubDate" name="pubDate" required>
+                                <div id="dateWarning" class="date-warning" style="display: none;"></div>
+                                <span class="input-hint">Ads must be booked at least 2 days in advance. Sunday papers must be booked by Friday.</span>
                             </div>
 
                             <!-- Add to Cart Button -->
-                            <button type="button" id="addToCartBtn" class="btn btn-primary btn-xl btn-full add-to-cart-btn">
+                            <button type="button" id="addToCartBtn" class="btn btn-primary btn-lg add-to-cart-btn">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <circle cx="9" cy="21" r="1"/>
                                     <circle cx="20" cy="21" r="1"/>
                                     <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>
                                 </svg>
-                                Add This Newspaper to Cart
+                                Add Newspaper to Cart
                             </button>
 
-                            <p class="cart-hint">💡 You can add multiple newspapers to your cart!</p>
+                            <p class="cart-hint">You can add multiple newspapers to your cart</p>
 
                             <!-- Ad Cart -->
                             <div id="adCart" class="ad-cart" style="display: none;">
@@ -241,12 +261,12 @@
                                 </div>
                                 <div class="cart-total">
                                     <span>Cart Total:</span>
-                                    <span class="total-amount" id="cartTotal">LKR 0.00</span>
+                                    <span class="total-amount" id="cartTotal">Rs. 0.00</span>
                                 </div>
                             </div>
 
-                            <!-- Continue Button - Big and prominent -->
-                            <button type="button" id="continueBtn" class="btn btn-success btn-xxl btn-full continue-btn" style="display: none;">
+                            <!-- Continue Button -->
+                            <button type="button" id="continueBtn" class="btn btn-success btn-lg continue-btn" style="display: none;">
                                 <span>Continue to Your Details</span>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M5 12h14M12 5l7 7-7 7"/>
@@ -258,7 +278,7 @@
                         <div class="form-step" data-step="2">
                             <div class="step-header">
                                 <h2>Your Information</h2>
-                                <p>We'll send the quotation and invoice to these details</p>
+                                <p>We will send the quotation and invoice to these details</p>
                             </div>
 
                             <div class="form-row">
@@ -294,13 +314,13 @@
                             </div>
 
                             <div class="form-actions">
-                                <button type="button" class="btn btn-ghost btn-lg prev-step">
+                                <button type="button" class="btn btn-ghost prev-step">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M19 12H5M12 19l-7-7 7-7"/>
                                     </svg>
                                     Back
                                 </button>
-                                <button type="button" class="btn btn-success btn-xxl next-step continue-btn">
+                                <button type="button" class="btn btn-success btn-lg next-step continue-btn">
                                     Review & Pay
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M5 12h14M12 5l7 7-7 7"/>
@@ -318,7 +338,7 @@
 
                             <!-- Order Summary -->
                             <div class="order-summary-card">
-                                <h3>📋 Order Summary</h3>
+                                <h3>Order Summary</h3>
                                 <div id="orderSummary">
                                     <!-- Populated by JavaScript -->
                                 </div>
@@ -364,7 +384,7 @@
                             <!-- Bank Transfer Details -->
                             <div id="bankPayment" class="payment-form" style="display: none;">
                                 <div class="bank-details">
-                                    <h4>🏦 Bank Transfer Details</h4>
+                                    <h4>Bank Transfer Details</h4>
                                     <div class="bank-info">
                                         <div class="info-row">
                                             <span>Bank:</span>
@@ -384,20 +404,20 @@
                                         </div>
                                     </div>
                                     <p class="bank-note">
-                                        📌 Please use your quotation number as the payment reference. 
-                                        We'll process your ad once payment is confirmed.
+                                        Please use your quotation number as the payment reference.
+                                        We will process your ad once payment is confirmed.
                                     </p>
                                 </div>
                             </div>
 
                             <div class="form-actions">
-                                <button type="button" class="btn btn-ghost btn-lg prev-step">
+                                <button type="button" class="btn btn-ghost prev-step">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M19 12H5M12 19l-7-7 7-7"/>
                                     </svg>
                                     Back
                                 </button>
-                                <button type="submit" id="submitBtn" class="btn btn-success btn-xxl">
+                                <button type="submit" id="submitBtn" class="btn btn-success btn-lg">
                                     <span id="submitText">Complete Payment</span>
                                     <span id="submitLoader" class="loader" style="display: none;"></span>
                                 </button>
@@ -409,7 +429,7 @@
                 <!-- Price Calculator Sidebar -->
                 <div class="price-sidebar">
                     <div class="price-card">
-                        <h3>💰 Current Ad Price</h3>
+                        <h3>Current Ad Price</h3>
                         <div class="price-details" id="priceDetails">
                             <div class="price-row">
                                 <span>Select options to see pricing</span>
@@ -417,13 +437,13 @@
                         </div>
                         <div class="price-total">
                             <span>Ad Total</span>
-                            <span class="total-amount" id="currentAdTotal">LKR 0.00</span>
+                            <span class="total-amount" id="currentAdTotal">Rs. 0.00</span>
                         </div>
                     </div>
 
                     <!-- Quick Rates Reference -->
                     <div class="rates-card" id="ratesCard">
-                        <h4>📊 Rates</h4>
+                        <h4>Rates</h4>
                         <div id="quickRates">
                             <p class="loading">Select a newspaper to see rates</p>
                         </div>
@@ -479,9 +499,9 @@
     <div id="contactModal" class="modal">
         <div class="modal-content">
             <button class="modal-close" onclick="closeContactModal()">&times;</button>
-            <h2>📰 Full Page Advertisement</h2>
+            <h2>Full Page Advertisement</h2>
             <p>For full page advertisements, please contact us directly for special rates and premium placement options.</p>
-            
+
             <form id="fullPageContactForm" class="contact-form">
                 <div class="form-group">
                     <label class="form-label">Your Name *</label>
@@ -503,13 +523,13 @@
                     <label class="form-label">Message</label>
                     <textarea id="fpMessage" rows="3" placeholder="Tell us about your advertisement requirements..."></textarea>
                 </div>
-                <button type="submit" class="btn btn-primary btn-full">Send Enquiry</button>
+                <button type="submit" class="btn btn-primary">Send Enquiry</button>
             </form>
-            
+
             <div class="contact-direct">
                 <p>Or contact us directly:</p>
-                <a href="tel:+94706421998" class="btn btn-ghost">📞 070 642 1998</a>
-                <a href="https://wa.me/94706421998" class="btn btn-success" target="_blank">💬 WhatsApp</a>
+                <a href="tel:+94706421998" class="btn btn-ghost">070 642 1998</a>
+                <a href="https://wa.me/94706421998" class="btn btn-success" target="_blank">WhatsApp</a>
             </div>
         </div>
     </div>

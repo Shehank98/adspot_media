@@ -1,8 +1,8 @@
 /**
  * AdSpot - Booking Page JavaScript
- * Multi-step form with ad cart system and proper rate calculations
- * Box Ad: Height × Width × Rate (B&W or Color)
- * Classified: Base price (first X words) + Extra words × Rate
+ * Multi-step form with ad cart system and column-based calculations
+ * Box Ad: Height (cm) x Column Width (cm) x Rate + 10% Commission
+ * Classified: Base price + Extra words + Rs. 100 Service Charge
  */
 
 let currentStep = 1;
@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initBookingForm();
     initStripe();
     setMinDate();
-    
+
     // Check URL params for ad type
     const urlParams = new URLSearchParams(window.location.search);
     const adType = urlParams.get('type');
@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function initPublicationGroups() {
     const container = document.getElementById('pubGroupSelect');
     if (!container) return;
-    
+
     container.innerHTML = Object.entries(CONFIG.PUBLICATIONS).map(([groupId, group], index) => `
         <label class="pub-group-card">
             <input type="radio" name="pubGroup" value="${groupId}" ${index === 0 ? 'checked' : ''}>
@@ -46,14 +46,14 @@ function initPublicationGroups() {
             </div>
         </label>
     `).join('');
-    
+
     // Add change listeners
     container.querySelectorAll('input[name="pubGroup"]').forEach(radio => {
         radio.addEventListener('change', function() {
             updateNewspaperOptions(this.value);
         });
     });
-    
+
     // Initialize with first group
     const firstGroup = Object.keys(CONFIG.PUBLICATIONS)[0];
     updateNewspaperOptions(firstGroup);
@@ -65,42 +65,64 @@ function initPublicationGroups() {
 function updateNewspaperOptions(groupId) {
     const container = document.getElementById('newspaperSelect');
     const group = CONFIG.PUBLICATIONS[groupId];
-    
+
     if (!group) return;
-    
+
     selectedGroup = groupId;
-    
-    const langIcons = {
-        'english': '🇬🇧',
-        'sinhala': '🇱🇰',
-        'tamil': '🇮🇳',
-        'all': '🌐'
+
+    const langLabels = {
+        'english': 'EN',
+        'sinhala': 'SI',
+        'tamil': 'TA',
+        'all': 'ALL'
     };
-    
+
     container.innerHTML = group.newspapers.map((paper, index) => `
         <label class="newspaper-card">
             <input type="radio" name="newspaper" value="${paper.id}" ${index === 0 ? 'checked' : ''}>
             <div class="card-content">
-                <span class="lang-icon">${langIcons[paper.language] || '📰'}</span>
+                <span class="lang-badge">${langLabels[paper.language] || 'EN'}</span>
                 <span class="paper-name">${paper.name}</span>
                 <span class="paper-rate">From Rs. ${paper.bwRate}/sq cm</span>
+                ${paper.isSundayPaper ? '<span class="sunday-badge">Sunday</span>' : ''}
             </div>
         </label>
     `).join('');
-    
+
     // Add change listeners
     container.querySelectorAll('input[name="newspaper"]').forEach(radio => {
         radio.addEventListener('change', function() {
             selectedNewspaper = group.newspapers.find(p => p.id === this.value);
+            updateColumnOptions();
             updateQuickRates();
             updatePrice();
         });
     });
-    
+
     // Select first by default
     selectedNewspaper = group.newspapers[0];
+    updateColumnOptions();
     updateQuickRates();
     updatePrice();
+}
+
+/**
+ * Update column options based on newspaper language
+ */
+function updateColumnOptions() {
+    const columnSelect = document.getElementById('adColumns');
+    if (!columnSelect || !selectedNewspaper) return;
+
+    const language = selectedNewspaper.language || 'english';
+    const maxColumns = getMaxColumns(language);
+
+    let options = '';
+    for (let i = 1; i <= maxColumns; i++) {
+        const width = getColumnWidth(language, i);
+        options += `<option value="${i}">${i} col (${width} cm)</option>`;
+    }
+    columnSelect.innerHTML = options;
+    columnSelect.value = '1';
 }
 
 /**
@@ -109,9 +131,9 @@ function updateNewspaperOptions(groupId) {
 function updateQuickRates() {
     const container = document.getElementById('quickRates');
     if (!selectedNewspaper || !container) return;
-    
+
     const adType = document.querySelector('input[name="adType"]:checked').value;
-    
+
     if (adType === 'box') {
         container.innerHTML = `
             <div class="rate-item">
@@ -121,6 +143,10 @@ function updateQuickRates() {
             <div class="rate-item">
                 <span>Color Rate:</span>
                 <strong>Rs. ${selectedNewspaper.colorRate}/sq cm</strong>
+            </div>
+            <div class="rate-item">
+                <span>Platform Commission:</span>
+                <strong>10%</strong>
             </div>
             <div class="rate-item small">
                 <span>Max Height:</span>
@@ -141,6 +167,10 @@ function updateQuickRates() {
                 <span>Extra Words:</span>
                 <strong>Rs. ${selectedNewspaper.classifiedExtraRate}/word</strong>
             </div>
+            <div class="rate-item">
+                <span>Service Charge:</span>
+                <strong>Rs. ${CONFIG.CHARGES.classifiedServiceCharge}</strong>
+            </div>
         `;
     }
 }
@@ -157,9 +187,9 @@ function initBookingForm() {
             updatePrice();
         });
     });
-    
+
     // Box ad inputs
-    ['adWidth', 'adHeight'].forEach(id => {
+    ['adHeight', 'adColumns'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.addEventListener('input', function() {
@@ -169,12 +199,21 @@ function initBookingForm() {
                 }
                 updatePrice();
                 checkFullPage();
+                updateNewspaperPreview();
+            });
+            el.addEventListener('change', function() {
+                updatePrice();
+                checkFullPage();
+                updateNewspaperPreview();
             });
         }
     });
-    
-    document.getElementById('colorOption')?.addEventListener('change', updatePrice);
-    
+
+    document.getElementById('colorOption')?.addEventListener('change', function() {
+        updatePrice();
+        updateNewspaperPreview();
+    });
+
     // Classified text counter
     const classifiedText = document.getElementById('classifiedText');
     if (classifiedText) {
@@ -183,30 +222,38 @@ function initBookingForm() {
             updatePrice();
         });
     }
-    
+
+    // Publication date validation
+    const pubDate = document.getElementById('pubDate');
+    if (pubDate) {
+        pubDate.addEventListener('change', function() {
+            validateSelectedDate();
+        });
+    }
+
     // Add to cart button
     document.getElementById('addToCartBtn')?.addEventListener('click', addToCart);
-    
+
     // Continue button
     document.getElementById('continueBtn')?.addEventListener('click', () => goToStep(2));
-    
+
     // Navigation buttons
     document.querySelectorAll('.next-step').forEach(btn => {
         btn.addEventListener('click', () => goToStep(currentStep + 1));
     });
-    
+
     document.querySelectorAll('.prev-step').forEach(btn => {
         btn.addEventListener('click', () => goToStep(currentStep - 1));
     });
-    
+
     // Form submission
     document.getElementById('bookingForm')?.addEventListener('submit', handleSubmit);
-    
+
     // Payment method toggle
     document.querySelectorAll('input[name="paymentMethod"]').forEach(radio => {
         radio.addEventListener('change', togglePaymentMethod);
     });
-    
+
     // Full page contact form
     document.getElementById('fullPageContactForm')?.addEventListener('submit', handleFullPageContact);
 }
@@ -218,10 +265,12 @@ function toggleAdOptions() {
     const adType = document.querySelector('input[name="adType"]:checked').value;
     const boxConfig = document.getElementById('boxAdConfig');
     const classifiedConfig = document.getElementById('classifiedConfig');
-    
+
     if (adType === 'box') {
         boxConfig.style.display = 'block';
         classifiedConfig.style.display = 'none';
+        updateColumnOptions();
+        updateNewspaperPreview();
     } else {
         boxConfig.style.display = 'none';
         classifiedConfig.style.display = 'block';
@@ -235,20 +284,21 @@ function toggleAdOptions() {
 function updateWordCount() {
     const text = document.getElementById('classifiedText')?.value || '';
     const words = text.trim().split(/\s+/).filter(w => w.length > 0).length;
-    
+
     document.getElementById('wordCount').textContent = words;
-    
+
     if (selectedNewspaper) {
         document.getElementById('freeWordsCount').textContent = selectedNewspaper.classifiedFreeWords;
-        
+
         const breakdown = document.getElementById('wordBreakdown');
         const extraRow = document.getElementById('extraWordsRow');
-        
+        const serviceRow = document.getElementById('serviceChargeRow');
+
         if (words > 0) {
             breakdown.style.display = 'block';
             document.getElementById('baseWordCount').textContent = selectedNewspaper.classifiedFreeWords;
             document.getElementById('basePrice').textContent = formatCurrency(selectedNewspaper.classifiedBase);
-            
+
             const extraWords = Math.max(0, words - selectedNewspaper.classifiedFreeWords);
             if (extraWords > 0) {
                 extraRow.style.display = 'flex';
@@ -258,7 +308,13 @@ function updateWordCount() {
             } else {
                 extraRow.style.display = 'none';
             }
-            
+
+            // Show service charge
+            if (serviceRow) {
+                serviceRow.style.display = 'flex';
+                document.getElementById('serviceChargeAmount').textContent = formatCurrency(CONFIG.CHARGES.classifiedServiceCharge);
+            }
+
             const total = calculateClassifiedPrice(selectedNewspaper, words);
             document.getElementById('classifiedTotal').textContent = formatCurrency(total.total);
         } else {
@@ -268,13 +324,49 @@ function updateWordCount() {
 }
 
 /**
+ * Validate selected publication date
+ */
+function validateSelectedDate() {
+    const pubDate = document.getElementById('pubDate');
+    const dateWarning = document.getElementById('dateWarning');
+
+    if (!pubDate || !pubDate.value) return;
+
+    const validation = validateBookingDate(pubDate.value, selectedNewspaper);
+
+    if (!validation.isValid) {
+        if (dateWarning) {
+            dateWarning.innerHTML = validation.errors.map(err => `<p>${err}</p>`).join('');
+            dateWarning.style.display = 'block';
+        }
+        pubDate.classList.add('invalid');
+    } else {
+        if (dateWarning) {
+            dateWarning.style.display = 'none';
+        }
+        pubDate.classList.remove('invalid');
+
+        // Show Sunday paper warning
+        if (selectedNewspaper && selectedNewspaper.isSundayPaper && isSunday(pubDate.value)) {
+            if (dateWarning) {
+                dateWarning.innerHTML = '<p>This is a Sunday paper. Booking deadline is Friday before the publication date.</p>';
+                dateWarning.style.display = 'block';
+                dateWarning.classList.add('warning');
+            }
+        }
+    }
+}
+
+/**
  * Check if full page ad and show alert
  */
 function checkFullPage() {
-    const width = parseFloat(document.getElementById('adWidth')?.value) || 0;
+    const columns = parseInt(document.getElementById('adColumns')?.value) || 1;
     const height = parseFloat(document.getElementById('adHeight')?.value) || 0;
+    const language = selectedNewspaper?.language || 'english';
+    const width = getColumnWidth(language, columns);
     const alert = document.getElementById('fullPageAlert');
-    
+
     if (isFullPageAd(width, height)) {
         alert.style.display = 'flex';
     } else {
@@ -283,60 +375,112 @@ function checkFullPage() {
 }
 
 /**
+ * Update newspaper preview with ad placement
+ */
+function updateNewspaperPreview() {
+    const previewContainer = document.getElementById('newspaperPreview');
+    if (!previewContainer || !selectedNewspaper) return;
+
+    const adType = document.querySelector('input[name="adType"]:checked').value;
+    if (adType !== 'box') return;
+
+    const columns = parseInt(document.getElementById('adColumns')?.value) || 1;
+    const height = parseFloat(document.getElementById('adHeight')?.value) || 10;
+    const language = selectedNewspaper.language || 'english';
+    const width = getColumnWidth(language, columns);
+
+    // Newspaper dimensions
+    const paperWidth = CONFIG.NEWSPAPER_SIZE.width;
+    const paperHeight = CONFIG.NEWSPAPER_SIZE.height;
+
+    // Calculate scale factor for preview (max preview width: 200px)
+    const maxPreviewWidth = 200;
+    const scale = maxPreviewWidth / paperWidth;
+
+    // Calculate scaled dimensions
+    const scaledPaperWidth = paperWidth * scale;
+    const scaledPaperHeight = paperHeight * scale;
+    const scaledAdWidth = width * scale;
+    const scaledAdHeight = height * scale;
+
+    previewContainer.innerHTML = `
+        <div class="newspaper-outline" style="width: ${scaledPaperWidth}px; height: ${scaledPaperHeight}px;">
+            <div class="newspaper-header">
+                <span class="paper-title">${selectedNewspaper.name}</span>
+                <span class="paper-size">${paperWidth} x ${paperHeight} cm</span>
+            </div>
+            <div class="ad-placement" style="width: ${scaledAdWidth}px; height: ${scaledAdHeight}px;">
+                <span class="ad-label">Your Ad</span>
+                <span class="ad-size">${width.toFixed(1)} x ${height} cm</span>
+            </div>
+        </div>
+    `;
+}
+
+/**
  * Update price calculation
  */
 function updatePrice() {
     if (!selectedNewspaper) return;
-    
+
     const adType = document.querySelector('input[name="adType"]:checked').value;
     let total = 0;
     let details = [];
-    
+
     if (adType === 'box') {
-        const width = parseFloat(document.getElementById('adWidth')?.value) || 0;
+        const columns = parseInt(document.getElementById('adColumns')?.value) || 1;
         const height = parseFloat(document.getElementById('adHeight')?.value) || 0;
         const colorOption = document.getElementById('colorOption')?.value || 'bw';
-        
-        const calc = calculateBoxAdPrice(selectedNewspaper, width, height, colorOption);
+
+        const calc = calculateBoxAdPrice(selectedNewspaper, height, columns, colorOption);
         total = calc.total;
-        
-        // Update preview
-        document.getElementById('previewDimensions').textContent = `${width} × ${height} cm`;
+
+        // Update preview info
+        document.getElementById('previewDimensions').textContent = `${calc.columnWidth.toFixed(1)} x ${height} cm`;
         document.getElementById('previewArea').textContent = calc.area.toFixed(1);
         document.getElementById('previewRate').textContent = formatCurrency(calc.rate);
         document.getElementById('previewTotal').textContent = formatCurrency(calc.total);
-        
+
         // Update preview box size (scaled)
         const previewBox = document.getElementById('adPreview');
-        const maxPreviewSize = 150;
-        const scale = Math.min(maxPreviewSize / Math.max(width, height), 10);
-        previewBox.style.width = `${width * scale}px`;
-        previewBox.style.height = `${height * scale}px`;
-        
+        if (previewBox) {
+            const maxPreviewSize = 150;
+            const maxDim = Math.max(calc.columnWidth, height);
+            const scale = maxDim > 0 ? Math.min(maxPreviewSize / maxDim, 10) : 10;
+            previewBox.style.width = `${calc.columnWidth * scale}px`;
+            previewBox.style.height = `${height * scale}px`;
+        }
+
         details = [
             { label: 'Newspaper', value: selectedNewspaper.name },
-            { label: 'Size', value: `${width} × ${height} cm = ${calc.area} sq cm` },
+            { label: 'Size', value: `${columns} col x ${height} cm = ${calc.area.toFixed(1)} sq cm` },
+            { label: 'Column Width', value: `${calc.columnWidth.toFixed(1)} cm (${selectedNewspaper.language})` },
             { label: colorOption === 'color' ? 'Color Rate' : 'B&W Rate', value: `${formatCurrency(calc.rate)}/sq cm` },
-            { label: 'Calculation', value: `${calc.area} × ${formatCurrency(calc.rate)}` }
+            { label: 'Calculation', value: `${calc.area.toFixed(1)} x ${formatCurrency(calc.rate)}` },
+            { label: 'Ad Total', value: formatCurrency(calc.adTotal) },
+            { label: 'Platform Commission (10%)', value: formatCurrency(calc.commission) }
         ];
     } else {
         const text = document.getElementById('classifiedText')?.value || '';
         const words = text.trim().split(/\s+/).filter(w => w.length > 0).length;
-        
+
         const calc = calculateClassifiedPrice(selectedNewspaper, words);
         total = calc.total;
-        
+
         details = [
             { label: 'Newspaper', value: selectedNewspaper.name },
             { label: 'Word Count', value: words },
             { label: `Base (${calc.freeWords} words)`, value: formatCurrency(calc.basePrice) }
         ];
-        
+
         if (calc.extraWords > 0) {
-            details.push({ label: `Extra (${calc.extraWords} × Rs. ${calc.extraRate})`, value: formatCurrency(calc.extraCost) });
+            details.push({ label: `Extra (${calc.extraWords} x Rs. ${calc.extraRate})`, value: formatCurrency(calc.extraCost) });
         }
+
+        details.push({ label: 'Ad Total', value: formatCurrency(calc.adTotal) });
+        details.push({ label: 'Service Charge', value: formatCurrency(calc.serviceCharge) });
     }
-    
+
     // Update price display
     const priceDetails = document.getElementById('priceDetails');
     priceDetails.innerHTML = details.map(d => `
@@ -345,9 +489,9 @@ function updatePrice() {
             <span>${d.value}</span>
         </div>
     `).join('');
-    
+
     document.getElementById('currentAdTotal').textContent = formatCurrency(total);
-    
+
     // Store for cart
     window.currentAdPrice = total;
 }
@@ -360,62 +504,80 @@ function addToCart() {
         showNotification('Please select a newspaper', 'warning');
         return;
     }
-    
+
     const adType = document.querySelector('input[name="adType"]:checked').value;
     const pubDate = document.getElementById('pubDate')?.value;
-    
+
     if (!pubDate) {
         showNotification('Please select a publication date', 'warning');
         return;
     }
-    
+
+    // Validate the date
+    const validation = validateBookingDate(pubDate, selectedNewspaper);
+    if (!validation.isValid) {
+        showNotification(validation.errors[0], 'error');
+        return;
+    }
+
     let cartItem = {
         id: Date.now(),
         newspaperId: selectedNewspaper.id,
         newspaperName: selectedNewspaper.name,
+        newspaperLanguage: selectedNewspaper.language,
         groupName: CONFIG.PUBLICATIONS[selectedGroup].name,
         adType: adType,
         pubDate: pubDate,
         price: window.currentAdPrice || 0
     };
-    
+
     if (adType === 'box') {
-        const width = parseFloat(document.getElementById('adWidth')?.value) || 0;
+        const columns = parseInt(document.getElementById('adColumns')?.value) || 1;
         const height = parseFloat(document.getElementById('adHeight')?.value) || 0;
         const colorOption = document.getElementById('colorOption')?.value || 'bw';
-        
-        if (isFullPageAd(width, height)) {
+        const columnWidth = getColumnWidth(selectedNewspaper.language, columns);
+
+        if (isFullPageAd(columnWidth, height)) {
             showNotification('For full page ads, please contact us directly', 'warning');
             showContactForm();
             return;
         }
-        
+
+        const calc = calculateBoxAdPrice(selectedNewspaper, height, columns, colorOption);
+
         cartItem.details = {
-            width: width,
+            columns: columns,
+            columnWidth: columnWidth,
             height: height,
-            area: width * height,
+            area: calc.area,
             colorOption: colorOption,
-            rate: colorOption === 'color' ? selectedNewspaper.colorRate : selectedNewspaper.bwRate
+            rate: calc.rate,
+            adTotal: calc.adTotal,
+            commission: calc.commission
         };
-        cartItem.description = `Box Ad: ${width}×${height}cm (${colorOption === 'color' ? 'Color' : 'B&W'})`;
+        cartItem.description = `Box Ad: ${columns} col x ${height}cm (${colorOption === 'color' ? 'Color' : 'B&W'})`;
     } else {
         const text = document.getElementById('classifiedText')?.value || '';
         const words = text.trim().split(/\s+/).filter(w => w.length > 0).length;
         const category = document.getElementById('classifiedCategory')?.value || 'general';
-        
+
         if (words === 0) {
             showNotification('Please enter your classified ad text', 'warning');
             return;
         }
-        
+
+        const calc = calculateClassifiedPrice(selectedNewspaper, words);
+
         cartItem.details = {
             text: text,
             wordCount: words,
-            category: category
+            category: category,
+            adTotal: calc.adTotal,
+            serviceCharge: calc.serviceCharge
         };
         cartItem.description = `Classified: ${words} words (${CONFIG.CLASSIFIED_CATEGORIES[category]?.name || category})`;
     }
-    
+
     // Check if same newspaper already in cart
     const existingIndex = adCart.findIndex(item => item.newspaperId === cartItem.newspaperId && item.adType === cartItem.adType);
     if (existingIndex >= 0) {
@@ -426,7 +588,7 @@ function addToCart() {
     } else {
         adCart.push(cartItem);
     }
-    
+
     updateCartDisplay();
     showNotification(`Added ${selectedNewspaper.name} to cart!`, 'success');
 }
@@ -440,24 +602,24 @@ function updateCartDisplay() {
     const cartCount = document.getElementById('cartCount');
     const cartTotal = document.getElementById('cartTotal');
     const continueBtn = document.getElementById('continueBtn');
-    
+
     if (adCart.length === 0) {
         cartContainer.style.display = 'none';
         continueBtn.style.display = 'none';
         return;
     }
-    
+
     cartContainer.style.display = 'block';
     continueBtn.style.display = 'flex';
-    
+
     cartCount.textContent = `${adCart.length} item${adCart.length > 1 ? 's' : ''}`;
-    
+
     cartItems.innerHTML = adCart.map(item => `
         <div class="cart-item" data-id="${item.id}">
             <div class="cart-item-info">
                 <strong>${item.newspaperName}</strong>
                 <span class="cart-item-desc">${item.description}</span>
-                <span class="cart-item-date">📅 ${formatDate(item.pubDate)}</span>
+                <span class="cart-item-date">${formatDate(item.pubDate)}</span>
             </div>
             <div class="cart-item-price">${formatCurrency(item.price)}</div>
             <button type="button" class="cart-item-remove" onclick="removeFromCart(${item.id})" title="Remove">
@@ -467,7 +629,7 @@ function updateCartDisplay() {
             </button>
         </div>
     `).join('');
-    
+
     const total = adCart.reduce((sum, item) => sum + item.price, 0);
     cartTotal.textContent = formatCurrency(total);
 }
@@ -487,18 +649,18 @@ window.removeFromCart = removeFromCart;
  */
 function goToStep(step) {
     if (step < 1 || step > 3) return;
-    
+
     // Validate before proceeding
     if (step > currentStep && !validateStep(currentStep)) {
         return;
     }
-    
+
     // Update step display
     document.querySelectorAll('.form-step').forEach(el => {
         el.classList.remove('active');
     });
     document.querySelector(`.form-step[data-step="${step}"]`).classList.add('active');
-    
+
     // Update progress
     document.querySelectorAll('.progress-step').forEach(el => {
         const stepNum = parseInt(el.dataset.step);
@@ -509,14 +671,14 @@ function goToStep(step) {
             el.classList.add('completed');
         }
     });
-    
+
     currentStep = step;
-    
+
     // Update order summary on payment step
     if (step === 3) {
         updateOrderSummary();
     }
-    
+
     // Scroll to top
     document.querySelector('.booking-form-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -532,23 +694,23 @@ function validateStep(step) {
                 return false;
             }
             return true;
-            
+
         case 2:
             const name = document.getElementById('customerName')?.value.trim();
             const email = document.getElementById('customerEmail')?.value.trim();
             const phone = document.getElementById('customerPhone')?.value.trim();
-            
+
             if (!name || !email || !phone) {
                 showNotification('Please fill in all required fields', 'warning');
                 return false;
             }
-            
+
             if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
                 showNotification('Please enter a valid email address', 'warning');
                 return false;
             }
             return true;
-            
+
         default:
             return true;
     }
@@ -561,9 +723,31 @@ function updateOrderSummary() {
     const summary = document.getElementById('orderSummary');
     const customerName = document.getElementById('customerName')?.value;
     const customerEmail = document.getElementById('customerEmail')?.value;
-    
+
+    const subtotal = adCart.reduce((sum, item) => {
+        if (item.adType === 'box') {
+            return sum + item.details.adTotal;
+        } else {
+            return sum + item.details.adTotal;
+        }
+    }, 0);
+
+    const totalCommission = adCart.reduce((sum, item) => {
+        if (item.adType === 'box') {
+            return sum + item.details.commission;
+        }
+        return sum;
+    }, 0);
+
+    const totalServiceCharge = adCart.reduce((sum, item) => {
+        if (item.adType === 'classified') {
+            return sum + item.details.serviceCharge;
+        }
+        return sum;
+    }, 0);
+
     const total = adCart.reduce((sum, item) => sum + item.price, 0);
-    
+
     summary.innerHTML = `
         <div class="summary-section">
             <h4>Customer</h4>
@@ -576,18 +760,36 @@ function updateOrderSummary() {
                     <div class="item-info">
                         <strong>${item.newspaperName}</strong>
                         <span>${item.description}</span>
-                        <small>📅 ${formatDate(item.pubDate)}</small>
+                        <small>${formatDate(item.pubDate)}</small>
                     </div>
-                    <div class="item-price">${formatCurrency(item.price)}</div>
+                    <div class="item-price">${formatCurrency(item.adType === 'box' ? item.details.adTotal : item.details.adTotal)}</div>
                 </div>
             `).join('')}
+        </div>
+        <div class="summary-charges">
+            <div class="charge-row">
+                <span>Ad Subtotal:</span>
+                <span>${formatCurrency(subtotal)}</span>
+            </div>
+            ${totalCommission > 0 ? `
+            <div class="charge-row">
+                <span>Platform Commission (10%):</span>
+                <span>${formatCurrency(totalCommission)}</span>
+            </div>
+            ` : ''}
+            ${totalServiceCharge > 0 ? `
+            <div class="charge-row">
+                <span>Service Charge:</span>
+                <span>${formatCurrency(totalServiceCharge)}</span>
+            </div>
+            ` : ''}
         </div>
         <div class="summary-total">
             <span>Total Amount:</span>
             <strong>${formatCurrency(total)}</strong>
         </div>
     `;
-    
+
     // Update submit button text
     const submitText = document.getElementById('submitText');
     const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value;
@@ -614,9 +816,7 @@ function togglePaymentMethod() {
 function setMinDate() {
     const pubDate = document.getElementById('pubDate');
     if (pubDate) {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        pubDate.min = tomorrow.toISOString().split('T')[0];
+        pubDate.min = getMinBookingDate();
     }
 }
 
@@ -628,10 +828,10 @@ function initStripe() {
         setTimeout(initStripe, 100);
         return;
     }
-    
+
     stripe = Stripe(CONFIG.STRIPE_PUBLISHABLE_KEY);
     const elements = stripe.elements();
-    
+
     cardElement = elements.create('card', {
         style: {
             base: {
@@ -642,9 +842,9 @@ function initStripe() {
             invalid: { color: '#ef4444' }
         }
     });
-    
+
     cardElement.mount('#card-element');
-    
+
     cardElement.on('change', function(event) {
         const displayError = document.getElementById('card-errors');
         displayError.textContent = event.error ? event.error.message : '';
@@ -656,22 +856,24 @@ function initStripe() {
  */
 async function handleSubmit(e) {
     e.preventDefault();
-    
+
     const submitBtn = document.getElementById('submitBtn');
     const submitText = document.getElementById('submitText');
     const submitLoader = document.getElementById('submitLoader');
-    
+
     submitBtn.disabled = true;
     submitText.style.display = 'none';
     submitLoader.style.display = 'block';
-    
+
     try {
         const quotationNumber = generateQuotationNumber();
+        const invoiceNumber = generateInvoiceNumber();
         const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value;
-        
+
         // Collect form data
         const formData = {
             quotation_number: quotationNumber,
+            invoice_number: invoiceNumber,
             items: adCart,
             total_amount: adCart.reduce((sum, item) => sum + item.price, 0),
             customer_name: document.getElementById('customerName')?.value,
@@ -683,7 +885,7 @@ async function handleSubmit(e) {
             payment_method: paymentMethod,
             status: 'pending'
         };
-        
+
         // Process payment if card
         if (paymentMethod === 'card' && stripe && cardElement) {
             const { error, paymentMethod: pm } = await stripe.createPaymentMethod({
@@ -694,20 +896,59 @@ async function handleSubmit(e) {
                     email: formData.customer_email
                 }
             });
-            
+
             if (error) throw error;
             formData.payment_status = 'completed';
             formData.payment_reference = pm.id;
         } else {
             formData.payment_status = 'pending';
         }
-        
-        // Simulate save (replace with actual API call)
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
+
+        // Save to database
+        if (typeof QuotationDB !== 'undefined' && typeof CustomerDB !== 'undefined') {
+            // Create or update customer
+            const customer = await CustomerDB.create({
+                name: formData.customer_name,
+                company: formData.customer_company,
+                email: formData.customer_email,
+                phone: formData.customer_phone,
+                address: formData.customer_address
+            });
+
+            // Create quotation for each cart item
+            for (const item of adCart) {
+                await QuotationDB.create({
+                    quotation_number: quotationNumber,
+                    customer_id: customer.id,
+                    publication_group: item.groupName,
+                    newspaper_id: item.newspaperId,
+                    newspaper_name: item.newspaperName,
+                    ad_type: item.adType,
+                    ad_details: item.details,
+                    publication_date: item.pubDate,
+                    total_amount: item.price,
+                    status: formData.payment_status === 'completed' ? 'paid' : 'pending'
+                });
+            }
+
+            // Create payment record
+            if (formData.payment_status === 'completed') {
+                await PaymentDB.create({
+                    quotation_id: quotationNumber,
+                    amount: formData.total_amount,
+                    payment_method: paymentMethod,
+                    reference_number: formData.payment_reference,
+                    status: 'completed'
+                });
+            }
+        } else {
+            // Simulate save (for demo without database)
+            await new Promise(resolve => setTimeout(resolve, 1500));
+        }
+
         // Show success
         showSuccessModal(quotationNumber, formData.customer_email, paymentMethod);
-        
+
     } catch (error) {
         console.error('Error:', error);
         showNotification(error.message || 'Submission failed. Please try again.', 'error');
@@ -724,14 +965,14 @@ async function handleSubmit(e) {
 function showSuccessModal(quotationNumber, email, paymentMethod) {
     document.getElementById('quotationNumber').textContent = quotationNumber;
     document.getElementById('confirmEmail').textContent = email;
-    
+
     const note = document.getElementById('paymentNote');
     if (paymentMethod === 'card') {
-        note.textContent = '✅ Payment confirmed! Your invoice has been sent to your email.';
+        note.textContent = 'Payment confirmed! Your invoice has been sent to your email.';
     } else {
-        note.textContent = '📌 Please complete the bank transfer using the details provided. We\'ll process your ad once payment is confirmed.';
+        note.textContent = 'Please complete the bank transfer using the details provided. We will process your ad once payment is confirmed.';
     }
-    
+
     document.getElementById('successModal').classList.add('active');
 }
 
@@ -755,7 +996,7 @@ window.closeContactModal = closeContactModal;
  */
 async function handleFullPageContact(e) {
     e.preventDefault();
-    
+
     const data = {
         name: document.getElementById('fpName')?.value,
         phone: document.getElementById('fpPhone')?.value,
@@ -763,11 +1004,11 @@ async function handleFullPageContact(e) {
         newspaper: document.getElementById('fpNewspaper')?.value,
         message: document.getElementById('fpMessage')?.value
     };
-    
+
     // Here you would send this to your backend/email
     console.log('Full page enquiry:', data);
-    
-    showNotification('Enquiry submitted! We\'ll contact you soon.', 'success');
+
+    showNotification('Enquiry submitted! We will contact you soon.', 'success');
     closeContactModal();
 }
 
@@ -777,16 +1018,16 @@ async function handleFullPageContact(e) {
 function showNotification(message, type = 'info') {
     const existing = document.querySelector('.notification');
     if (existing) existing.remove();
-    
+
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     notification.innerHTML = `
         <span>${message}</span>
         <button onclick="this.parentElement.remove()">&times;</button>
     `;
-    
+
     document.body.appendChild(notification);
-    
+
     setTimeout(() => {
         if (notification.parentNode) notification.remove();
     }, 5000);

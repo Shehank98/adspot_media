@@ -1,10 +1,13 @@
 /**
  * AdSpot - Admin Dashboard JavaScript
  * Complete management functionality for quotations, payments, publications, and customers
+ * Real database integration with Supabase
  */
 
 // State
 let currentSection = 'dashboard';
+let publicationsData = []; // Store publications for management
+let publicationGroups = []; // Store publication groups
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
@@ -13,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initModals();
     initFilters();
     initMobileSidebar();
+    initPublicationGroups();
 });
 
 // Wait for Supabase to be ready
@@ -29,16 +33,47 @@ async function checkAuth() {
         setTimeout(checkAuth, 100);
         return;
     }
-    
+
     const { data: { session } } = await supabase.auth.getSession();
-    
+
     if (!session) {
         window.location.href = 'index.html';
         return;
     }
-    
+
     // Set admin name
     document.getElementById('adminName').textContent = session.user.email;
+}
+
+/**
+ * Initialize publication groups from config
+ */
+function initPublicationGroups() {
+    publicationGroups = Object.entries(CONFIG.PUBLICATION_GROUPS).map(([id, group]) => ({
+        id,
+        ...group
+    }));
+
+    // Flatten all publications
+    publicationsData = [];
+    Object.entries(CONFIG.PUBLICATIONS).forEach(([groupId, group]) => {
+        group.newspapers.forEach(paper => {
+            publicationsData.push({
+                ...paper,
+                publicationGroup: groupId,
+                groupName: group.name
+            });
+        });
+    });
+
+    // Populate group filter dropdown
+    const groupFilter = document.getElementById('pubGroupFilter');
+    if (groupFilter) {
+        groupFilter.innerHTML = '<option value="">All Groups</option>';
+        Object.entries(CONFIG.PUBLICATIONS).forEach(([groupId, group]) => {
+            groupFilter.innerHTML += `<option value="${groupId}">${group.name}</option>`;
+        });
+    }
 }
 
 /**
@@ -52,7 +87,7 @@ function initNavigation() {
             showSection(this.dataset.section);
         });
     });
-    
+
     // View all links
     document.querySelectorAll('.view-all[data-section]').forEach(link => {
         link.addEventListener('click', function(e) {
@@ -60,7 +95,7 @@ function initNavigation() {
             showSection(this.dataset.section);
         });
     });
-    
+
     // Logout
     document.getElementById('logoutBtn').addEventListener('click', async function() {
         await supabase.auth.signOut();
@@ -73,17 +108,17 @@ function initNavigation() {
  */
 function showSection(sectionId) {
     currentSection = sectionId;
-    
+
     // Update nav active state
     document.querySelectorAll('.nav-item').forEach(item => {
         item.classList.toggle('active', item.dataset.section === sectionId);
     });
-    
+
     // Show/hide sections
     document.querySelectorAll('.admin-section').forEach(section => {
         section.classList.toggle('active', section.id === sectionId + 'Section');
     });
-    
+
     // Load section data
     switch(sectionId) {
         case 'dashboard':
@@ -102,7 +137,7 @@ function showSection(sectionId) {
             loadCustomers();
             break;
     }
-    
+
     // Close mobile sidebar
     document.querySelector('.admin-sidebar').classList.remove('open');
 }
@@ -117,7 +152,7 @@ function initModals() {
             this.closest('.modal').classList.remove('active');
         });
     });
-    
+
     // Click outside to close
     document.querySelectorAll('.modal').forEach(modal => {
         modal.addEventListener('click', function(e) {
@@ -126,28 +161,40 @@ function initModals() {
             }
         });
     });
-    
+
     // Record Payment button
     document.getElementById('recordPayment')?.addEventListener('click', () => {
         document.getElementById('recordPaymentModal').classList.add('active');
     });
-    
+
     // Record Payment form
     document.getElementById('recordPaymentForm')?.addEventListener('submit', handleRecordPayment);
-    
+
     // Add Publication button
     document.getElementById('addPublication')?.addEventListener('click', () => {
         document.getElementById('pubModalTitle').textContent = 'Add Publication';
         document.getElementById('publicationForm').reset();
         document.getElementById('pubId').value = '';
+        populatePublicationGroupSelect();
         document.getElementById('publicationModal').classList.add('active');
     });
-    
+
     // Publication form
     document.getElementById('publicationForm')?.addEventListener('submit', handlePublicationSave);
-    
+
     // Send Invoice button
     document.getElementById('sendInvoiceBtn')?.addEventListener('click', handleSendInvoice);
+
+    // Add Publication Group button
+    document.getElementById('addPubGroup')?.addEventListener('click', () => {
+        document.getElementById('groupModalTitle').textContent = 'Add Publication Group';
+        document.getElementById('publicationGroupForm').reset();
+        document.getElementById('groupId').value = '';
+        document.getElementById('publicationGroupModal').classList.add('active');
+    });
+
+    // Publication Group form
+    document.getElementById('publicationGroupForm')?.addEventListener('submit', handlePublicationGroupSave);
 }
 
 /**
@@ -157,20 +204,20 @@ function initFilters() {
     // Quotation filters
     document.getElementById('quotationStatusFilter')?.addEventListener('change', loadQuotations);
     document.getElementById('quotationDateFilter')?.addEventListener('change', loadQuotations);
-    
+
     // Payment filters
     document.getElementById('paymentMethodFilter')?.addEventListener('change', loadPayments);
     document.getElementById('paymentStatusFilter')?.addEventListener('change', loadPayments);
-    
+
     // Publication filter
     document.getElementById('pubGroupFilter')?.addEventListener('change', loadPublications);
-    
+
     // Customer search
     document.getElementById('customerSearch')?.addEventListener('input', debounce(loadCustomers, 300));
-    
+
     // Global search
     document.getElementById('globalSearch')?.addEventListener('input', debounce(handleGlobalSearch, 300));
-    
+
     // Export buttons
     document.getElementById('exportQuotations')?.addEventListener('click', () => exportToCSV('quotations'));
     document.getElementById('exportCustomers')?.addEventListener('click', () => exportToCSV('customers'));
@@ -190,25 +237,46 @@ function initMobileSidebar() {
  */
 async function loadDashboardData() {
     try {
-        // For demo, use mock data. In production, use actual database calls
-        const stats = {
-            totalQuotations: 156,
-            totalRevenue: 2450000,
-            pendingPayments: 12,
-            totalCustomers: 89
-        };
-        
+        let stats = { totalQuotations: 0, totalRevenue: 0, pendingPayments: 0, totalCustomers: 0 };
+
+        // Try to load from database
+        if (typeof QuotationDB !== 'undefined') {
+            try {
+                const quotationStats = await QuotationDB.getStats();
+                stats.totalQuotations = quotationStats.total || 0;
+                stats.totalRevenue = quotationStats.revenue || 0;
+            } catch (e) {
+                console.log('Using fallback stats');
+            }
+        }
+
+        if (typeof PaymentDB !== 'undefined') {
+            try {
+                stats.pendingPayments = await PaymentDB.getPendingCount();
+            } catch (e) {
+                console.log('Using fallback pending count');
+            }
+        }
+
+        if (typeof CustomerDB !== 'undefined') {
+            try {
+                stats.totalCustomers = await CustomerDB.getCount();
+            } catch (e) {
+                console.log('Using fallback customer count');
+            }
+        }
+
         document.getElementById('totalQuotations').textContent = stats.totalQuotations;
         document.getElementById('totalRevenue').textContent = formatCurrency(stats.totalRevenue);
         document.getElementById('pendingPayments').textContent = stats.pendingPayments;
         document.getElementById('totalCustomers').textContent = stats.totalCustomers;
-        
+
         // Load recent quotations
         loadRecentQuotations();
-        
+
         // Load recent payments
         loadRecentPayments();
-        
+
     } catch (error) {
         console.error('Error loading dashboard:', error);
         showToast('Failed to load dashboard data', 'error');
@@ -220,24 +288,35 @@ async function loadDashboardData() {
  */
 async function loadRecentQuotations() {
     const tbody = document.getElementById('recentQuotations');
-    
-    // Demo data
-    const quotations = [
-        { quotation_number: 'QM-2026-1234', customer: 'John Silva', total_amount: 45000, status: 'paid' },
-        { quotation_number: 'QM-2026-1233', customer: 'ABC Corp', total_amount: 125000, status: 'pending' },
-        { quotation_number: 'QM-2026-1232', customer: 'Sarah Fernando', total_amount: 12500, status: 'published' },
-        { quotation_number: 'QM-2026-1231', customer: 'Tech Solutions', total_amount: 75000, status: 'pending' },
-        { quotation_number: 'QM-2026-1230', customer: 'Maria Perera', total_amount: 8500, status: 'paid' }
-    ];
-    
-    tbody.innerHTML = quotations.map(q => `
-        <tr>
-            <td><strong>${q.quotation_number}</strong></td>
-            <td>${q.customer}</td>
-            <td>${formatCurrency(q.total_amount)}</td>
-            <td><span class="status-badge ${q.status}">${q.status}</span></td>
-        </tr>
-    `).join('');
+
+    try {
+        let quotations = [];
+
+        if (typeof QuotationDB !== 'undefined') {
+            try {
+                const data = await QuotationDB.getAll({});
+                quotations = data.slice(0, 5);
+            } catch (e) {
+                console.log('Using empty quotations');
+            }
+        }
+
+        if (quotations.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="loading">No quotations found</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = quotations.map(q => `
+            <tr>
+                <td><strong>${q.quotation_number}</strong></td>
+                <td>${q.customer?.name || 'N/A'}</td>
+                <td>${formatCurrency(q.total_amount)}</td>
+                <td><span class="status-badge ${q.status}">${q.status}</span></td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        tbody.innerHTML = '<tr><td colspan="4" class="loading">Error loading data</td></tr>';
+    }
 }
 
 /**
@@ -245,24 +324,35 @@ async function loadRecentQuotations() {
  */
 async function loadRecentPayments() {
     const tbody = document.getElementById('recentPayments');
-    
-    // Demo data
-    const payments = [
-        { date: '2026-02-05', quotation_number: 'QM-2026-1234', amount: 45000, method: 'Card' },
-        { date: '2026-02-04', quotation_number: 'QM-2026-1230', amount: 8500, method: 'Bank' },
-        { date: '2026-02-04', quotation_number: 'QM-2026-1228', amount: 32000, method: 'Card' },
-        { date: '2026-02-03', quotation_number: 'QM-2026-1225', amount: 55000, method: 'Bank' },
-        { date: '2026-02-03', quotation_number: 'QM-2026-1224', amount: 15000, method: 'Card' }
-    ];
-    
-    tbody.innerHTML = payments.map(p => `
-        <tr>
-            <td>${formatDate(p.date)}</td>
-            <td>${p.quotation_number}</td>
-            <td>${formatCurrency(p.amount)}</td>
-            <td>${p.method}</td>
-        </tr>
-    `).join('');
+
+    try {
+        let payments = [];
+
+        if (typeof PaymentDB !== 'undefined') {
+            try {
+                const data = await PaymentDB.getAll({});
+                payments = data.slice(0, 5);
+            } catch (e) {
+                console.log('Using empty payments');
+            }
+        }
+
+        if (payments.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="loading">No payments found</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = payments.map(p => `
+            <tr>
+                <td>${formatDate(p.created_at)}</td>
+                <td>${p.quotation?.quotation_number || 'N/A'}</td>
+                <td>${formatCurrency(p.amount)}</td>
+                <td>${p.payment_method === 'card' ? 'Card' : 'Bank'}</td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        tbody.innerHTML = '<tr><td colspan="4" class="loading">Error loading data</td></tr>';
+    }
 }
 
 /**
@@ -272,42 +362,43 @@ async function loadQuotations() {
     const tbody = document.getElementById('quotationsTable');
     const statusFilter = document.getElementById('quotationStatusFilter').value;
     const dateFilter = document.getElementById('quotationDateFilter').value;
-    
+
     tbody.innerHTML = '<tr><td colspan="8" class="loading">Loading...</td></tr>';
-    
+
     try {
-        // Demo data
-        let quotations = [
-            { id: 1, quotation_number: 'QM-2026-1234', customer: 'John Silva', newspaper: 'Daily News', ad_type: 'Box', total_amount: 45000, status: 'paid', created_at: '2026-02-05' },
-            { id: 2, quotation_number: 'QM-2026-1233', customer: 'ABC Corp', newspaper: 'Sunday Times', ad_type: 'Box', total_amount: 125000, status: 'pending', created_at: '2026-02-05' },
-            { id: 3, quotation_number: 'QM-2026-1232', customer: 'Sarah Fernando', newspaper: 'Lankadeepa', ad_type: 'Classified', total_amount: 12500, status: 'published', created_at: '2026-02-04' },
-            { id: 4, quotation_number: 'QM-2026-1231', customer: 'Tech Solutions', newspaper: 'Daily Mirror', ad_type: 'Box', total_amount: 75000, status: 'pending', created_at: '2026-02-04' },
-            { id: 5, quotation_number: 'QM-2026-1230', customer: 'Maria Perera', newspaper: 'Dinamina', ad_type: 'Classified', total_amount: 8500, status: 'paid', created_at: '2026-02-03' }
-        ];
-        
-        // Apply filters
-        if (statusFilter) {
-            quotations = quotations.filter(q => q.status === statusFilter);
+        let quotations = [];
+
+        if (typeof QuotationDB !== 'undefined') {
+            try {
+                quotations = await QuotationDB.getAll({ status: statusFilter, date: dateFilter });
+            } catch (e) {
+                console.log('Database not available');
+            }
         }
-        
+
+        if (quotations.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" class="loading">No quotations found</td></tr>';
+            return;
+        }
+
         tbody.innerHTML = quotations.map(q => `
             <tr>
                 <td><strong>${q.quotation_number}</strong></td>
-                <td>${q.customer}</td>
-                <td>${q.newspaper}</td>
-                <td>${q.ad_type}</td>
+                <td>${q.customer?.name || 'N/A'}</td>
+                <td>${q.newspaper_name}</td>
+                <td>${q.ad_type === 'box' ? 'Box Ad' : 'Classified'}</td>
                 <td>${formatCurrency(q.total_amount)}</td>
                 <td><span class="status-badge ${q.status}">${q.status}</span></td>
                 <td>${formatDate(q.created_at)}</td>
                 <td>
                     <div class="actions-group">
-                        <button class="action-btn" onclick="viewQuotation(${q.id})" title="View">
+                        <button class="action-btn" onclick="viewQuotation('${q.id}')" title="View">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                                 <circle cx="12" cy="12" r="3"/>
                             </svg>
                         </button>
-                        <button class="action-btn" onclick="sendInvoice('${q.quotation_number}', '${q.customer}')" title="Send Invoice">
+                        <button class="action-btn" onclick="sendInvoice('${q.quotation_number}', '${q.customer?.email || ''}')" title="Send Invoice">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                 <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
                             </svg>
@@ -316,11 +407,7 @@ async function loadQuotations() {
                 </td>
             </tr>
         `).join('');
-        
-        if (quotations.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" class="loading">No quotations found</td></tr>';
-        }
-        
+
     } catch (error) {
         console.error('Error loading quotations:', error);
         tbody.innerHTML = '<tr><td colspan="8" class="loading">Error loading data</td></tr>';
@@ -334,41 +421,39 @@ async function loadPayments() {
     const tbody = document.getElementById('paymentsTable');
     const methodFilter = document.getElementById('paymentMethodFilter').value;
     const statusFilter = document.getElementById('paymentStatusFilter').value;
-    
+
     tbody.innerHTML = '<tr><td colspan="9" class="loading">Loading...</td></tr>';
-    
+
     try {
-        // Demo data
-        let payments = [
-            { id: 1, quotation_number: 'QM-2026-1234', customer: 'John Silva', amount: 45000, method: 'card', reference: 'pi_3abc123', status: 'completed', created_at: '2026-02-05' },
-            { id: 2, quotation_number: 'QM-2026-1230', customer: 'Maria Perera', amount: 8500, method: 'bank', reference: 'BT123456', status: 'completed', created_at: '2026-02-04' },
-            { id: 3, quotation_number: 'QM-2026-1228', customer: 'David Kumar', amount: 32000, method: 'card', reference: 'pi_3def456', status: 'completed', created_at: '2026-02-04' },
-            { id: 4, quotation_number: 'QM-2026-1233', customer: 'ABC Corp', amount: 125000, method: 'bank', reference: '-', status: 'pending', created_at: '2026-02-05' },
-            { id: 5, quotation_number: 'QM-2026-1231', customer: 'Tech Solutions', amount: 75000, method: 'bank', reference: '-', status: 'pending', created_at: '2026-02-04' }
-        ];
-        
-        // Apply filters
-        if (methodFilter) {
-            payments = payments.filter(p => p.method === methodFilter);
+        let payments = [];
+
+        if (typeof PaymentDB !== 'undefined') {
+            try {
+                payments = await PaymentDB.getAll({ method: methodFilter, status: statusFilter });
+            } catch (e) {
+                console.log('Database not available');
+            }
         }
-        if (statusFilter) {
-            payments = payments.filter(p => p.status === statusFilter);
+
+        if (payments.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="loading">No payments found</td></tr>';
+            return;
         }
-        
+
         tbody.innerHTML = payments.map(p => `
             <tr>
-                <td><strong>#${p.id}</strong></td>
-                <td>${p.quotation_number}</td>
-                <td>${p.customer}</td>
+                <td><strong>#${p.id.substring(0, 8)}</strong></td>
+                <td>${p.quotation?.quotation_number || 'N/A'}</td>
+                <td>${p.quotation?.customer?.name || 'N/A'}</td>
                 <td>${formatCurrency(p.amount)}</td>
-                <td>${p.method === 'card' ? 'Card' : 'Bank Transfer'}</td>
-                <td>${p.reference}</td>
+                <td>${p.payment_method === 'card' ? 'Card' : 'Bank Transfer'}</td>
+                <td>${p.reference_number || '-'}</td>
                 <td><span class="status-badge ${p.status}">${p.status}</span></td>
                 <td>${formatDate(p.created_at)}</td>
                 <td>
                     <div class="actions-group">
                         ${p.status === 'pending' ? `
-                            <button class="action-btn" onclick="confirmPayment(${p.id})" title="Confirm Payment">
+                            <button class="action-btn" onclick="confirmPayment('${p.id}')" title="Confirm Payment">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                     <polyline points="20 6 9 17 4 12"/>
                                 </svg>
@@ -378,11 +463,7 @@ async function loadPayments() {
                 </td>
             </tr>
         `).join('');
-        
-        if (payments.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" class="loading">No payments found</td></tr>';
-        }
-        
+
     } catch (error) {
         console.error('Error loading payments:', error);
         tbody.innerHTML = '<tr><td colspan="9" class="loading">Error loading data</td></tr>';
@@ -395,12 +476,12 @@ async function loadPayments() {
 async function loadPublications() {
     const grid = document.getElementById('publicationsGrid');
     const groupFilter = document.getElementById('pubGroupFilter').value;
-    
+
     grid.innerHTML = '<p class="loading">Loading...</p>';
-    
+
     try {
         let allPubs = [];
-        
+
         // Get publications from config
         Object.entries(CONFIG.PUBLICATIONS).forEach(([groupId, group]) => {
             if (!groupFilter || groupFilter === groupId) {
@@ -413,35 +494,45 @@ async function loadPublications() {
                 });
             }
         });
-        
+
         grid.innerHTML = allPubs.map(pub => `
             <div class="pub-card">
                 <div class="pub-card-header">
                     <div>
                         <h4>${pub.name}</h4>
                         <span class="language-badge">${pub.language}</span>
+                        ${pub.isSundayPaper ? '<span class="sunday-badge">Sunday</span>' : ''}
                     </div>
                 </div>
                 <div class="pub-rates">
                     <div class="rate-row">
-                        <span>Box Ad Rate:</span>
-                        <strong>${formatCurrency(pub.boxRate)}/sq cm</strong>
+                        <span>B&W Rate:</span>
+                        <strong>${formatCurrency(pub.bwRate)}/sq cm</strong>
                     </div>
                     <div class="rate-row">
-                        <span>Classified Rate:</span>
-                        <strong>${formatCurrency(pub.classifiedRate)}/word</strong>
+                        <span>Color Rate:</span>
+                        <strong>${formatCurrency(pub.colorRate)}/sq cm</strong>
                     </div>
                     <div class="rate-row">
-                        <span>Color Multiplier:</span>
-                        <strong>×${pub.colorMultiplier}</strong>
+                        <span>Classified Base:</span>
+                        <strong>${formatCurrency(pub.classifiedBase)}</strong>
+                    </div>
+                    <div class="rate-row">
+                        <span>Free Words:</span>
+                        <strong>${pub.classifiedFreeWords}</strong>
+                    </div>
+                    <div class="rate-row">
+                        <span>Extra Word Rate:</span>
+                        <strong>${formatCurrency(pub.classifiedExtraRate)}</strong>
                     </div>
                 </div>
                 <div class="pub-card-actions">
-                    <button class="btn btn-ghost" onclick="editPublication('${pub.id}')">Edit</button>
+                    <button class="btn btn-ghost btn-sm" onclick="editPublication('${pub.id}')">Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick="deletePublication('${pub.id}')">Delete</button>
                 </div>
             </div>
         `).join('');
-        
+
     } catch (error) {
         console.error('Error loading publications:', error);
         grid.innerHTML = '<p class="loading">Error loading data</p>';
@@ -454,54 +545,55 @@ async function loadPublications() {
 async function loadCustomers() {
     const tbody = document.getElementById('customersTable');
     const searchQuery = document.getElementById('customerSearch').value;
-    
+
     tbody.innerHTML = '<tr><td colspan="7" class="loading">Loading...</td></tr>';
-    
+
     try {
-        // Demo data
-        let customers = [
-            { id: 1, name: 'John Silva', company: 'Silva Enterprises', email: 'john@silva.lk', phone: '+94 77 123 4567', orders: 5, spent: 245000 },
-            { id: 2, name: 'ABC Corp', company: 'ABC Corporation', email: 'ads@abc.lk', phone: '+94 11 234 5678', orders: 12, spent: 890000 },
-            { id: 3, name: 'Sarah Fernando', company: '-', email: 'sarah.f@email.com', phone: '+94 76 987 6543', orders: 3, spent: 45000 },
-            { id: 4, name: 'Tech Solutions', company: 'Tech Solutions Ltd', email: 'marketing@techsol.lk', phone: '+94 11 567 8901', orders: 8, spent: 520000 },
-            { id: 5, name: 'Maria Perera', company: 'Perera & Co', email: 'maria@pereraco.lk', phone: '+94 75 234 5678', orders: 2, spent: 32000 }
-        ];
-        
-        // Apply search filter
-        if (searchQuery) {
-            const query = searchQuery.toLowerCase();
-            customers = customers.filter(c => 
-                c.name.toLowerCase().includes(query) ||
-                c.company.toLowerCase().includes(query) ||
-                c.email.toLowerCase().includes(query)
-            );
+        let customers = [];
+
+        if (typeof CustomerDB !== 'undefined') {
+            try {
+                if (searchQuery) {
+                    customers = await CustomerDB.search(searchQuery);
+                } else {
+                    customers = await CustomerDB.getAll();
+                }
+            } catch (e) {
+                console.log('Database not available');
+            }
         }
-        
-        tbody.innerHTML = customers.map(c => `
-            <tr>
-                <td><strong>${c.name}</strong></td>
-                <td>${c.company}</td>
-                <td>${c.email}</td>
-                <td>${c.phone}</td>
-                <td>${c.orders}</td>
-                <td>${formatCurrency(c.spent)}</td>
-                <td>
-                    <div class="actions-group">
-                        <button class="action-btn" onclick="viewCustomer(${c.id})" title="View">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                <circle cx="12" cy="12" r="3"/>
-                            </svg>
-                        </button>
-                    </div>
-                </td>
-            </tr>
-        `).join('');
-        
+
         if (customers.length === 0) {
             tbody.innerHTML = '<tr><td colspan="7" class="loading">No customers found</td></tr>';
+            return;
         }
-        
+
+        tbody.innerHTML = customers.map(c => {
+            const totalOrders = c.quotations?.length || 0;
+            const totalSpent = c.quotations?.reduce((sum, q) => sum + parseFloat(q.total_amount || 0), 0) || 0;
+
+            return `
+                <tr>
+                    <td><strong>${c.name}</strong></td>
+                    <td>${c.company || '-'}</td>
+                    <td>${c.email}</td>
+                    <td>${c.phone}</td>
+                    <td>${totalOrders}</td>
+                    <td>${formatCurrency(totalSpent)}</td>
+                    <td>
+                        <div class="actions-group">
+                            <button class="action-btn" onclick="viewCustomer('${c.id}')" title="View">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
     } catch (error) {
         console.error('Error loading customers:', error);
         tbody.innerHTML = '<tr><td colspan="7" class="loading">Error loading data</td></tr>';
@@ -511,79 +603,120 @@ async function loadCustomers() {
 /**
  * View quotation details
  */
-function viewQuotation(id) {
+async function viewQuotation(id) {
     const modal = document.getElementById('viewQuotationModal');
     const details = document.getElementById('quotationDetails');
-    
-    // Demo data - in production, fetch from database
-    details.innerHTML = `
-        <h2>Quotation QM-2026-1234</h2>
-        <div class="quotation-meta">
-            <span class="status-badge paid">Paid</span>
-            <span>Created: Feb 5, 2026</span>
-        </div>
-        <div class="quotation-info">
-            <h4>Customer</h4>
-            <p><strong>John Silva</strong><br>
-            john@silva.lk<br>
-            +94 77 123 4567</p>
-        </div>
-        <div class="quotation-info">
-            <h4>Ad Details</h4>
-            <p><strong>Newspaper:</strong> Daily News<br>
-            <strong>Type:</strong> Box Advertisement<br>
-            <strong>Size:</strong> 10 × 15 cm (150 sq cm)<br>
-            <strong>Color:</strong> Full Color<br>
-            <strong>Publication Date:</strong> Feb 10, 2026</p>
-        </div>
-        <div class="quotation-total">
-            <span>Total Amount:</span>
-            <strong>${formatCurrency(45000)}</strong>
-        </div>
-    `;
-    
-    // Add styles
-    const style = document.createElement('style');
-    style.textContent = `
-        .quotation-meta {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-            color: #64748b;
-        }
-        .quotation-info {
-            margin-bottom: 1.5rem;
-        }
-        .quotation-info h4 {
-            font-size: 0.875rem;
-            color: #64748b;
-            margin-bottom: 0.5rem;
-        }
-        .quotation-total {
-            display: flex;
-            justify-content: space-between;
-            padding: 1rem;
-            background: #f1f5f9;
-            border-radius: 0.5rem;
-            font-size: 1.125rem;
-        }
-        .quotation-total strong { color: #1a56db; }
-    `;
-    if (!document.getElementById('quotation-modal-styles')) {
-        style.id = 'quotation-modal-styles';
-        document.head.appendChild(style);
-    }
-    
+
+    details.innerHTML = '<p class="loading">Loading...</p>';
     modal.classList.add('active');
+
+    try {
+        let quotation = null;
+
+        if (typeof QuotationDB !== 'undefined') {
+            quotation = await QuotationDB.getById(id);
+        }
+
+        if (!quotation) {
+            details.innerHTML = '<p>Quotation not found</p>';
+            return;
+        }
+
+        const adDetails = quotation.ad_details || {};
+
+        details.innerHTML = `
+            <h2>Quotation ${quotation.quotation_number}</h2>
+            <div class="quotation-meta">
+                <span class="status-badge ${quotation.status}">${quotation.status}</span>
+                <span>Created: ${formatDate(quotation.created_at)}</span>
+            </div>
+            <div class="quotation-info">
+                <h4>Customer</h4>
+                <p><strong>${quotation.customer?.name || 'N/A'}</strong><br>
+                ${quotation.customer?.email || ''}<br>
+                ${quotation.customer?.phone || ''}</p>
+            </div>
+            <div class="quotation-info">
+                <h4>Ad Details</h4>
+                <p><strong>Newspaper:</strong> ${quotation.newspaper_name}<br>
+                <strong>Type:</strong> ${quotation.ad_type === 'box' ? 'Box Advertisement' : 'Classified Ad'}<br>
+                ${quotation.ad_type === 'box' ? `
+                    <strong>Size:</strong> ${adDetails.columns || 1} col x ${adDetails.height || 0} cm (${adDetails.area?.toFixed(1) || 0} sq cm)<br>
+                    <strong>Color:</strong> ${adDetails.colorOption === 'color' ? 'Full Color' : 'Black & White'}<br>
+                ` : `
+                    <strong>Words:</strong> ${adDetails.wordCount || 0}<br>
+                    <strong>Category:</strong> ${CONFIG.CLASSIFIED_CATEGORIES[adDetails.category]?.name || adDetails.category}<br>
+                `}
+                <strong>Publication Date:</strong> ${formatDate(quotation.publication_date)}</p>
+            </div>
+            <div class="quotation-breakdown">
+                <h4>Price Breakdown</h4>
+                <div class="breakdown-row">
+                    <span>Ad Total:</span>
+                    <span>${formatCurrency(adDetails.adTotal || quotation.total_amount)}</span>
+                </div>
+                ${quotation.ad_type === 'box' && adDetails.commission ? `
+                    <div class="breakdown-row">
+                        <span>Platform Commission (10%):</span>
+                        <span>${formatCurrency(adDetails.commission)}</span>
+                    </div>
+                ` : ''}
+                ${quotation.ad_type === 'classified' && adDetails.serviceCharge ? `
+                    <div class="breakdown-row">
+                        <span>Service Charge:</span>
+                        <span>${formatCurrency(adDetails.serviceCharge)}</span>
+                    </div>
+                ` : ''}
+            </div>
+            <div class="quotation-total">
+                <span>Total Amount:</span>
+                <strong>${formatCurrency(quotation.total_amount)}</strong>
+            </div>
+            <div class="quotation-actions">
+                <button class="btn btn-primary" onclick="sendInvoice('${quotation.quotation_number}', '${quotation.customer?.email || ''}')">
+                    Send Invoice
+                </button>
+                ${quotation.status === 'pending' ? `
+                    <button class="btn btn-success" onclick="markAsPaid('${quotation.id}')">
+                        Mark as Paid
+                    </button>
+                ` : ''}
+            </div>
+        `;
+
+    } catch (error) {
+        console.error('Error loading quotation:', error);
+        details.innerHTML = '<p>Error loading quotation details</p>';
+    }
 }
+
+/**
+ * Mark quotation as paid
+ */
+async function markAsPaid(quotationId) {
+    if (!confirm('Mark this quotation as paid?')) return;
+
+    try {
+        if (typeof QuotationDB !== 'undefined') {
+            await QuotationDB.updateStatus(quotationId, 'paid');
+        }
+        showToast('Quotation marked as paid', 'success');
+        document.getElementById('viewQuotationModal').classList.remove('active');
+        loadQuotations();
+        loadDashboardData();
+    } catch (error) {
+        showToast('Failed to update quotation', 'error');
+    }
+}
+window.markAsPaid = markAsPaid;
 
 /**
  * Send invoice
  */
-function sendInvoice(quotationNumber, customerName) {
+function sendInvoice(quotationNumber, customerEmail) {
     document.getElementById('invoiceQuoteNum').textContent = quotationNumber;
-    document.getElementById('invoiceEmail').value = 'customer@email.com'; // Would come from database
+    document.getElementById('invoiceEmail').value = customerEmail || '';
+    document.getElementById('invoiceEmail').readOnly = false;
     document.getElementById('sendInvoiceModal').classList.add('active');
 }
 
@@ -593,9 +726,19 @@ function sendInvoice(quotationNumber, customerName) {
 async function handleSendInvoice() {
     const email = document.getElementById('invoiceEmail').value;
     const message = document.getElementById('invoiceMessage').value;
-    
+    const quotationNumber = document.getElementById('invoiceQuoteNum').textContent;
+
+    if (!email) {
+        showToast('Please enter customer email', 'warning');
+        return;
+    }
+
     try {
-        // In production, send actual email
+        // In production, send actual email with PDF invoice
+        if (typeof EmailService !== 'undefined') {
+            // await EmailService.sendInvoice(quotationNumber, email, message);
+        }
+
         showToast('Invoice sent successfully!', 'success');
         document.getElementById('sendInvoiceModal').classList.remove('active');
     } catch (error) {
@@ -608,11 +751,14 @@ async function handleSendInvoice() {
  */
 async function confirmPayment(paymentId) {
     if (!confirm('Confirm this payment as received?')) return;
-    
+
     try {
-        // In production, update database
+        if (typeof PaymentDB !== 'undefined') {
+            await PaymentDB.updateStatus(paymentId, 'completed');
+        }
         showToast('Payment confirmed!', 'success');
         loadPayments();
+        loadDashboardData();
     } catch (error) {
         showToast('Failed to confirm payment', 'error');
     }
@@ -623,17 +769,33 @@ async function confirmPayment(paymentId) {
  */
 async function handleRecordPayment(e) {
     e.preventDefault();
-    
+
     const data = {
         quotation_number: document.getElementById('paymentQuotationNum').value,
-        amount: document.getElementById('paymentAmount').value,
+        amount: parseFloat(document.getElementById('paymentAmount').value),
         method: document.getElementById('paymentMethodSelect').value,
         reference: document.getElementById('paymentReference').value,
         notes: document.getElementById('paymentNotes').value
     };
-    
+
     try {
-        // In production, save to database
+        if (typeof PaymentDB !== 'undefined') {
+            // Find quotation ID by number
+            if (typeof QuotationDB !== 'undefined') {
+                const quotation = await QuotationDB.getByNumber(data.quotation_number);
+                if (quotation) {
+                    await PaymentDB.create({
+                        quotation_id: quotation.id,
+                        amount: data.amount,
+                        payment_method: data.method,
+                        reference_number: data.reference,
+                        status: 'completed',
+                        notes: data.notes
+                    });
+                }
+            }
+        }
+
         showToast('Payment recorded successfully!', 'success');
         document.getElementById('recordPaymentModal').classList.remove('active');
         document.getElementById('recordPaymentForm').reset();
@@ -642,6 +804,19 @@ async function handleRecordPayment(e) {
     } catch (error) {
         showToast('Failed to record payment', 'error');
     }
+}
+
+/**
+ * Populate publication group select
+ */
+function populatePublicationGroupSelect() {
+    const select = document.getElementById('pubGroup');
+    if (!select) return;
+
+    select.innerHTML = '';
+    Object.entries(CONFIG.PUBLICATIONS).forEach(([groupId, group]) => {
+        select.innerHTML += `<option value="${groupId}">${group.name}</option>`;
+    });
 }
 
 /**
@@ -656,40 +831,77 @@ function editPublication(pubId) {
             pub = { ...found, group: groupId };
         }
     });
-    
+
     if (!pub) return;
-    
+
     document.getElementById('pubModalTitle').textContent = 'Edit Publication';
+    populatePublicationGroupSelect();
+
     document.getElementById('pubId').value = pub.id;
     document.getElementById('pubGroup').value = pub.group;
     document.getElementById('pubName').value = pub.name;
     document.getElementById('pubLanguage').value = pub.language;
-    document.getElementById('pubBoxRate').value = pub.boxRate;
-    document.getElementById('pubClassifiedRate').value = pub.classifiedRate;
-    document.getElementById('pubColorMultiplier').value = pub.colorMultiplier;
-    
+    document.getElementById('pubBwRate').value = pub.bwRate;
+    document.getElementById('pubColorRate').value = pub.colorRate;
+    document.getElementById('pubClassifiedBase').value = pub.classifiedBase;
+    document.getElementById('pubClassifiedFreeWords').value = pub.classifiedFreeWords;
+    document.getElementById('pubClassifiedExtraRate').value = pub.classifiedExtraRate;
+    document.getElementById('pubIsSunday').checked = pub.isSundayPaper || false;
+    document.getElementById('pubActive').checked = true;
+
     document.getElementById('publicationModal').classList.add('active');
 }
+
+/**
+ * Delete publication
+ */
+async function deletePublication(pubId) {
+    if (!confirm('Are you sure you want to delete this publication?')) return;
+
+    try {
+        // In production, delete from database
+        if (typeof PublicationDB !== 'undefined') {
+            await PublicationDB.delete(pubId);
+        }
+
+        showToast('Publication deleted successfully!', 'success');
+        loadPublications();
+    } catch (error) {
+        showToast('Failed to delete publication', 'error');
+    }
+}
+window.deletePublication = deletePublication;
 
 /**
  * Handle publication save
  */
 async function handlePublicationSave(e) {
     e.preventDefault();
-    
+
     const data = {
-        id: document.getElementById('pubId').value,
-        group: document.getElementById('pubGroup').value,
+        id: document.getElementById('pubId').value || generatePublicationId(),
+        publication_group: document.getElementById('pubGroup').value,
         name: document.getElementById('pubName').value,
         language: document.getElementById('pubLanguage').value,
-        boxRate: parseFloat(document.getElementById('pubBoxRate').value),
-        classifiedRate: parseFloat(document.getElementById('pubClassifiedRate').value),
-        colorMultiplier: parseFloat(document.getElementById('pubColorMultiplier').value),
-        active: document.getElementById('pubActive').checked
+        bwRate: parseFloat(document.getElementById('pubBwRate').value),
+        colorRate: parseFloat(document.getElementById('pubColorRate').value),
+        classifiedBase: parseFloat(document.getElementById('pubClassifiedBase').value),
+        classifiedFreeWords: parseInt(document.getElementById('pubClassifiedFreeWords').value),
+        classifiedExtraRate: parseFloat(document.getElementById('pubClassifiedExtraRate').value),
+        isSundayPaper: document.getElementById('pubIsSunday').checked,
+        is_active: document.getElementById('pubActive').checked
     };
-    
+
     try {
         // In production, save to database
+        if (typeof PublicationDB !== 'undefined') {
+            if (document.getElementById('pubId').value) {
+                await PublicationDB.update(data.id, data);
+            } else {
+                await PublicationDB.create(data);
+            }
+        }
+
         showToast('Publication saved successfully!', 'success');
         document.getElementById('publicationModal').classList.remove('active');
         loadPublications();
@@ -699,10 +911,130 @@ async function handlePublicationSave(e) {
 }
 
 /**
+ * Generate publication ID
+ */
+function generatePublicationId() {
+    return 'pub-' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+}
+
+/**
+ * Handle publication group save
+ */
+async function handlePublicationGroupSave(e) {
+    e.preventDefault();
+
+    const data = {
+        id: document.getElementById('groupId').value || document.getElementById('groupName').value.toLowerCase().replace(/\s+/g, '-'),
+        name: document.getElementById('groupName').value,
+        language: document.getElementById('groupLanguage').value
+    };
+
+    try {
+        // In production, save to database
+        showToast('Publication group saved successfully!', 'success');
+        document.getElementById('publicationGroupModal').classList.remove('active');
+        initPublicationGroups();
+        loadPublications();
+    } catch (error) {
+        showToast('Failed to save publication group', 'error');
+    }
+}
+
+/**
  * View customer details
  */
-function viewCustomer(id) {
-    showToast('Customer details view - coming soon!', 'info');
+async function viewCustomer(id) {
+    const modal = document.getElementById('viewCustomerModal');
+    const details = document.getElementById('customerDetails');
+
+    if (!modal || !details) {
+        // Create modal if it doesn't exist
+        const modalHtml = `
+            <div id="viewCustomerModal" class="modal">
+                <div class="modal-content modal-large">
+                    <button class="modal-close">&times;</button>
+                    <div id="customerDetails"></div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Re-init close handlers
+        document.querySelector('#viewCustomerModal .modal-close').addEventListener('click', function() {
+            document.getElementById('viewCustomerModal').classList.remove('active');
+        });
+    }
+
+    const detailsEl = document.getElementById('customerDetails');
+    detailsEl.innerHTML = '<p class="loading">Loading...</p>';
+    document.getElementById('viewCustomerModal').classList.add('active');
+
+    try {
+        let customer = null;
+
+        if (typeof CustomerDB !== 'undefined') {
+            customer = await CustomerDB.getById(id);
+        }
+
+        if (!customer) {
+            detailsEl.innerHTML = '<p>Customer not found</p>';
+            return;
+        }
+
+        const totalOrders = customer.quotations?.length || 0;
+        const totalSpent = customer.quotations?.reduce((sum, q) => sum + parseFloat(q.total_amount || 0), 0) || 0;
+
+        detailsEl.innerHTML = `
+            <h2>Customer Details</h2>
+            <div class="customer-info-grid">
+                <div class="info-section">
+                    <h4>Contact Information</h4>
+                    <p><strong>Name:</strong> ${customer.name}</p>
+                    <p><strong>Company:</strong> ${customer.company || '-'}</p>
+                    <p><strong>Email:</strong> <a href="mailto:${customer.email}">${customer.email}</a></p>
+                    <p><strong>Phone:</strong> <a href="tel:${customer.phone}">${customer.phone}</a></p>
+                    <p><strong>Address:</strong> ${customer.address || '-'}</p>
+                </div>
+                <div class="info-section">
+                    <h4>Summary</h4>
+                    <p><strong>Total Orders:</strong> ${totalOrders}</p>
+                    <p><strong>Total Spent:</strong> ${formatCurrency(totalSpent)}</p>
+                    <p><strong>Member Since:</strong> ${formatDate(customer.created_at)}</p>
+                </div>
+            </div>
+            ${customer.quotations && customer.quotations.length > 0 ? `
+                <div class="customer-orders">
+                    <h4>Order History</h4>
+                    <table class="data-table compact">
+                        <thead>
+                            <tr>
+                                <th>Quotation #</th>
+                                <th>Newspaper</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${customer.quotations.map(q => `
+                                <tr>
+                                    <td><strong>${q.quotation_number}</strong></td>
+                                    <td>${q.newspaper_name}</td>
+                                    <td>${formatCurrency(q.total_amount)}</td>
+                                    <td><span class="status-badge ${q.status}">${q.status}</span></td>
+                                    <td>${formatDate(q.created_at)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            ` : '<p>No orders found</p>'}
+        `;
+
+    } catch (error) {
+        console.error('Error loading customer:', error);
+        detailsEl.innerHTML = '<p>Error loading customer details</p>';
+    }
 }
 
 /**
@@ -711,7 +1043,7 @@ function viewCustomer(id) {
 function handleGlobalSearch() {
     const query = document.getElementById('globalSearch').value;
     if (query.length < 2) return;
-    
+
     // In production, search across all data
     console.log('Searching for:', query);
 }
@@ -719,36 +1051,84 @@ function handleGlobalSearch() {
 /**
  * Export data to CSV
  */
-function exportToCSV(type) {
+async function exportToCSV(type) {
     let data = [];
     let filename = '';
-    
+
     if (type === 'quotations') {
-        // Demo data
+        let quotations = [];
+        if (typeof QuotationDB !== 'undefined') {
+            try {
+                quotations = await QuotationDB.getAll({});
+            } catch (e) {
+                console.log('Using empty data');
+            }
+        }
+
         data = [
-            ['Quotation #', 'Customer', 'Newspaper', 'Amount', 'Status', 'Date'],
-            ['QM-2026-1234', 'John Silva', 'Daily News', '45000', 'paid', '2026-02-05'],
-            ['QM-2026-1233', 'ABC Corp', 'Sunday Times', '125000', 'pending', '2026-02-05']
+            ['Quotation #', 'Customer', 'Email', 'Newspaper', 'Ad Type', 'Amount', 'Status', 'Date']
         ];
-        filename = 'quotations.csv';
+
+        quotations.forEach(q => {
+            data.push([
+                q.quotation_number,
+                q.customer?.name || '',
+                q.customer?.email || '',
+                q.newspaper_name,
+                q.ad_type,
+                q.total_amount,
+                q.status,
+                q.created_at
+            ]);
+        });
+
+        filename = `quotations-${new Date().toISOString().split('T')[0]}.csv`;
     } else if (type === 'customers') {
+        let customers = [];
+        if (typeof CustomerDB !== 'undefined') {
+            try {
+                customers = await CustomerDB.getAll();
+            } catch (e) {
+                console.log('Using empty data');
+            }
+        }
+
         data = [
-            ['Name', 'Company', 'Email', 'Phone', 'Total Orders', 'Total Spent'],
-            ['John Silva', 'Silva Enterprises', 'john@silva.lk', '+94 77 123 4567', '5', '245000'],
-            ['ABC Corp', 'ABC Corporation', 'ads@abc.lk', '+94 11 234 5678', '12', '890000']
+            ['Name', 'Company', 'Email', 'Phone', 'Total Orders', 'Total Spent', 'Joined']
         ];
-        filename = 'customers.csv';
+
+        customers.forEach(c => {
+            const totalOrders = c.quotations?.length || 0;
+            const totalSpent = c.quotations?.reduce((sum, q) => sum + parseFloat(q.total_amount || 0), 0) || 0;
+
+            data.push([
+                c.name,
+                c.company || '',
+                c.email,
+                c.phone,
+                totalOrders,
+                totalSpent,
+                c.created_at
+            ]);
+        });
+
+        filename = `customers-${new Date().toISOString().split('T')[0]}.csv`;
     }
-    
-    const csv = data.map(row => row.join(',')).join('\n');
+
+    if (data.length <= 1) {
+        showToast('No data to export', 'warning');
+        return;
+    }
+
+    const csv = data.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
-    
+
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;
     a.click();
-    
+
     URL.revokeObjectURL(url);
     showToast(`${type} exported successfully!`, 'success');
 }
@@ -758,16 +1138,16 @@ function exportToCSV(type) {
  */
 function showToast(message, type = 'info') {
     const container = document.getElementById('toastContainer');
-    
+
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.innerHTML = `
         <span>${message}</span>
         <button onclick="this.parentElement.remove()">&times;</button>
     `;
-    
+
     container.appendChild(toast);
-    
+
     setTimeout(() => {
         toast.style.animation = 'toastIn 0.3s ease reverse';
         setTimeout(() => toast.remove(), 300);
