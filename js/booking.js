@@ -684,29 +684,75 @@ function goToStep(step) {
 }
 
 /**
- * Validate step
+ * Validate step with detailed error messages
  */
 function validateStep(step) {
+    const errors = [];
+
     switch(step) {
         case 1:
             if (adCart.length === 0) {
-                showNotification('Please add at least one ad to your cart', 'warning');
+                showNotification('Please add at least one ad to your cart before proceeding', 'warning');
+                // Scroll to cart area
+                document.getElementById('priceCalculation')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return false;
             }
             return true;
 
         case 2:
-            const name = document.getElementById('customerName')?.value.trim();
-            const email = document.getElementById('customerEmail')?.value.trim();
-            const phone = document.getElementById('customerPhone')?.value.trim();
+            const nameField = document.getElementById('customerName');
+            const emailField = document.getElementById('customerEmail');
+            const phoneField = document.getElementById('customerPhone');
 
-            if (!name || !email || !phone) {
-                showNotification('Please fill in all required fields', 'warning');
-                return false;
+            const name = nameField?.value.trim();
+            const email = emailField?.value.trim();
+            const phone = phoneField?.value.trim();
+
+            // Clear previous error states
+            [nameField, emailField, phoneField].forEach(field => {
+                if (field) field.classList.remove('field-error');
+            });
+
+            // Validate name
+            if (!name) {
+                errors.push('Full name is required');
+                nameField?.classList.add('field-error');
+                nameField?.focus();
+            } else if (name.length < 2) {
+                errors.push('Please enter your full name');
+                nameField?.classList.add('field-error');
             }
 
-            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                showNotification('Please enter a valid email address', 'warning');
+            // Validate email
+            if (!email) {
+                errors.push('Email address is required');
+                emailField?.classList.add('field-error');
+                if (!errors.some(e => e.includes('name'))) emailField?.focus();
+            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                errors.push('Please enter a valid email address (e.g., name@example.com)');
+                emailField?.classList.add('field-error');
+            }
+
+            // Validate phone
+            if (!phone) {
+                errors.push('Phone number is required');
+                phoneField?.classList.add('field-error');
+                if (errors.length === 1) phoneField?.focus();
+            } else if (!/^[\d\s\-\+\(\)]{8,15}$/.test(phone)) {
+                errors.push('Please enter a valid phone number');
+                phoneField?.classList.add('field-error');
+            }
+
+            if (errors.length > 0) {
+                showNotification(errors[0], 'warning');
+                return false;
+            }
+            return true;
+
+        case 3:
+            const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value;
+            if (!paymentMethod) {
+                showNotification('Please select a payment method', 'warning');
                 return false;
             }
             return true;
@@ -960,20 +1006,89 @@ async function handleSubmit(e) {
 }
 
 /**
- * Show success modal
+ * Show success modal with detailed confirmation
  */
 function showSuccessModal(quotationNumber, email, paymentMethod) {
-    document.getElementById('quotationNumber').textContent = quotationNumber;
-    document.getElementById('confirmEmail').textContent = email;
+    const modal = document.getElementById('successModal');
+    const content = modal.querySelector('.modal-content') || modal;
 
-    const note = document.getElementById('paymentNote');
-    if (paymentMethod === 'card') {
-        note.textContent = 'Payment confirmed! Your invoice has been sent to your email.';
-    } else {
-        note.textContent = 'Please complete the bank transfer using the details provided. We will process your ad once payment is confirmed.';
-    }
+    const total = adCart.reduce((sum, item) => sum + item.price, 0);
+    const itemsList = adCart.map(item => `
+        <div class="confirmation-item">
+            <strong>${item.newspaperName}</strong>
+            <span>${item.description}</span>
+            <span>${formatDate(item.pubDate)}</span>
+            <span>${formatCurrency(item.price)}</span>
+        </div>
+    `).join('');
 
-    document.getElementById('successModal').classList.add('active');
+    const bankDetails = paymentMethod === 'bank' ? `
+        <div class="bank-details-box">
+            <h4>Bank Transfer Details</h4>
+            <div class="bank-info">
+                <div class="bank-row"><span>Bank:</span> <strong>${CONFIG.BANK_DETAILS.bankName}</strong></div>
+                <div class="bank-row"><span>Account Name:</span> <strong>${CONFIG.BANK_DETAILS.accountName}</strong></div>
+                <div class="bank-row"><span>Account Number:</span> <strong>${CONFIG.BANK_DETAILS.accountNumber}</strong></div>
+                <div class="bank-row"><span>Branch:</span> <strong>${CONFIG.BANK_DETAILS.branch}</strong></div>
+                <div class="bank-row"><span>Reference:</span> <strong>${quotationNumber}</strong></div>
+            </div>
+            <p class="bank-note">Please use your quotation number as the payment reference. Your ad will be processed once payment is confirmed.</p>
+        </div>
+    ` : '';
+
+    content.innerHTML = `
+        <div class="success-content">
+            <div class="success-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+            </div>
+            <h2>${paymentMethod === 'card' ? 'Payment Successful!' : 'Booking Submitted!'}</h2>
+            <p class="success-message">
+                ${paymentMethod === 'card'
+                    ? 'Your payment has been processed and your ad booking is confirmed.'
+                    : 'Your ad booking has been received. Please complete the payment to confirm.'}
+            </p>
+
+            <div class="confirmation-details">
+                <div class="confirmation-row">
+                    <span>Quotation Number:</span>
+                    <strong class="quotation-highlight">${quotationNumber}</strong>
+                </div>
+                <div class="confirmation-row">
+                    <span>Confirmation Email:</span>
+                    <strong>${email}</strong>
+                </div>
+                <div class="confirmation-row">
+                    <span>Total Amount:</span>
+                    <strong>${formatCurrency(total)}</strong>
+                </div>
+            </div>
+
+            <div class="order-items">
+                <h4>Your Order</h4>
+                ${itemsList}
+            </div>
+
+            ${bankDetails}
+
+            <div class="success-actions">
+                <a href="index.html" class="btn btn-primary">Return to Home</a>
+                <button class="btn btn-ghost" onclick="window.print()">Print Confirmation</button>
+            </div>
+
+            <p class="contact-info">
+                Questions? Contact us at <a href="mailto:${CONFIG.COMPANY.email}">${CONFIG.COMPANY.email}</a>
+                or call <a href="tel:${CONFIG.COMPANY.phone.replace(/\s/g, '')}">${CONFIG.COMPANY.phone}</a>
+            </p>
+        </div>
+    `;
+
+    modal.classList.add('active');
+
+    // Clear cart after successful submission
+    adCart = [];
 }
 
 /**

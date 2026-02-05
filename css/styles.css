@@ -2566,3 +2566,362 @@ select:focus {
 .mobile-menu-content .btn {
     margin-top: var(--space-md);
 }
+
+/* ============================================
+   UX Enhancement Styles
+   ============================================ */
+
+/* Form Field Error States */
+.field-error {
+    border-color: var(--error) !important;
+    background-color: rgba(239, 68, 68, 0.05) !important;
+}
+
+.field-error:focus {
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+}
+
+/* Date Warning Styles */
+#dateWarning {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid var(--error);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    margin-top: var(--space-sm);
+}
+
+#dateWarning p {
+    color: var(--error);
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+#dateWarning.warning {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: var(--warning);
+}
+
+#dateWarning.warning p {
+    color: #b45309;
+}
+
+/* Success Modal Styles */
+.success-content {
+    text-align: center;
+    padding: var(--space-lg);
+}
+
+.success-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto var(--space-lg);
+    background: linear-gradient(135deg, var(--success), #059669);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.success-icon svg {
+    width: 40px;
+    height: 40px;
+    stroke: white;
+}
+
+.success-content h2 {
+    color: var(--success);
+    margin-bottom: var(--space-sm);
+}
+
+.success-message {
+    color: var(--gray-600);
+    margin-bottom: var(--space-xl);
+}
+
+.confirmation-details {
+    background: var(--gray-50);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
+    text-align: left;
+}
+
+.confirmation-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-sm) 0;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.confirmation-row:last-child {
+    border-bottom: none;
+}
+
+.confirmation-row span {
+    color: var(--gray-600);
+}
+
+.quotation-highlight {
+    font-size: 1.25rem;
+    color: var(--primary);
+}
+
+.order-items {
+    text-align: left;
+    margin-bottom: var(--space-lg);
+}
+
+.order-items h4 {
+    margin-bottom: var(--space-md);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--gray-500);
+}
+
+.confirmation-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--space-xs);
+    padding: var(--space-md);
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-sm);
+}
+
+.confirmation-item strong {
+    grid-column: 1;
+}
+
+.confirmation-item span:last-child {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    font-weight: 600;
+    color: var(--primary);
+    align-self: center;
+}
+
+/* Bank Details Box */
+.bank-details-box {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    color: white;
+    text-align: left;
+    margin-bottom: var(--space-lg);
+}
+
+.bank-details-box h4 {
+    color: white;
+    margin-bottom: var(--space-md);
+    font-size: 1rem;
+}
+
+.bank-info {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+}
+
+.bank-row {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--space-xs) 0;
+    font-size: 0.875rem;
+}
+
+.bank-row span {
+    opacity: 0.8;
+}
+
+.bank-note {
+    margin-top: var(--space-md);
+    font-size: 0.8125rem;
+    opacity: 0.9;
+}
+
+/* Success Actions */
+.success-actions {
+    display: flex;
+    gap: var(--space-md);
+    justify-content: center;
+    margin-bottom: var(--space-lg);
+}
+
+.contact-info {
+    font-size: 0.875rem;
+    color: var(--gray-500);
+}
+
+.contact-info a {
+    color: var(--primary);
+}
+
+/* Notification Improvements */
+.notification {
+    position: fixed;
+    top: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 400px;
+    width: 90%;
+    padding: var(--space-md) var(--space-lg);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    z-index: 10000;
+    animation: slideDown 0.3s ease;
+    box-shadow: var(--shadow-xl);
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+.notification-success {
+    background: var(--success);
+    color: white;
+}
+
+.notification-warning {
+    background: var(--warning);
+    color: white;
+}
+
+.notification-error {
+    background: var(--error);
+    color: white;
+}
+
+.notification-info {
+    background: var(--primary);
+    color: white;
+}
+
+.notification button {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.25rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.notification button:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Print Styles */
+@media print {
+    .success-actions,
+    .notification,
+    .navbar,
+    .admin-sidebar {
+        display: none !important;
+    }
+
+    .modal {
+        position: static;
+        background: white;
+    }
+
+    .modal-content {
+        box-shadow: none;
+        max-height: none;
+        overflow: visible;
+    }
+
+    .success-content {
+        padding: 0;
+    }
+
+    .bank-details-box {
+        background: white;
+        color: var(--gray-900);
+        border: 2px solid var(--gray-300);
+    }
+
+    .bank-details-box h4 {
+        color: var(--gray-900);
+    }
+
+    .bank-info {
+        background: var(--gray-100);
+    }
+}
+
+/* Customer Info Grid (Admin) */
+.customer-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-xl);
+    margin-bottom: var(--space-xl);
+}
+
+.info-section h4 {
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--gray-500);
+    margin-bottom: var(--space-md);
+}
+
+.info-section p {
+    margin-bottom: var(--space-sm);
+}
+
+.customer-orders {
+    margin-top: var(--space-xl);
+}
+
+.data-table.compact {
+    font-size: 0.8125rem;
+}
+
+.data-table.compact th,
+.data-table.compact td {
+    padding: var(--space-sm) var(--space-md);
+}
+
+/* Form Section Title */
+.form-section-title {
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--gray-500);
+    margin-top: var(--space-lg);
+    margin-bottom: var(--space-md);
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--gray-200);
+}
+
+/* Three Column Form Row */
+.form-row.three-col {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 768px) {
+    .form-row.three-col {
+        grid-template-columns: 1fr;
+    }
+
+    .customer-info-grid {
+        grid-template-columns: 1fr;
+    }
+}

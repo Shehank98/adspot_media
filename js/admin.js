@@ -673,6 +673,9 @@ async function viewQuotation(id) {
                 <strong>${formatCurrency(quotation.total_amount)}</strong>
             </div>
             <div class="quotation-actions">
+                <button class="btn btn-ghost" onclick="downloadInvoice('${quotation.id}')">
+                    Download PDF
+                </button>
                 <button class="btn btn-primary" onclick="sendInvoice('${quotation.quotation_number}', '${quotation.customer?.email || ''}')">
                     Send Invoice
                 </button>
@@ -733,16 +736,43 @@ async function handleSendInvoice() {
         return;
     }
 
+    const sendBtn = document.getElementById('sendInvoiceBtn');
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Sending...';
+
     try {
-        // In production, send actual email with PDF invoice
+        // Get quotation details
+        let quotation = null;
+        if (typeof QuotationDB !== 'undefined') {
+            quotation = await QuotationDB.getByNumber(quotationNumber);
+        }
+
+        if (!quotation) {
+            showToast('Quotation not found', 'error');
+            return;
+        }
+
+        const customer = quotation.customer || { email: email, name: 'Customer' };
+
+        // Generate PDF invoice
+        let pdfBase64 = null;
+        if (typeof InvoiceGenerator !== 'undefined') {
+            pdfBase64 = InvoiceGenerator.getBase64(quotation, customer);
+        }
+
+        // Send email with PDF attachment
         if (typeof EmailService !== 'undefined') {
-            // await EmailService.sendInvoice(quotationNumber, email, message);
+            await EmailService.sendInvoice(quotation, customer, pdfBase64);
         }
 
         showToast('Invoice sent successfully!', 'success');
         document.getElementById('sendInvoiceModal').classList.remove('active');
     } catch (error) {
+        console.error('Failed to send invoice:', error);
         showToast('Failed to send invoice', 'error');
+    } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Send Invoice';
     }
 }
 
@@ -1169,9 +1199,39 @@ function debounce(func, wait) {
     };
 }
 
+/**
+ * Download invoice as PDF
+ */
+async function downloadInvoice(quotationId) {
+    try {
+        let quotation = null;
+        if (typeof QuotationDB !== 'undefined') {
+            quotation = await QuotationDB.getById(quotationId);
+        }
+
+        if (!quotation) {
+            showToast('Quotation not found', 'error');
+            return;
+        }
+
+        const customer = quotation.customer || { name: 'Customer', email: '', phone: '' };
+
+        if (typeof InvoiceGenerator !== 'undefined') {
+            InvoiceGenerator.download(quotation, customer);
+            showToast('Invoice downloaded!', 'success');
+        } else {
+            showToast('PDF generator not available', 'error');
+        }
+    } catch (error) {
+        console.error('Error downloading invoice:', error);
+        showToast('Failed to download invoice', 'error');
+    }
+}
+
 // Make functions globally available
 window.viewQuotation = viewQuotation;
 window.sendInvoice = sendInvoice;
 window.confirmPayment = confirmPayment;
 window.editPublication = editPublication;
 window.viewCustomer = viewCustomer;
+window.downloadInvoice = downloadInvoice;
