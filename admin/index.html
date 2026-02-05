@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login | AdSpot</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body class="admin-login-page">
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <a href="../index.html" class="logo">
+                    <span class="logo-icon">◈</span>
+                    <span class="logo-text">AdSpot</span>
+                </a>
+                <h1>Admin Access</h1>
+                <p>Sign in to manage your business</p>
+            </div>
+
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="adminEmail" required placeholder="admin@adspot.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <div class="password-input">
+                        <input type="password" id="adminPassword" required placeholder="Enter password">
+                        <button type="button" class="toggle-password" aria-label="Toggle password">
+                            <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            <svg class="eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="display:none;">
+                                <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/>
+                                <line x1="1" y1="1" x2="23" y2="23"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div id="loginError" class="form-error" style="display: none;"></div>
+                <button type="submit" class="btn btn-primary btn-full">
+                    <span id="loginText">Sign In</span>
+                    <span id="loginLoader" class="loader" style="display: none;"></span>
+                </button>
+            </form>
+
+            <a href="../index.html" class="back-home">← Back to Website</a>
+        </div>
+
+        <div class="login-decoration">
+            <div class="deco-circle c1"></div>
+            <div class="deco-circle c2"></div>
+            <div class="deco-circle c3"></div>
+        </div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/supabase.js"></script>
+    <script>
+        // Toggle password visibility
+        document.querySelector('.toggle-password').addEventListener('click', function() {
+            const input = document.getElementById('adminPassword');
+            const eyeOpen = this.querySelector('.eye-open');
+            const eyeClosed = this.querySelector('.eye-closed');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                eyeOpen.style.display = 'none';
+                eyeClosed.style.display = 'block';
+            } else {
+                input.type = 'password';
+                eyeOpen.style.display = 'block';
+                eyeClosed.style.display = 'none';
+            }
+        });
+
+        // Login form handler
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('adminEmail').value;
+            const password = document.getElementById('adminPassword').value;
+            const loginText = document.getElementById('loginText');
+            const loginLoader = document.getElementById('loginLoader');
+            const errorDiv = document.getElementById('loginError');
+            
+            loginText.style.display = 'none';
+            loginLoader.style.display = 'block';
+            errorDiv.style.display = 'none';
+            
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) throw error;
+                
+                // Redirect to dashboard
+                window.location.href = 'dashboard.html';
+            } catch (error) {
+                errorDiv.textContent = error.message || 'Invalid credentials';
+                errorDiv.style.display = 'block';
+                loginText.style.display = 'block';
+                loginLoader.style.display = 'none';
+            }
+        });
+
+        // Check if already logged in
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) {
+                window.location.href = 'dashboard.html';
+            }
+        });
+    </script>
+</body>
+</html>

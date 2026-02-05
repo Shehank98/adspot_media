@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | AdSpot Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body class="admin-page">
+    <!-- Admin Sidebar -->
+    <aside class="admin-sidebar">
+        <div class="sidebar-header">
+            <a href="../index.html" class="logo">
+                <span class="logo-icon">◈</span>
+                <span class="logo-text">AdSpot</span>
+            </a>
+            <span class="admin-badge">Admin</span>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item active" data-section="dashboard">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="3" y="3" width="7" height="7"/>
+                    <rect x="14" y="3" width="7" height="7"/>
+                    <rect x="14" y="14" width="7" height="7"/>
+                    <rect x="3" y="14" width="7" height="7"/>
+                </svg>
+                Dashboard
+            </a>
+            <a href="#" class="nav-item" data-section="quotations">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+                Quotations
+            </a>
+            <a href="#" class="nav-item" data-section="payments">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="1" y="4" width="22" height="16" rx="2"/>
+                    <line x1="1" y1="10" x2="23" y2="10"/>
+                </svg>
+                Payments
+            </a>
+            <a href="#" class="nav-item" data-section="publications">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
+                </svg>
+                Publications
+            </a>
+            <a href="#" class="nav-item" data-section="customers">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 010 7.75"/>
+                </svg>
+                Customers
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <button id="logoutBtn" class="logout-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                Sign Out
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="admin-main">
+        <!-- Top Bar -->
+        <header class="admin-topbar">
+            <button class="mobile-sidebar-toggle">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
+            <div class="topbar-search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="text" id="globalSearch" placeholder="Search quotations, customers...">
+            </div>
+            <div class="topbar-actions">
+                <span id="adminName">Admin</span>
+            </div>
+        </header>
+
+        <!-- Dashboard Section -->
+        <section id="dashboardSection" class="admin-section active">
+            <div class="section-header">
+                <h1>Dashboard</h1>
+                <p>Overview of your business</p>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="totalQuotations">0</span>
+                        <span class="stat-label">Total Quotations</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <line x1="12" y1="1" x2="12" y2="23"/>
+                            <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+                        </svg>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="totalRevenue">LKR 0</span>
+                        <span class="stat-label">Total Revenue</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon orange">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="pendingPayments">0</span>
+                        <span class="stat-label">Pending Payments</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon purple">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                        </svg>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="totalCustomers">0</span>
+                        <span class="stat-label">Total Customers</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3>Recent Quotations</h3>
+                        <a href="#" data-section="quotations" class="view-all">View All</a>
+                    </div>
+                    <div class="card-content">
+                        <table class="data-table compact">
+                            <thead>
+                                <tr>
+                                    <th>Quote #</th>
+                                    <th>Customer</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentQuotations">
+                                <tr><td colspan="4" class="loading">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3>Recent Payments</h3>
+                        <a href="#" data-section="payments" class="view-all">View All</a>
+                    </div>
+                    <div class="card-content">
+                        <table class="data-table compact">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Quote #</th>
+                                    <th>Amount</th>
+                                    <th>Method</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentPayments">
+                                <tr><td colspan="4" class="loading">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quotations Section -->
+        <section id="quotationsSection" class="admin-section">
+            <div class="section-header">
+                <h1>Quotations</h1>
+                <p>Manage all ad bookings and quotations</p>
+            </div>
+
+            <div class="section-toolbar">
+                <div class="toolbar-filters">
+                    <select id="quotationStatusFilter">
+                        <option value="">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="paid">Paid</option>
+                        <option value="published">Published</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                    <input type="date" id="quotationDateFilter" placeholder="Filter by date">
+                </div>
+                <button class="btn btn-primary" id="exportQuotations">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Export CSV
+                </button>
+            </div>
+
+            <div class="data-card">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Quote #</th>
+                            <th>Customer</th>
+                            <th>Publication</th>
+                            <th>Ad Type</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="quotationsTable">
+                        <tr><td colspan="8" class="loading">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Payments Section -->
+        <section id="paymentsSection" class="admin-section">
+            <div class="section-header">
+                <h1>Payments</h1>
+                <p>Track and manage all payments</p>
+            </div>
+
+            <div class="section-toolbar">
+                <div class="toolbar-filters">
+                    <select id="paymentMethodFilter">
+                        <option value="">All Methods</option>
+                        <option value="card">Card</option>
+                        <option value="bank">Bank Transfer</option>
+                    </select>
+                    <select id="paymentStatusFilter">
+                        <option value="">All Status</option>
+                        <option value="completed">Completed</option>
+                        <option value="pending">Pending</option>
+                        <option value="failed">Failed</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" id="recordPayment">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    Record Payment
+                </button>
+            </div>
+
+            <div class="data-card">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Payment ID</th>
+                            <th>Quote #</th>
+                            <th>Customer</th>
+                            <th>Amount</th>
+                            <th>Method</th>
+                            <th>Reference</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="paymentsTable">
+                        <tr><td colspan="9" class="loading">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Publications Section -->
+        <section id="publicationsSection" class="admin-section">
+            <div class="section-header">
+                <h1>Publications</h1>
+                <p>Manage newspapers and publication rates</p>
+            </div>
+
+            <div class="section-toolbar">
+                <div class="toolbar-filters">
+                    <select id="pubGroupFilter">
+                        <option value="">All Groups</option>
+                        <option value="lake-house">Lake House</option>
+                        <option value="wijeya">Wijeya</option>
+                        <option value="upali">Upali</option>
+                        <option value="express">Express</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" id="addPublication">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    Add Publication
+                </button>
+            </div>
+
+            <div class="publications-grid" id="publicationsGrid">
+                <!-- Populated by JavaScript -->
+            </div>
+        </section>
+
+        <!-- Customers Section -->
+        <section id="customersSection" class="admin-section">
+            <div class="section-header">
+                <h1>Customers</h1>
+                <p>Manage your customer database</p>
+            </div>
+
+            <div class="section-toolbar">
+                <div class="toolbar-search">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input type="text" id="customerSearch" placeholder="Search customers...">
+                </div>
+                <button class="btn btn-primary" id="exportCustomers">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Export CSV
+                </button>
+            </div>
+
+            <div class="data-card">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Company</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Total Orders</th>
+                            <th>Total Spent</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customersTable">
+                        <tr><td colspan="7" class="loading">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modals -->
+    <!-- View Quotation Modal -->
+    <div id="viewQuotationModal" class="modal">
+        <div class="modal-content modal-large">
+            <button class="modal-close">&times;</button>
+            <div id="quotationDetails">
+                <!-- Populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Record Payment Modal -->
+    <div id="recordPaymentModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close">&times;</button>
+            <h2>Record Payment</h2>
+            <form id="recordPaymentForm">
+                <div class="form-group">
+                    <label class="form-label">Quotation Number</label>
+                    <input type="text" id="paymentQuotationNum" required placeholder="QM-2026-0001">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Amount (LKR)</label>
+                    <input type="number" id="paymentAmount" required min="0" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Payment Method</label>
+                    <select id="paymentMethodSelect" required>
+                        <option value="bank">Bank Transfer</option>
+                        <option value="card">Card</option>
+                        <option value="cash">Cash</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Reference Number</label>
+                    <input type="text" id="paymentReference" placeholder="Bank reference or transaction ID">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notes</label>
+                    <textarea id="paymentNotes" rows="2"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-ghost modal-cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Record Payment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add/Edit Publication Modal -->
+    <div id="publicationModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close">&times;</button>
+            <h2 id="pubModalTitle">Add Publication</h2>
+            <form id="publicationForm">
+                <input type="hidden" id="pubId">
+                <div class="form-group">
+                    <label class="form-label">Publication Group</label>
+                    <select id="pubGroup" required>
+                        <option value="lake-house">Lake House</option>
+                        <option value="wijeya">Wijeya</option>
+                        <option value="upali">Upali</option>
+                        <option value="express">Express</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Newspaper Name</label>
+                    <input type="text" id="pubName" required placeholder="Daily News">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Language</label>
+                    <select id="pubLanguage" required>
+                        <option value="english">English</option>
+                        <option value="sinhala">Sinhala</option>
+                        <option value="tamil">Tamil</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Box Ad Rate (per sq cm)</label>
+                        <input type="number" id="pubBoxRate" required min="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Color Multiplier</label>
+                        <input type="number" id="pubColorMultiplier" value="1.5" min="1" step="0.1">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Classified Rate (per word)</label>
+                        <input type="number" id="pubClassifiedRate" required min="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Min Words</label>
+                        <input type="number" id="pubMinWords" value="15" min="1">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="pubActive" checked>
+                        <span>Active</span>
+                    </label>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-ghost modal-cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Publication</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Send Invoice Modal -->
+    <div id="sendInvoiceModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close">&times;</button>
+            <h2>Send Invoice</h2>
+            <p>Send invoice to customer for quotation <strong id="invoiceQuoteNum"></strong></p>
+            <div class="form-group">
+                <label class="form-label">Customer Email</label>
+                <input type="email" id="invoiceEmail" readonly>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Additional Message (Optional)</label>
+                <textarea id="invoiceMessage" rows="3" placeholder="Add a personal note..."></textarea>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-ghost modal-cancel">Cancel</button>
+                <button type="button" id="sendInvoiceBtn" class="btn btn-primary">Send Invoice</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/supabase.js"></script>
+    <script src="../js/admin.js"></script>
+</body>
+</html>
