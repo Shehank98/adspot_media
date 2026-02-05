@@ -621,35 +621,250 @@
     to { opacity: 1; transform: translateX(0); }
 }
 
+/* ============================================
+   FIX: Form Action Buttons (Smaller Sizes)
+   ============================================ */
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.form-actions .btn {
+    flex: none !important;
+    min-width: 140px;
+    padding: 0.75rem 1.5rem !important;
+    height: auto !important;
+    max-height: 48px !important;
+}
+
+.form-actions .btn svg {
+    width: 18px !important;
+    height: 18px !important;
+    flex-shrink: 0;
+}
+
+.form-actions .btn.btn-ghost {
+    background: var(--gray-100);
+    color: var(--gray-700);
+}
+
+.form-actions .btn.btn-success,
+.form-actions .btn.next-step {
+    background: var(--success);
+    color: white;
+}
+
+/* Override btn-lg to be reasonable size */
+.btn-lg, .btn-xxl {
+    padding: 0.75rem 1.5rem !important;
+    font-size: 1rem !important;
+    height: auto !important;
+    max-height: 48px !important;
+}
+
+/* ============================================
+   FIX: Newspaper Card Layout
+   ============================================ */
+.newspaper-card .card-content {
+    display: grid !important;
+    grid-template-columns: auto 1fr auto auto;
+    grid-template-rows: auto auto;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    padding: 0.875rem 1rem;
+    min-height: 70px;
+}
+
+.newspaper-card .lang-badge {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    background: var(--gray-100);
+    color: var(--gray-600);
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.newspaper-card .paper-name {
+    grid-column: 2;
+    grid-row: 1;
+    font-weight: 600;
+    color: var(--gray-900);
+    font-size: 0.9375rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.newspaper-card .paper-rate {
+    grid-column: 2;
+    grid-row: 2;
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    white-space: nowrap;
+}
+
+.newspaper-card .sunday-badge {
+    grid-column: 3;
+    grid-row: 1 / 3;
+    background: var(--warning);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+/* ============================================
+   FIX: Newspaper Preview
+   ============================================ */
+#newspaperPreview {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: var(--radius-lg);
+    display: flex;
+    justify-content: center;
+}
+
+.newspaper-outline {
+    background: white;
+    border: 2px solid var(--gray-300);
+    border-radius: 4px;
+    position: relative;
+    box-shadow: var(--shadow-md);
+}
+
+.newspaper-header {
+    padding: 8px 10px;
+    border-bottom: 2px solid var(--gray-800);
+    text-align: center;
+}
+
+.newspaper-header .paper-title {
+    display: block;
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: var(--gray-900);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.newspaper-header .paper-size {
+    display: block;
+    font-size: 0.625rem;
+    color: var(--gray-500);
+    margin-top: 2px;
+}
+
+.ad-placement {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background: var(--primary-pale);
+    border: 2px dashed var(--primary);
+    border-radius: 2px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    min-width: 40px;
+    min-height: 30px;
+}
+
+.ad-placement .ad-label {
+    font-size: 0.5rem;
+    font-weight: 700;
+    color: var(--primary);
+    text-transform: uppercase;
+}
+
+.ad-placement .ad-size {
+    font-size: 0.5rem;
+    color: var(--primary-dark);
+    white-space: nowrap;
+}
+
+/* ============================================
+   FIX: Date Warning
+   ============================================ */
+#dateWarning {
+    display: none;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid var(--error);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1rem;
+    margin-top: 0.5rem;
+}
+
+#dateWarning p {
+    color: var(--error);
+    font-size: 0.8125rem;
+    margin: 0;
+}
+
+#dateWarning.warning {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: var(--warning);
+}
+
+#dateWarning.warning p {
+    color: #b45309;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .publication-groups {
         grid-template-columns: 1fr 1fr;
     }
-    
+
     .newspaper-grid {
         grid-template-columns: 1fr;
     }
-    
+
+    .newspaper-card .card-content {
+        grid-template-columns: auto 1fr auto;
+    }
+
+    .newspaper-card .sunday-badge {
+        grid-column: 3;
+        grid-row: 1;
+    }
+
     .preview-info {
         flex-direction: column;
         gap: 0.5rem;
     }
-    
+
     .word-counter {
         flex-direction: column;
         align-items: flex-start;
     }
-    
+
     .cart-item {
         flex-wrap: wrap;
     }
-    
+
     .cart-item-price {
         width: 100%;
         text-align: right;
         margin-top: 0.5rem;
         padding-top: 0.5rem;
         border-top: 1px dashed var(--gray-200);
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .form-actions .btn {
+        width: 100%;
+        justify-content: center;
     }
 }

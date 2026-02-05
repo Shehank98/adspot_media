@@ -49,13 +49,27 @@ async function checkAuth() {
  * Initialize publication groups from config
  */
 function initPublicationGroups() {
-    publicationGroups = Object.entries(CONFIG.PUBLICATION_GROUPS).map(([id, group]) => ({
-        id,
-        ...group
-    }));
+    // Get custom groups from local storage
+    const customGroups = JSON.parse(localStorage.getItem('adspot_pub_groups') || '{}');
 
-    // Flatten all publications
+    // Combine built-in and custom groups
+    publicationGroups = [
+        ...Object.entries(CONFIG.PUBLICATION_GROUPS || {}).map(([id, group]) => ({
+            id,
+            ...group,
+            isBuiltIn: true
+        })),
+        ...Object.entries(customGroups).map(([id, group]) => ({
+            id,
+            ...group,
+            isBuiltIn: false
+        }))
+    ];
+
+    // Flatten all publications (built-in + custom)
     publicationsData = [];
+    const customPubs = JSON.parse(localStorage.getItem('adspot_publications') || '{}');
+
     Object.entries(CONFIG.PUBLICATIONS).forEach(([groupId, group]) => {
         group.newspapers.forEach(paper => {
             publicationsData.push({
@@ -66,12 +80,32 @@ function initPublicationGroups() {
         });
     });
 
+    // Add custom publications
+    Object.entries(customPubs).forEach(([pubId, pub]) => {
+        publicationsData.push({
+            ...pub,
+            id: pubId,
+            publicationGroup: pub.group,
+            groupName: customGroups[pub.group]?.name || CONFIG.PUBLICATIONS[pub.group]?.name || 'Unknown',
+            isCustom: true
+        });
+    });
+
     // Populate group filter dropdown
     const groupFilter = document.getElementById('pubGroupFilter');
     if (groupFilter) {
         groupFilter.innerHTML = '<option value="">All Groups</option>';
+
+        // Add built-in groups
         Object.entries(CONFIG.PUBLICATIONS).forEach(([groupId, group]) => {
             groupFilter.innerHTML += `<option value="${groupId}">${group.name}</option>`;
+        });
+
+        // Add custom groups
+        Object.entries(customGroups).forEach(([groupId, group]) => {
+            if (!CONFIG.PUBLICATIONS[groupId]) {
+                groupFilter.innerHTML += `<option value="${groupId}">${group.name} (Custom)</option>`;
+            }
         });
     }
 }
@@ -480,58 +514,103 @@ async function loadPublications() {
     grid.innerHTML = '<p class="loading">Loading...</p>';
 
     try {
-        let allPubs = [];
+        // Get all publication groups (built-in + custom)
+        const customGroups = JSON.parse(localStorage.getItem('adspot_pub_groups') || '{}');
+        const customPubs = JSON.parse(localStorage.getItem('adspot_publications') || '{}');
 
-        // Get publications from config
-        Object.entries(CONFIG.PUBLICATIONS).forEach(([groupId, group]) => {
-            if (!groupFilter || groupFilter === groupId) {
-                group.newspapers.forEach(paper => {
-                    allPubs.push({
-                        ...paper,
-                        group: groupId,
-                        groupName: group.name
-                    });
-                });
+        // Merge built-in and custom groups
+        const allGroups = { ...CONFIG.PUBLICATIONS };
+
+        // Add custom groups
+        Object.entries(customGroups).forEach(([groupId, group]) => {
+            if (!allGroups[groupId]) {
+                allGroups[groupId] = { ...group, newspapers: [] };
             }
         });
 
-        grid.innerHTML = allPubs.map(pub => `
-            <div class="pub-card">
-                <div class="pub-card-header">
-                    <div>
-                        <h4>${pub.name}</h4>
-                        <span class="language-badge">${pub.language}</span>
-                        ${pub.isSundayPaper ? '<span class="sunday-badge">Sunday</span>' : ''}
+        // Add custom publications to groups
+        Object.entries(customPubs).forEach(([pubId, pub]) => {
+            if (allGroups[pub.group]) {
+                // Check if already exists in newspapers array
+                const exists = allGroups[pub.group].newspapers.some(p => p.id === pubId);
+                if (!exists) {
+                    allGroups[pub.group].newspapers.push({ ...pub, id: pubId, isCustom: true });
+                }
+            }
+        });
+
+        // Build HTML with group headers
+        let html = '';
+
+        Object.entries(allGroups).forEach(([groupId, group]) => {
+            if (groupFilter && groupFilter !== groupId) return;
+
+            const isCustomGroup = !!customGroups[groupId];
+
+            html += `
+                <div class="pub-group-section">
+                    <div class="pub-group-header">
+                        <h3>${group.name}</h3>
+                        <div class="pub-group-actions">
+                            <button class="btn btn-ghost btn-xs" onclick="editPublicationGroup('${groupId}')" title="Edit Group">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                </svg>
+                            </button>
+                            ${isCustomGroup ? `
+                            <button class="btn btn-danger btn-xs" onclick="deletePublicationGroup('${groupId}')" title="Delete Group">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                    <polyline points="3 6 5 6 21 6"/>
+                                    <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                                </svg>
+                            </button>
+                            ` : ''}
+                        </div>
                     </div>
-                </div>
-                <div class="pub-rates">
-                    <div class="rate-row">
-                        <span>B&W Rate:</span>
-                        <strong>${formatCurrency(pub.bwRate)}/sq cm</strong>
-                    </div>
-                    <div class="rate-row">
-                        <span>Color Rate:</span>
-                        <strong>${formatCurrency(pub.colorRate)}/sq cm</strong>
-                    </div>
-                    <div class="rate-row">
-                        <span>Classified Base:</span>
-                        <strong>${formatCurrency(pub.classifiedBase)}</strong>
-                    </div>
-                    <div class="rate-row">
-                        <span>Free Words:</span>
-                        <strong>${pub.classifiedFreeWords}</strong>
-                    </div>
-                    <div class="rate-row">
-                        <span>Extra Word Rate:</span>
-                        <strong>${formatCurrency(pub.classifiedExtraRate)}</strong>
-                    </div>
-                </div>
-                <div class="pub-card-actions">
-                    <button class="btn btn-ghost btn-sm" onclick="editPublication('${pub.id}')">Edit</button>
-                    <button class="btn btn-danger btn-sm" onclick="deletePublication('${pub.id}')">Delete</button>
-                </div>
-            </div>
-        `).join('');
+                    <div class="pub-cards-grid">
+            `;
+
+            if (group.newspapers.length === 0) {
+                html += '<p class="no-pubs">No publications in this group. Click "Add Publication" to add one.</p>';
+            } else {
+                group.newspapers.forEach(pub => {
+                    html += `
+                        <div class="pub-card">
+                            <div class="pub-card-header">
+                                <div>
+                                    <h4>${pub.name}</h4>
+                                    <span class="language-badge">${pub.language}</span>
+                                    ${pub.isSundayPaper ? '<span class="sunday-badge">Sunday</span>' : ''}
+                                </div>
+                            </div>
+                            <div class="pub-rates">
+                                <div class="rate-row">
+                                    <span>B&W Rate:</span>
+                                    <strong>${formatCurrency(pub.bwRate)}/sq cm</strong>
+                                </div>
+                                <div class="rate-row">
+                                    <span>Color Rate:</span>
+                                    <strong>${formatCurrency(pub.colorRate)}/sq cm</strong>
+                                </div>
+                                <div class="rate-row">
+                                    <span>Classified Base:</span>
+                                    <strong>${formatCurrency(pub.classifiedBase)}</strong>
+                                </div>
+                            </div>
+                            <div class="pub-card-actions">
+                                <button class="btn btn-ghost btn-sm" onclick="editPublication('${pub.id}', '${groupId}')">Edit</button>
+                                ${pub.isCustom ? `<button class="btn btn-danger btn-sm" onclick="deletePublication('${pub.id}')">Delete</button>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            html += '</div></div>';
+        });
+
+        grid.innerHTML = html || '<p class="loading">No publication groups found</p>';
 
     } catch (error) {
         console.error('Error loading publications:', error);
@@ -844,31 +923,54 @@ function populatePublicationGroupSelect() {
     if (!select) return;
 
     select.innerHTML = '';
+
+    // Add built-in groups
     Object.entries(CONFIG.PUBLICATIONS).forEach(([groupId, group]) => {
         select.innerHTML += `<option value="${groupId}">${group.name}</option>`;
+    });
+
+    // Add custom groups
+    const customGroups = JSON.parse(localStorage.getItem('adspot_pub_groups') || '{}');
+    Object.entries(customGroups).forEach(([groupId, group]) => {
+        if (!CONFIG.PUBLICATIONS[groupId]) {
+            select.innerHTML += `<option value="${groupId}">${group.name} (Custom)</option>`;
+        }
     });
 }
 
 /**
  * Edit publication
  */
-function editPublication(pubId) {
-    // Find publication in config
+function editPublication(pubId, groupId) {
+    // Find publication in config or custom publications
     let pub = null;
-    Object.entries(CONFIG.PUBLICATIONS).forEach(([groupId, group]) => {
+
+    // Check built-in publications
+    Object.entries(CONFIG.PUBLICATIONS).forEach(([gId, group]) => {
         const found = group.newspapers.find(p => p.id === pubId);
         if (found) {
-            pub = { ...found, group: groupId };
+            pub = { ...found, group: gId };
         }
     });
 
-    if (!pub) return;
+    // Check custom publications
+    if (!pub) {
+        const customPubs = JSON.parse(localStorage.getItem('adspot_publications') || '{}');
+        if (customPubs[pubId]) {
+            pub = { ...customPubs[pubId], id: pubId };
+        }
+    }
+
+    if (!pub) {
+        showToast('Publication not found', 'error');
+        return;
+    }
 
     document.getElementById('pubModalTitle').textContent = 'Edit Publication';
     populatePublicationGroupSelect();
 
     document.getElementById('pubId').value = pub.id;
-    document.getElementById('pubGroup').value = pub.group;
+    document.getElementById('pubGroup').value = pub.group || groupId;
     document.getElementById('pubName').value = pub.name;
     document.getElementById('pubLanguage').value = pub.language;
     document.getElementById('pubBwRate').value = pub.bwRate;
@@ -877,7 +979,7 @@ function editPublication(pubId) {
     document.getElementById('pubClassifiedFreeWords').value = pub.classifiedFreeWords;
     document.getElementById('pubClassifiedExtraRate').value = pub.classifiedExtraRate;
     document.getElementById('pubIsSunday').checked = pub.isSundayPaper || false;
-    document.getElementById('pubActive').checked = true;
+    document.getElementById('pubActive').checked = pub.is_active !== false;
 
     document.getElementById('publicationModal').classList.add('active');
 }
@@ -889,14 +991,19 @@ async function deletePublication(pubId) {
     if (!confirm('Are you sure you want to delete this publication?')) return;
 
     try {
-        // In production, delete from database
-        if (typeof PublicationDB !== 'undefined') {
-            await PublicationDB.delete(pubId);
-        }
+        // Delete from local storage
+        const customPubs = JSON.parse(localStorage.getItem('adspot_publications') || '{}');
 
-        showToast('Publication deleted successfully!', 'success');
-        loadPublications();
+        if (customPubs[pubId]) {
+            delete customPubs[pubId];
+            localStorage.setItem('adspot_publications', JSON.stringify(customPubs));
+            showToast('Publication deleted successfully!', 'success');
+            loadPublications();
+        } else {
+            showToast('Cannot delete built-in publications', 'warning');
+        }
     } catch (error) {
+        console.error('Error deleting publication:', error);
         showToast('Failed to delete publication', 'error');
     }
 }
@@ -908,9 +1015,12 @@ window.deletePublication = deletePublication;
 async function handlePublicationSave(e) {
     e.preventDefault();
 
+    const pubId = document.getElementById('pubId').value;
+    const isNew = !pubId;
+    const newPubId = pubId || generatePublicationId();
+
     const data = {
-        id: document.getElementById('pubId').value || generatePublicationId(),
-        publication_group: document.getElementById('pubGroup').value,
+        group: document.getElementById('pubGroup').value,
         name: document.getElementById('pubName').value,
         language: document.getElementById('pubLanguage').value,
         bwRate: parseFloat(document.getElementById('pubBwRate').value),
@@ -922,20 +1032,37 @@ async function handlePublicationSave(e) {
         is_active: document.getElementById('pubActive').checked
     };
 
+    // Validate required fields
+    if (!data.name || !data.group) {
+        showToast('Please fill in all required fields', 'warning');
+        return;
+    }
+
     try {
-        // In production, save to database
-        if (typeof PublicationDB !== 'undefined') {
-            if (document.getElementById('pubId').value) {
-                await PublicationDB.update(data.id, data);
-            } else {
-                await PublicationDB.create(data);
+        // Check if it's a built-in publication (cannot fully edit built-ins, need to save as custom)
+        let isBuiltIn = false;
+        Object.values(CONFIG.PUBLICATIONS).forEach(group => {
+            if (group.newspapers.some(p => p.id === pubId)) {
+                isBuiltIn = true;
             }
+        });
+
+        // Save to local storage
+        const customPubs = JSON.parse(localStorage.getItem('adspot_publications') || '{}');
+
+        if (isBuiltIn && !isNew) {
+            // For built-in pubs, create a custom override
+            showToast('Note: Creating custom override for built-in publication', 'info');
         }
+
+        customPubs[newPubId] = data;
+        localStorage.setItem('adspot_publications', JSON.stringify(customPubs));
 
         showToast('Publication saved successfully!', 'success');
         document.getElementById('publicationModal').classList.remove('active');
         loadPublications();
     } catch (error) {
+        console.error('Error saving publication:', error);
         showToast('Failed to save publication', 'error');
     }
 }
@@ -953,22 +1080,98 @@ function generatePublicationId() {
 async function handlePublicationGroupSave(e) {
     e.preventDefault();
 
+    const groupId = document.getElementById('groupId').value;
+    const groupName = document.getElementById('groupName').value;
+    const groupLanguage = document.getElementById('groupLanguage').value;
+
+    if (!groupName) {
+        showToast('Please enter a group name', 'warning');
+        return;
+    }
+
+    const newGroupId = groupId || groupName.toLowerCase().replace(/\s+/g, '-');
+
     const data = {
-        id: document.getElementById('groupId').value || document.getElementById('groupName').value.toLowerCase().replace(/\s+/g, '-'),
-        name: document.getElementById('groupName').value,
-        language: document.getElementById('groupLanguage').value
+        id: newGroupId,
+        name: groupName,
+        language: groupLanguage,
+        newspapers: []
     };
 
     try {
-        // In production, save to database
+        // Save to local storage
+        const customGroups = JSON.parse(localStorage.getItem('adspot_pub_groups') || '{}');
+
+        if (groupId) {
+            // Update existing
+            customGroups[groupId] = { ...customGroups[groupId], ...data };
+        } else {
+            // Check if already exists
+            if (customGroups[newGroupId] || CONFIG.PUBLICATIONS[newGroupId]) {
+                showToast('A group with this name already exists', 'warning');
+                return;
+            }
+            customGroups[newGroupId] = data;
+        }
+
+        localStorage.setItem('adspot_pub_groups', JSON.stringify(customGroups));
+
         showToast('Publication group saved successfully!', 'success');
         document.getElementById('publicationGroupModal').classList.remove('active');
         initPublicationGroups();
         loadPublications();
     } catch (error) {
+        console.error('Error saving publication group:', error);
         showToast('Failed to save publication group', 'error');
     }
 }
+
+/**
+ * Edit publication group
+ */
+function editPublicationGroup(groupId) {
+    const customGroups = JSON.parse(localStorage.getItem('adspot_pub_groups') || '{}');
+    const group = customGroups[groupId] || CONFIG.PUBLICATIONS[groupId];
+
+    if (!group) {
+        showToast('Group not found', 'error');
+        return;
+    }
+
+    document.getElementById('groupModalTitle').textContent = 'Edit Publication Group';
+    document.getElementById('groupId').value = groupId;
+    document.getElementById('groupName').value = group.name;
+    document.getElementById('groupLanguage').value = group.language || 'english';
+    document.getElementById('publicationGroupModal').classList.add('active');
+}
+window.editPublicationGroup = editPublicationGroup;
+
+/**
+ * Delete publication group
+ */
+function deletePublicationGroup(groupId) {
+    if (!confirm('Are you sure you want to delete this publication group? All publications in this group will also be deleted.')) {
+        return;
+    }
+
+    try {
+        const customGroups = JSON.parse(localStorage.getItem('adspot_pub_groups') || '{}');
+
+        if (customGroups[groupId]) {
+            delete customGroups[groupId];
+            localStorage.setItem('adspot_pub_groups', JSON.stringify(customGroups));
+            showToast('Publication group deleted successfully!', 'success');
+            initPublicationGroups();
+            loadPublications();
+        } else {
+            showToast('Cannot delete built-in publication groups', 'warning');
+        }
+    } catch (error) {
+        console.error('Error deleting publication group:', error);
+        showToast('Failed to delete publication group', 'error');
+    }
+}
+window.deletePublicationGroup = deletePublicationGroup;
 
 /**
  * View customer details

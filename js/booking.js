@@ -950,47 +950,67 @@ async function handleSubmit(e) {
             formData.payment_status = 'pending';
         }
 
-        // Save to database
-        if (typeof QuotationDB !== 'undefined' && typeof CustomerDB !== 'undefined') {
-            // Create or update customer
-            const customer = await CustomerDB.create({
-                name: formData.customer_name,
-                company: formData.customer_company,
-                email: formData.customer_email,
-                phone: formData.customer_phone,
-                address: formData.customer_address
-            });
+        // Save to database (if available) or use local storage
+        let saveSuccess = false;
 
-            // Create quotation for each cart item
-            for (const item of adCart) {
-                await QuotationDB.create({
-                    quotation_number: quotationNumber,
-                    customer_id: customer.id,
-                    publication_group: item.groupName,
-                    newspaper_id: item.newspaperId,
-                    newspaper_name: item.newspaperName,
-                    ad_type: item.adType,
-                    ad_details: item.details,
-                    publication_date: item.pubDate,
-                    total_amount: item.price,
-                    status: formData.payment_status === 'completed' ? 'paid' : 'pending'
+        // Try to save to Supabase database
+        if (typeof supabase !== 'undefined' && supabase && typeof QuotationDB !== 'undefined' && typeof CustomerDB !== 'undefined') {
+            try {
+                // Create or update customer
+                const customer = await CustomerDB.create({
+                    name: formData.customer_name,
+                    company: formData.customer_company,
+                    email: formData.customer_email,
+                    phone: formData.customer_phone,
+                    address: formData.customer_address
                 });
-            }
 
-            // Create payment record
-            if (formData.payment_status === 'completed') {
-                await PaymentDB.create({
-                    quotation_id: quotationNumber,
-                    amount: formData.total_amount,
-                    payment_method: paymentMethod,
-                    reference_number: formData.payment_reference,
-                    status: 'completed'
-                });
+                // Create quotation for each cart item
+                for (const item of adCart) {
+                    await QuotationDB.create({
+                        quotation_number: quotationNumber,
+                        customer_id: customer?.id,
+                        publication_group: item.groupName,
+                        newspaper_id: item.newspaperId,
+                        newspaper_name: item.newspaperName,
+                        ad_type: item.adType,
+                        ad_details: item.details,
+                        publication_date: item.pubDate,
+                        total_amount: item.price,
+                        status: formData.payment_status === 'completed' ? 'paid' : 'pending'
+                    });
+                }
+
+                // Create payment record
+                if (formData.payment_status === 'completed' && typeof PaymentDB !== 'undefined') {
+                    await PaymentDB.create({
+                        quotation_id: quotationNumber,
+                        amount: formData.total_amount,
+                        payment_method: paymentMethod,
+                        reference_number: formData.payment_reference,
+                        status: 'completed'
+                    });
+                }
+                saveSuccess = true;
+            } catch (dbError) {
+                console.warn('Database save failed, using local storage:', dbError);
             }
-        } else {
-            // Simulate save (for demo without database)
-            await new Promise(resolve => setTimeout(resolve, 1500));
         }
+
+        // Fallback: Save to local storage if database not available
+        if (!saveSuccess) {
+            const orders = JSON.parse(localStorage.getItem('adspot_orders') || '[]');
+            orders.push({
+                ...formData,
+                id: Date.now(),
+                created_at: new Date().toISOString()
+            });
+            localStorage.setItem('adspot_orders', JSON.stringify(orders));
+            console.log('Order saved to local storage:', quotationNumber);
+        }
+
+        // Small delay for UX
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         // Show success
         showSuccessModal(quotationNumber, formData.customer_email, paymentMethod);
