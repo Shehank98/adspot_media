@@ -8,8 +8,8 @@
 
 const CONFIG = {
     // Supabase Configuration
-    SUPABASE_URL: 'https://YOUR_PROJECT_ID.supabase.co',
-    SUPABASE_ANON_KEY: 'YOUR_SUPABASE_ANON_KEY',
+    SUPABASE_URL: 'https://dwikjvghmpukghzgoizr.supabase.co',
+    SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3aWtqdmdobXB1a2doemdvaXpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyOTk3NTQsImV4cCI6MjA4NTg3NTc1NH0.fJy1S9Wuk17keuiniokzrerNz-1ixNjR7cl6TOAOeFk',
 
     // Stripe Configuration (Publishable Key)
     STRIPE_PUBLISHABLE_KEY: 'pk_test_YOUR_STRIPE_KEY',
