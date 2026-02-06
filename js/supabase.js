@@ -330,240 +330,170 @@ const PublicationDB = {
 };
 
 /**
- * Email Service Configuration
- * Using EmailJS for sending professional branded emails
- * Set up at: https://www.emailjs.com/
+ * Google Apps Script Configuration
+ * Handles: Email Sending + PDF Storage in Google Drive
+ *
+ * SETUP:
+ * 1. Deploy google-apps-script-complete.js to Google Apps Script
+ * 2. Copy the Web App URL below
+ * 3. Set ENABLED to true
  */
-const EMAIL_CONFIG = {
-    serviceId: 'service_24jb70m', // Replace with your EmailJS service ID
-    quotationTemplateId: 'quotation_template',
-    invoiceTemplateId: 'invoice_template',
-    paymentConfirmTemplateId: 'payment_confirm_template',
-    adminNotifyTemplateId: 'admin_notify_template',
-    contactFormTemplateId: 'contact_form_template', // For contact form messages
-    publicKey: 'vbRza-h7pYJytZhLc' // Replace with your EmailJS public key
+const GOOGLE_APPS_CONFIG = {
+    // PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE:
+    SCRIPT_URL: '',  // e.g., 'https://script.google.com/macros/s/AKfycbx.../exec'
+    ENABLED: false   // Set to true after adding SCRIPT_URL
 };
 
-// Load EmailJS library
-(function loadEmailJS() {
-    if (typeof emailjs === 'undefined') {
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';
-        script.onload = function() {
-            emailjs.init(EMAIL_CONFIG.publicKey);
-            console.log('EmailJS initialized');
-        };
-        document.head.appendChild(script);
-    }
-})();
+// Keep EMAIL_CONFIG for backwards compatibility (not used anymore)
+const EMAIL_CONFIG = {
+    serviceId: 'deprecated',
+    publicKey: 'deprecated'
+};
 
 /**
- * Email Service - Professional branded emails
+ * Email Service - Using Google Apps Script
+ * Beautiful HTML emails sent via your Google account
  */
 const EmailService = {
     /**
-     * Send quotation email to customer
+     * Check if email service is configured
      */
-    async sendQuotation(quotation, customer) {
-        const templateParams = {
-            to_email: customer.email,
-            to_name: customer.name,
-            quotation_number: quotation.quotation_number,
-            newspaper_name: quotation.newspaper_name,
-            ad_type: quotation.ad_type === 'box' ? 'Box Advertisement' : 'Classified Ad',
-            publication_date: formatDate(quotation.publication_date),
-            total_amount: formatCurrency(quotation.total_amount),
-            company_name: CONFIG.COMPANY.name,
-            company_email: CONFIG.COMPANY.email,
-            company_phone: CONFIG.COMPANY.phone,
-            company_address: CONFIG.COMPANY.address,
-            payment_link: `${window.location.origin}/payment.html?ref=${quotation.quotation_number}`,
-            bank_name: CONFIG.BANK_DETAILS.bankName,
-            account_name: CONFIG.BANK_DETAILS.accountName,
-            account_number: CONFIG.BANK_DETAILS.accountNumber,
-            bank_branch: CONFIG.BANK_DETAILS.branch
-        };
+    isConfigured() {
+        return GOOGLE_APPS_CONFIG.ENABLED && GOOGLE_APPS_CONFIG.SCRIPT_URL.length > 0;
+    },
+
+    /**
+     * Send request to Google Apps Script
+     */
+    async sendRequest(action, data) {
+        if (!this.isConfigured()) {
+            console.warn('Email service not configured. Set GOOGLE_APPS_CONFIG.SCRIPT_URL');
+            return { success: false, error: 'Email service not configured' };
+        }
 
         try {
-            if (typeof emailjs !== 'undefined') {
-                await emailjs.send(
-                    EMAIL_CONFIG.serviceId,
-                    EMAIL_CONFIG.quotationTemplateId,
-                    templateParams
-                );
-                console.log('Quotation email sent to:', customer.email);
-            } else {
-                console.log('EmailJS not loaded, quotation email would be sent to:', customer.email);
-            }
-            return true;
+            const response = await fetch(GOOGLE_APPS_CONFIG.SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action, ...data })
+            });
+            return await response.json();
         } catch (error) {
-            console.error('Failed to send quotation email:', error);
-            throw error;
+            console.error('Email service error:', error);
+            return { success: false, error: error.message };
         }
     },
 
     /**
-     * Send invoice email with PDF attachment
+     * Send quotation/confirmation email to customer
+     */
+    async sendQuotation(quotation, customer) {
+        console.log('Sending quotation email to:', customer.email);
+
+        const result = await this.sendRequest('sendQuotation', {
+            customer_email: customer.email,
+            customer_name: customer.name,
+            quotation_number: quotation.quotation_number,
+            items: quotation.items || [],
+            total_amount: quotation.total_amount
+        });
+
+        if (result.success) {
+            console.log('Quotation email sent successfully');
+        } else {
+            console.error('Failed to send quotation:', result.error);
+        }
+        return result.success;
+    },
+
+    /**
+     * Send invoice email after payment confirmed
      */
     async sendInvoice(quotation, customer, pdfBase64 = null) {
-        const templateParams = {
-            to_email: customer.email,
-            to_name: customer.name,
+        console.log('Sending invoice email to:', customer.email);
+
+        const result = await this.sendRequest('sendInvoice', {
+            customer_email: customer.email,
+            customer_name: customer.name,
             quotation_number: quotation.quotation_number,
             invoice_number: quotation.invoice_number || generateInvoiceNumber(),
-            newspaper_name: quotation.newspaper_name,
-            ad_type: quotation.ad_type === 'box' ? 'Box Advertisement' : 'Classified Ad',
-            publication_date: formatDate(quotation.publication_date),
-            total_amount: formatCurrency(quotation.total_amount),
-            company_name: CONFIG.COMPANY.name,
-            company_email: CONFIG.COMPANY.email,
-            company_phone: CONFIG.COMPANY.phone,
-            company_address: CONFIG.COMPANY.address,
-            pdf_attachment: pdfBase64 // Base64 encoded PDF
-        };
+            items: quotation.items || [],
+            total_amount: quotation.total_amount
+        });
 
-        try {
-            if (typeof emailjs !== 'undefined') {
-                await emailjs.send(
-                    EMAIL_CONFIG.serviceId,
-                    EMAIL_CONFIG.invoiceTemplateId,
-                    templateParams
-                );
-                console.log('Invoice email sent to:', customer.email);
-            } else {
-                console.log('EmailJS not loaded, invoice email would be sent to:', customer.email);
-            }
-            return true;
-        } catch (error) {
-            console.error('Failed to send invoice email:', error);
-            throw error;
+        if (result.success) {
+            console.log('Invoice email sent successfully');
+        } else {
+            console.error('Failed to send invoice:', result.error);
         }
+        return result.success;
     },
 
     /**
      * Send payment confirmation email
      */
     async sendPaymentConfirmation(quotation, customer, payment) {
-        const templateParams = {
-            to_email: customer.email,
-            to_name: customer.name,
-            quotation_number: quotation.quotation_number,
-            payment_amount: formatCurrency(payment.amount),
-            payment_method: payment.payment_method === 'card' ? 'Credit/Debit Card' : 'Bank Transfer',
-            payment_reference: payment.reference_number || 'N/A',
-            payment_date: formatDate(payment.created_at),
-            newspaper_name: quotation.newspaper_name,
-            publication_date: formatDate(quotation.publication_date),
-            company_name: CONFIG.COMPANY.name,
-            company_email: CONFIG.COMPANY.email,
-            company_phone: CONFIG.COMPANY.phone
-        };
+        console.log('Sending payment confirmation to:', customer.email);
 
-        try {
-            if (typeof emailjs !== 'undefined') {
-                await emailjs.send(
-                    EMAIL_CONFIG.serviceId,
-                    EMAIL_CONFIG.paymentConfirmTemplateId,
-                    templateParams
-                );
-                console.log('Payment confirmation sent to:', customer.email);
-            } else {
-                console.log('EmailJS not loaded, payment confirmation would be sent to:', customer.email);
-            }
-            return true;
-        } catch (error) {
-            console.error('Failed to send payment confirmation:', error);
-            throw error;
-        }
+        const result = await this.sendRequest('sendPaymentConfirmation', {
+            customer_email: customer.email,
+            customer_name: customer.name,
+            quotation_number: quotation.quotation_number,
+            amount: payment?.amount || quotation.total_amount
+        });
+
+        return result.success;
     },
 
     /**
      * Send admin notification for new order
      */
     async notifyAdmin(quotation, customer) {
-        const templateParams = {
-            to_email: CONFIG.COMPANY.email,
+        console.log('Sending admin notification for:', quotation.quotation_number);
+
+        const result = await this.sendRequest('sendAdminNotification', {
             quotation_number: quotation.quotation_number,
             customer_name: customer.name,
             customer_email: customer.email,
             customer_phone: customer.phone,
-            newspaper_name: quotation.newspaper_name,
-            ad_type: quotation.ad_type === 'box' ? 'Box Advertisement' : 'Classified Ad',
-            total_amount: formatCurrency(quotation.total_amount),
-            publication_date: formatDate(quotation.publication_date),
-            created_at: formatDate(quotation.created_at)
-        };
+            newspaper_name: quotation.newspaper_name || quotation.items?.[0]?.newspaperName || 'N/A',
+            total_amount: quotation.total_amount,
+            ad_type: quotation.ad_type,
+            items: quotation.items || []
+        });
 
-        try {
-            if (typeof emailjs !== 'undefined') {
-                await emailjs.send(
-                    EMAIL_CONFIG.serviceId,
-                    EMAIL_CONFIG.adminNotifyTemplateId,
-                    templateParams
-                );
-                console.log('Admin notification sent');
-            }
-            return true;
-        } catch (error) {
-            console.error('Failed to send admin notification:', error);
-            // Don't throw - admin notification failure shouldn't block user flow
-            return false;
-        }
+        return result.success;
     },
 
     /**
      * Send contact form message to admin
      */
-    async sendContactMessage(name, email, message) {
-        const templateParams = {
-            to_email: 'adspot77@gmail.com', // Admin email
-            from_name: name,
-            from_email: email,
-            message: message,
-            reply_to: email,
-            company_name: CONFIG.COMPANY.name,
-            sent_date: formatDate(new Date())
-        };
+    async sendContactMessage(name, email, message, phone = '', subject = '') {
+        console.log('Sending contact form from:', email);
 
-        try {
-            if (typeof emailjs !== 'undefined') {
-                await emailjs.send(
-                    EMAIL_CONFIG.serviceId,
-                    EMAIL_CONFIG.contactFormTemplateId,
-                    templateParams
-                );
-                console.log('Contact message sent to admin');
-                return true;
-            } else {
-                // Fallback: Store message in localStorage for admin to see
-                const messages = JSON.parse(localStorage.getItem('adspot_contact_messages') || '[]');
-                messages.push({
-                    id: Date.now(),
-                    name: name,
-                    email: email,
-                    message: message,
-                    date: new Date().toISOString(),
-                    read: false
-                });
-                localStorage.setItem('adspot_contact_messages', JSON.stringify(messages));
-                console.log('Contact message stored locally (EmailJS not available)');
-                return true;
-            }
-        } catch (error) {
-            console.error('Failed to send contact message:', error);
-            // Fallback: Store in localStorage
+        const result = await this.sendRequest('sendContactForm', {
+            name: name,
+            email: email,
+            phone: phone,
+            subject: subject,
+            message: message
+        });
+
+        // Fallback: Store in localStorage if API fails
+        if (!result.success) {
             const messages = JSON.parse(localStorage.getItem('adspot_contact_messages') || '[]');
             messages.push({
                 id: Date.now(),
-                name: name,
-                email: email,
-                message: message,
+                name, email, message, phone, subject,
                 date: new Date().toISOString(),
                 read: false
             });
             localStorage.setItem('adspot_contact_messages', JSON.stringify(messages));
-            return true; // Return true as we saved locally
+            console.log('Contact message stored locally');
+            return true;
         }
+
+        return result.success;
     }
 };
 
@@ -1273,6 +1203,7 @@ window.PdfStorage = PdfStorage;
 window.GoogleDriveStorage = GoogleDriveStorage;
 window.GOOGLE_DRIVE_CONFIG = GOOGLE_DRIVE_CONFIG;
 window.EMAIL_CONFIG = EMAIL_CONFIG;
+window.GOOGLE_APPS_CONFIG = GOOGLE_APPS_CONFIG;
 window.formatDate = formatDate;
 window.formatCurrency = formatCurrency;
 window.generateInvoiceNumber = generateInvoiceNumber;
