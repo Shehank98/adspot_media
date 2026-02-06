@@ -35,9 +35,30 @@ const CONFIG = {
 // ============================================
 function doPost(e) {
   try {
-    const data = JSON.parse(e.postData.contents);
+    let data;
+    let action;
 
-    switch (data.action) {
+    // Handle different content types
+    if (e.postData && e.postData.type === 'application/x-www-form-urlencoded') {
+      // Form submission or sendBeacon with FormData
+      action = e.parameter.action;
+      const payload = e.parameter.payload;
+      data = payload ? JSON.parse(payload) : e.parameter;
+      data.action = action;
+    } else if (e.postData && e.postData.contents) {
+      // Regular JSON POST
+      data = JSON.parse(e.postData.contents);
+      action = data.action;
+    } else if (e.parameter && e.parameter.action) {
+      // GET-style parameters
+      action = e.parameter.action;
+      data = e.parameter.data ? JSON.parse(e.parameter.data) : e.parameter;
+      data.action = action;
+    } else {
+      return jsonResponse(false, 'No data received');
+    }
+
+    switch (action) {
       // Email Actions
       case 'sendAdminNotification':
         return sendAdminNotification(data);
@@ -59,7 +80,7 @@ function doPost(e) {
         return listPdfsFromDrive(data);
 
       default:
-        return jsonResponse(false, 'Unknown action: ' + data.action);
+        return jsonResponse(false, 'Unknown action: ' + action);
     }
   } catch (error) {
     return jsonResponse(false, 'Error: ' + error.message);

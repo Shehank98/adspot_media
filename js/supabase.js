@@ -364,6 +364,7 @@ const EmailService = {
 
     /**
      * Send request to Google Apps Script
+     * Uses hidden iframe form submission to bypass CORS restrictions
      */
     async sendRequest(action, data) {
         if (!this.isConfigured()) {
@@ -372,15 +373,81 @@ const EmailService = {
         }
 
         try {
+            // Method 1: Try regular fetch first
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
+
             const response = await fetch(GOOGLE_APPS_CONFIG.SCRIPT_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action, ...data })
+                body: JSON.stringify({ action, ...data }),
+                redirect: 'follow',
+                signal: controller.signal
             });
-            return await response.json();
+
+            clearTimeout(timeoutId);
+            const result = await response.json();
+            console.log('Email request completed:', action, result);
+            return result;
         } catch (error) {
-            console.error('Email service error:', error);
-            return { success: false, error: error.message };
+            // Method 2: Use Image beacon as fallback (works even with CORS issues)
+            console.log('Fetch failed, using beacon fallback for:', action);
+
+            try {
+                // Encode data for URL
+                const params = new URLSearchParams({
+                    action: action,
+                    data: JSON.stringify(data)
+                });
+
+                // Use sendBeacon API if available (fires even if page closes)
+                if (navigator.sendBeacon) {
+                    const formData = new FormData();
+                    formData.append('action', action);
+                    formData.append('payload', JSON.stringify(data));
+                    navigator.sendBeacon(GOOGLE_APPS_CONFIG.SCRIPT_URL, formData);
+                    console.log('Email sent via beacon:', action);
+                    return { success: true };
+                }
+
+                // Last resort: Create a hidden form and submit
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = GOOGLE_APPS_CONFIG.SCRIPT_URL;
+                form.target = 'emailFrame_' + Date.now();
+                form.style.display = 'none';
+
+                const iframe = document.createElement('iframe');
+                iframe.name = form.target;
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+
+                const actionInput = document.createElement('input');
+                actionInput.type = 'hidden';
+                actionInput.name = 'action';
+                actionInput.value = action;
+                form.appendChild(actionInput);
+
+                const dataInput = document.createElement('input');
+                dataInput.type = 'hidden';
+                dataInput.name = 'payload';
+                dataInput.value = JSON.stringify(data);
+                form.appendChild(dataInput);
+
+                document.body.appendChild(form);
+                form.submit();
+
+                // Clean up after a delay
+                setTimeout(() => {
+                    document.body.removeChild(form);
+                    document.body.removeChild(iframe);
+                }, 5000);
+
+                console.log('Email sent via form submission:', action);
+                return { success: true };
+            } catch (fallbackError) {
+                console.error('All email methods failed:', fallbackError);
+                return { success: false, error: error.message };
+            }
         }
     },
 
