@@ -1076,6 +1076,187 @@ function generateQuotationNumber() {
     return `QT-${year}${month}${day}-${random}`;
 }
 
+/**
+ * Google Drive Storage Configuration
+ * Update SCRIPT_URL after deploying the Google Apps Script
+ */
+const GOOGLE_DRIVE_CONFIG = {
+    // IMPORTANT: Replace this URL with your deployed Google Apps Script Web App URL
+    SCRIPT_URL: '', // e.g., 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec'
+    ENABLED: false  // Set to true after configuring SCRIPT_URL
+};
+
+/**
+ * Google Drive PDF Storage
+ * Uploads PDFs to Google Drive via Google Apps Script
+ */
+const GoogleDriveStorage = {
+    /**
+     * Check if Google Drive storage is configured
+     */
+    isConfigured() {
+        return GOOGLE_DRIVE_CONFIG.ENABLED && GOOGLE_DRIVE_CONFIG.SCRIPT_URL.length > 0;
+    },
+
+    /**
+     * Upload PDF to Google Drive
+     * @param {string} pdfBase64 - PDF content as base64 string
+     * @param {string} filename - Filename for the PDF
+     * @param {Object} metadata - Additional metadata (quotationNumber, customerName, etc.)
+     * @returns {Promise<Object>} - Upload result with URLs
+     */
+    async upload(pdfBase64, filename, metadata = {}) {
+        if (!this.isConfigured()) {
+            console.warn('Google Drive storage not configured');
+            return { success: false, error: 'Google Drive storage not configured' };
+        }
+
+        try {
+            const response = await fetch(GOOGLE_DRIVE_CONFIG.SCRIPT_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'upload',
+                    pdfBase64: pdfBase64,
+                    filename: filename,
+                    quotationNumber: metadata.quotationNumber || '',
+                    customerName: metadata.customerName || '',
+                    metadata: metadata
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Also save the Google Drive URL to localStorage for quick access
+                const driveLinks = JSON.parse(localStorage.getItem('adspot_drive_links') || '{}');
+                driveLinks[metadata.quotationNumber || filename] = {
+                    fileId: result.fileId,
+                    viewUrl: result.viewUrl,
+                    downloadUrl: result.downloadUrl,
+                    uploadedAt: new Date().toISOString()
+                };
+                localStorage.setItem('adspot_drive_links', JSON.stringify(driveLinks));
+            }
+
+            return result;
+        } catch (error) {
+            console.error('Google Drive upload error:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    /**
+     * Get PDF info from Google Drive
+     * @param {string} quotationNumber - Quotation number to search for
+     * @returns {Promise<Object>} - File info with URLs
+     */
+    async get(quotationNumber) {
+        if (!this.isConfigured()) {
+            return { success: false, error: 'Google Drive storage not configured' };
+        }
+
+        // First check localStorage for cached link
+        const driveLinks = JSON.parse(localStorage.getItem('adspot_drive_links') || '{}');
+        if (driveLinks[quotationNumber]) {
+            return { success: true, ...driveLinks[quotationNumber] };
+        }
+
+        try {
+            const response = await fetch(GOOGLE_DRIVE_CONFIG.SCRIPT_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'get',
+                    quotationNumber: quotationNumber
+                })
+            });
+
+            return await response.json();
+        } catch (error) {
+            console.error('Google Drive get error:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    /**
+     * List PDFs from Google Drive
+     * @param {Object} options - Filter options (year, month, limit)
+     * @returns {Promise<Object>} - List of files
+     */
+    async list(options = {}) {
+        if (!this.isConfigured()) {
+            return { success: false, error: 'Google Drive storage not configured' };
+        }
+
+        try {
+            const response = await fetch(GOOGLE_DRIVE_CONFIG.SCRIPT_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'list',
+                    ...options
+                })
+            });
+
+            return await response.json();
+        } catch (error) {
+            console.error('Google Drive list error:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    /**
+     * Open PDF in Google Drive viewer
+     * @param {string} quotationNumber - Quotation number
+     */
+    async openInDrive(quotationNumber) {
+        const result = await this.get(quotationNumber);
+        if (result.success && result.viewUrl) {
+            window.open(result.viewUrl, '_blank');
+            return true;
+        }
+        return false;
+    },
+
+    /**
+     * Generate PDF and upload to Google Drive
+     * @param {Object} quotation - Quotation data
+     * @param {Object} customer - Customer data
+     * @returns {Promise<Object>} - Upload result
+     */
+    async generateAndUpload(quotation, customer) {
+        if (!this.isConfigured()) {
+            console.log('Google Drive not configured, using local storage');
+            return { success: false, error: 'Not configured' };
+        }
+
+        // Generate PDF
+        const base64 = InvoiceGenerator.getBase64(quotation, customer);
+        if (!base64) {
+            return { success: false, error: 'Failed to generate PDF' };
+        }
+
+        // Create filename
+        const filename = `Invoice_${quotation.quotation_number || quotation.invoice_number}.pdf`;
+
+        // Upload to Google Drive
+        return await this.upload(base64, filename, {
+            quotationNumber: quotation.quotation_number,
+            invoiceNumber: quotation.invoice_number,
+            customerName: customer.name,
+            customerEmail: customer.email,
+            totalAmount: quotation.total_amount
+        });
+    }
+};
+
 // Export for global access
 window.supabase = supabase;
 window.supabasePromise = supabasePromise;
@@ -1089,6 +1270,8 @@ window.OrdersDB = OrdersDB;
 window.EmailService = EmailService;
 window.InvoiceGenerator = InvoiceGenerator;
 window.PdfStorage = PdfStorage;
+window.GoogleDriveStorage = GoogleDriveStorage;
+window.GOOGLE_DRIVE_CONFIG = GOOGLE_DRIVE_CONFIG;
 window.EMAIL_CONFIG = EMAIL_CONFIG;
 window.formatDate = formatDate;
 window.formatCurrency = formatCurrency;

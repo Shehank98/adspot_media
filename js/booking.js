@@ -1028,7 +1028,7 @@ async function handleSubmit(e) {
             console.log('Order saved to local storage:', quotationNumber);
 
             // Generate and store PDF for later retrieval
-            if (typeof InvoiceGenerator !== 'undefined' && typeof PdfStorage !== 'undefined') {
+            if (typeof InvoiceGenerator !== 'undefined') {
                 try {
                     const quotationForPdf = {
                         id: orderId,
@@ -1048,8 +1048,23 @@ async function handleSubmit(e) {
                         company: formData.customer_company,
                         address: formData.customer_address
                     };
-                    InvoiceGenerator.generateAndSave(quotationForPdf, customerForPdf);
-                    console.log('PDF generated and saved for order:', quotationNumber);
+
+                    // Save to local storage
+                    if (typeof PdfStorage !== 'undefined') {
+                        InvoiceGenerator.generateAndSave(quotationForPdf, customerForPdf);
+                        console.log('PDF saved to local storage:', quotationNumber);
+                    }
+
+                    // Also upload to Google Drive if configured
+                    if (typeof GoogleDriveStorage !== 'undefined' && GoogleDriveStorage.isConfigured()) {
+                        GoogleDriveStorage.generateAndUpload(quotationForPdf, customerForPdf)
+                            .then(result => {
+                                if (result.success) {
+                                    console.log('PDF uploaded to Google Drive:', result.viewUrl);
+                                }
+                            })
+                            .catch(err => console.warn('Google Drive upload failed:', err));
+                    }
                 } catch (pdfError) {
                     console.warn('Failed to generate PDF:', pdfError);
                 }
