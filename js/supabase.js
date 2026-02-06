@@ -474,19 +474,27 @@ const EmailService = {
     },
 
     /**
-     * Send invoice email after payment confirmed
+     * Send invoice email after payment confirmed (with PDF attachment)
      */
     async sendInvoice(quotation, customer, pdfBase64 = null) {
         console.log('Sending invoice email to:', customer.email);
 
-        const result = await this.sendRequest('sendInvoice', {
+        const requestData = {
             customer_email: customer.email,
             customer_name: customer.name,
             quotation_number: quotation.quotation_number,
             invoice_number: quotation.invoice_number || generateInvoiceNumber(),
             items: quotation.items || [],
             total_amount: quotation.total_amount
-        });
+        };
+
+        // Include PDF if provided
+        if (pdfBase64) {
+            requestData.pdfBase64 = pdfBase64;
+            console.log('Including PDF attachment in invoice email');
+        }
+
+        const result = await this.sendRequest('sendInvoice', requestData);
 
         if (result.success) {
             console.log('Invoice email sent successfully');
@@ -583,7 +591,7 @@ const EmailService = {
 
 const InvoiceGenerator = {
     /**
-     * Generate PDF invoice
+     * Generate PDF invoice - Simple Anthropic-style design
      * @param {Object} quotation - Quotation data
      * @param {Object} customer - Customer data
      * @returns {jsPDF} - PDF document or base64 string
@@ -596,207 +604,210 @@ const InvoiceGenerator = {
             return null;
         }
 
+        // Safe string helper - prevents jsPDF.text errors
+        const safe = (val) => String(val || '') || '-';
+
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
         const margin = 20;
-        let y = 20;
+        let y = 25;
 
         // Colors
-        const primaryColor = [42, 57, 144]; // Dark blue
-        const textColor = [51, 51, 51];
-        const lightGray = [245, 245, 245];
+        const blue = [30, 64, 175];
+        const black = [31, 41, 55];
+        const gray = [107, 114, 128];
+        const green = [5, 150, 105];
 
-        // Header - Company Logo Area
-        doc.setFillColor(...primaryColor);
-        doc.rect(0, 0, pageWidth, 45, 'F');
+        // Get data safely
+        const invoiceNumber = safe(quotation.invoice_number || generateInvoiceNumber());
+        const quotationNumber = safe(quotation.quotation_number);
+        const customerName = safe(customer.name || customer.customer_name);
+        const customerEmail = safe(customer.email || customer.customer_email);
+        const customerPhone = safe(customer.phone || customer.customer_phone);
+        const totalAmount = parseFloat(quotation.total_amount) || 0;
 
-        // Company Name
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(24);
-        doc.setFont('helvetica', 'bold');
-        doc.text(CONFIG.COMPANY.name, margin, 25);
-
-        // Company tagline
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.text('Your Trusted Ad Booking Partner', margin, 35);
-
-        // Invoice Title
-        doc.setTextColor(...textColor);
+        // ============ HEADER ============
+        // Invoice title
+        doc.setTextColor(...blue);
         doc.setFontSize(28);
         doc.setFont('helvetica', 'bold');
-        y = 65;
-        doc.text('INVOICE', pageWidth - margin, y, { align: 'right' });
+        doc.text('Invoice', margin, y);
 
-        // Invoice Details
+        // Company logo/name on right
+        doc.setFontSize(18);
+        doc.text('AdSpot', pageWidth - margin, y, { align: 'right' });
+
+        // ============ INVOICE DETAILS ============
+        y = 45;
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
-        y = 75;
-        const invoiceNumber = quotation.invoice_number || generateInvoiceNumber();
-        doc.text(`Invoice #: ${invoiceNumber}`, pageWidth - margin, y, { align: 'right' });
-        y += 6;
-        doc.text(`Quotation #: ${quotation.quotation_number}`, pageWidth - margin, y, { align: 'right' });
-        y += 6;
-        doc.text(`Date: ${formatDate(new Date())}`, pageWidth - margin, y, { align: 'right' });
+        doc.setTextColor(...gray);
 
-        // Bill To Section
-        y = 65;
-        doc.setFontSize(10);
+        doc.text('Invoice number', margin, y);
+        doc.setTextColor(...black);
+        doc.text(invoiceNumber, margin + 35, y);
+
+        y += 7;
+        doc.setTextColor(...gray);
+        doc.text('Date of issue', margin, y);
+        doc.setTextColor(...black);
+        doc.text(formatDate(new Date()), margin + 35, y);
+
+        y += 7;
+        doc.setTextColor(...gray);
+        doc.text('Reference', margin, y);
+        doc.setTextColor(...black);
+        doc.text(quotationNumber, margin + 35, y);
+
+        // ============ COMPANY & CUSTOMER INFO ============
+        y = 80;
+        const midX = pageWidth / 2;
+
+        // Company info (left side)
+        doc.setTextColor(...black);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...primaryColor);
-        doc.text('BILL TO:', margin, y);
+        doc.setFontSize(10);
+        doc.text(safe(CONFIG.COMPANY?.name || 'AdSpot Media Services'), margin, y);
 
         doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...textColor);
-        y += 8;
-        doc.setFontSize(11);
-        doc.text(customer.name, margin, y);
+        doc.setTextColor(...gray);
         y += 6;
-        doc.setFontSize(10);
-        if (customer.company) {
-            doc.text(customer.company, margin, y);
-            y += 6;
+        doc.text(safe(CONFIG.COMPANY?.address || '130 High Level Road, Colombo 06'), margin, y);
+        y += 5;
+        doc.text(safe(CONFIG.COMPANY?.email || 'adspot77@gmail.com'), margin, y);
+
+        // Bill to (right side)
+        y = 80;
+        doc.setTextColor(...black);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Bill to', midX, y);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...gray);
+        y += 6;
+        doc.text(customerName, midX, y);
+        y += 5;
+        doc.text(customerEmail, midX, y);
+        if (customerPhone && customerPhone !== '-') {
+            y += 5;
+            doc.text(customerPhone, midX, y);
         }
-        doc.text(customer.email, margin, y);
-        y += 6;
-        doc.text(customer.phone, margin, y);
-        if (customer.address) {
-            y += 6;
-            doc.text(customer.address, margin, y);
-        }
 
-        // Ad Details Section
-        y = 115;
-        doc.setFillColor(...lightGray);
-        doc.rect(margin, y, pageWidth - (margin * 2), 10, 'F');
+        // ============ AMOUNT DUE BOX ============
+        y = 110;
+        doc.setFillColor(240, 253, 244); // Light green background
+        doc.rect(margin, y, pageWidth - (margin * 2), 18, 'F');
+        doc.setDrawColor(...green);
+        doc.setLineWidth(0.5);
+        doc.line(margin, y, margin, y + 18); // Left border
 
-        doc.setFontSize(10);
+        doc.setTextColor(...green);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...primaryColor);
-        doc.text('AD DETAILS', margin + 5, y + 7);
+        doc.setFontSize(14);
+        doc.text('Rs. ' + totalAmount.toLocaleString() + ' - PAID', margin + 5, y + 12);
 
-        y += 18;
+        // ============ ITEMS TABLE ============
+        y = 140;
+
+        // Table header
+        doc.setTextColor(...gray);
         doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...textColor);
+        doc.setFontSize(9);
+        doc.text('Description', margin, y);
+        doc.text('Qty', pageWidth - 70, y, { align: 'center' });
+        doc.text('Unit price', pageWidth - 45, y, { align: 'right' });
+        doc.text('Amount', pageWidth - margin, y, { align: 'right' });
 
-        const adDetails = quotation.ad_details || {};
-
-        // Table headers
-        const col1 = margin;
-        const col2 = 80;
-        const col3 = pageWidth - margin;
-
-        doc.setFont('helvetica', 'bold');
-        doc.text('Description', col1, y);
-        doc.text('Details', col2, y);
-        doc.text('Amount', col3, y, { align: 'right' });
-
-        doc.setFont('helvetica', 'normal');
-        y += 2;
+        y += 3;
+        doc.setDrawColor(229, 231, 235);
+        doc.setLineWidth(0.5);
         doc.line(margin, y, pageWidth - margin, y);
 
-        // Newspaper
+        // Table rows - from items array or single item
         y += 10;
-        doc.text('Newspaper', col1, y);
-        doc.text(quotation.newspaper_name, col2, y);
-
-        // Ad Type
-        y += 8;
-        doc.text('Ad Type', col1, y);
-        doc.text(quotation.ad_type === 'box' ? 'Box Advertisement' : 'Classified Ad', col2, y);
-
-        // Publication Date
-        y += 8;
-        doc.text('Publication Date', col1, y);
-        doc.text(formatDate(quotation.publication_date), col2, y);
-
-        // Size/Details based on ad type
-        if (quotation.ad_type === 'box') {
-            y += 8;
-            doc.text('Size', col1, y);
-            doc.text(`${adDetails.columns || 1} col x ${adDetails.height || 0} cm (${(adDetails.area || 0).toFixed(1)} sq cm)`, col2, y);
-
-            y += 8;
-            doc.text('Color Option', col1, y);
-            doc.text(adDetails.colorOption === 'color' ? 'Full Color' : 'Black & White', col2, y);
-        } else {
-            y += 8;
-            doc.text('Word Count', col1, y);
-            doc.text(`${adDetails.wordCount || 0} words`, col2, y);
-
-            y += 8;
-            doc.text('Category', col1, y);
-            const categoryName = CONFIG.CLASSIFIED_CATEGORIES[adDetails.category]?.name || adDetails.category;
-            doc.text(categoryName, col2, y);
-        }
-
-        // Price Breakdown Section
-        y += 20;
-        doc.setFillColor(...lightGray);
-        doc.rect(margin, y, pageWidth - (margin * 2), 10, 'F');
-
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...primaryColor);
-        doc.text('PRICE BREAKDOWN', margin + 5, y + 7);
-
-        y += 18;
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...textColor);
-
-        // Ad Total
-        doc.text('Ad Total', col1, y);
-        doc.text(formatCurrency(adDetails.adTotal || quotation.total_amount), col3, y, { align: 'right' });
-
-        // Commission or Service Charge
-        if (quotation.ad_type === 'box' && adDetails.commission) {
-            y += 8;
-            doc.text('Platform Commission (10%)', col1, y);
-            doc.text(formatCurrency(adDetails.commission), col3, y, { align: 'right' });
-        } else if (quotation.ad_type === 'classified' && adDetails.serviceCharge) {
-            y += 8;
-            doc.text('Service Charge', col1, y);
-            doc.text(formatCurrency(adDetails.serviceCharge), col3, y, { align: 'right' });
-        }
-
-        // Total
-        y += 5;
-        doc.line(pageWidth - 80, y, pageWidth - margin, y);
-        y += 12;
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(12);
-        doc.text('TOTAL', col1, y);
-        doc.setTextColor(...primaryColor);
-        doc.text(formatCurrency(quotation.total_amount), col3, y, { align: 'right' });
-
-        // Payment Information
-        y += 25;
-        doc.setFillColor(...primaryColor);
-        doc.rect(margin, y, pageWidth - (margin * 2), 40, 'F');
-
-        doc.setTextColor(255, 255, 255);
+        doc.setTextColor(...black);
         doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.text('BANK TRANSFER DETAILS', margin + 5, y + 10);
 
+        const items = quotation.items || [];
+        if (items.length > 0) {
+            items.forEach(item => {
+                const desc = safe(item.newspaperName || 'Advertisement') + ' - ' +
+                            (item.adType === 'classified' ? 'Classified Ad' : 'Box Ad');
+                const price = parseFloat(item.price) || 0;
+
+                doc.text(desc, margin, y);
+                doc.text('1', pageWidth - 70, y, { align: 'center' });
+                doc.text('Rs. ' + price.toLocaleString(), pageWidth - 45, y, { align: 'right' });
+                doc.text('Rs. ' + price.toLocaleString(), pageWidth - margin, y, { align: 'right' });
+
+                if (item.pubDate) {
+                    y += 5;
+                    doc.setTextColor(...gray);
+                    doc.setFontSize(8);
+                    doc.text('Publication: ' + safe(item.pubDate), margin, y);
+                    doc.setTextColor(...black);
+                    doc.setFontSize(10);
+                }
+
+                y += 8;
+                doc.setDrawColor(229, 231, 235);
+                doc.line(margin, y, pageWidth - margin, y);
+                y += 8;
+            });
+        } else {
+            // Single item fallback
+            const desc = safe(quotation.newspaper_name || 'Advertisement') + ' - ' +
+                        (quotation.ad_type === 'classified' ? 'Classified Ad' : 'Box Ad');
+
+            doc.text(desc, margin, y);
+            doc.text('1', pageWidth - 70, y, { align: 'center' });
+            doc.text('Rs. ' + totalAmount.toLocaleString(), pageWidth - 45, y, { align: 'right' });
+            doc.text('Rs. ' + totalAmount.toLocaleString(), pageWidth - margin, y, { align: 'right' });
+
+            y += 8;
+            doc.setDrawColor(229, 231, 235);
+            doc.line(margin, y, pageWidth - margin, y);
+            y += 8;
+        }
+
+        // ============ TOTALS ============
+        y += 5;
+        const totalsX = pageWidth - 80;
+
+        doc.setTextColor(...gray);
+        doc.setFontSize(10);
+        doc.text('Subtotal', totalsX, y);
+        doc.setTextColor(...black);
+        doc.text('Rs. ' + totalAmount.toLocaleString(), pageWidth - margin, y, { align: 'right' });
+
+        y += 8;
+        doc.setTextColor(...gray);
+        doc.text('Total', totalsX, y);
+        doc.setTextColor(...black);
+        doc.text('Rs. ' + totalAmount.toLocaleString(), pageWidth - margin, y, { align: 'right' });
+
+        y += 3;
+        doc.setDrawColor(...black);
+        doc.setLineWidth(0.8);
+        doc.line(totalsX, y, pageWidth - margin, y);
+
+        y += 10;
+        doc.setFont('helvetica', 'bold');
+        doc.text('Amount paid', totalsX, y);
+        doc.text('Rs. ' + totalAmount.toLocaleString(), pageWidth - margin, y, { align: 'right' });
+
+        // ============ FOOTER ============
+        const footerY = doc.internal.pageSize.getHeight() - 25;
+
+        doc.setDrawColor(229, 231, 235);
+        doc.setLineWidth(0.3);
+        doc.line(margin, footerY - 5, pageWidth - margin, footerY - 5);
+
+        doc.setTextColor(...gray);
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9);
-        y += 18;
-        doc.text(`Bank: ${CONFIG.BANK_DETAILS.bankName}`, margin + 5, y);
-        doc.text(`Account Name: ${CONFIG.BANK_DETAILS.accountName}`, pageWidth/2, y);
-        y += 8;
-        doc.text(`Account Number: ${CONFIG.BANK_DETAILS.accountNumber}`, margin + 5, y);
-        doc.text(`Branch: ${CONFIG.BANK_DETAILS.branch}`, pageWidth/2, y);
-
-        // Footer
-        const footerY = doc.internal.pageSize.getHeight() - 30;
-        doc.setTextColor(...textColor);
-        doc.setFontSize(9);
-        doc.text(CONFIG.COMPANY.address, pageWidth / 2, footerY, { align: 'center' });
-        doc.text(`Email: ${CONFIG.COMPANY.email} | Phone: ${CONFIG.COMPANY.phone}`, pageWidth / 2, footerY + 6, { align: 'center' });
-
-        doc.setFontSize(8);
-        doc.setTextColor(150, 150, 150);
-        doc.text('Thank you for your business!', pageWidth / 2, footerY + 14, { align: 'center' });
+        doc.text(safe(CONFIG.COMPANY?.name || 'AdSpot Media Services'), margin, footerY);
+        doc.text('Phone: ' + safe(CONFIG.COMPANY?.phone || '070 161 1411') + ' | Email: ' + safe(CONFIG.COMPANY?.email || 'adspot77@gmail.com'), margin, footerY + 5);
 
         if (returnBase64) {
             return doc.output('datauristring');
@@ -812,7 +823,7 @@ const InvoiceGenerator = {
         const doc = this.generate(quotation, customer);
         if (doc) {
             const invoiceNumber = quotation.invoice_number || generateInvoiceNumber();
-            doc.save(`Invoice-${invoiceNumber}.pdf`);
+            doc.save('Invoice-' + invoiceNumber + '.pdf');
             return true;
         }
         return false;
@@ -822,7 +833,11 @@ const InvoiceGenerator = {
      * Get invoice as base64 for email attachment
      */
     getBase64(quotation, customer) {
-        return this.generate(quotation, customer, true);
+        const base64Uri = this.generate(quotation, customer, true);
+        if (base64Uri && base64Uri.includes(',')) {
+            return base64Uri.split(',')[1]; // Return only the base64 part, not the data URI prefix
+        }
+        return null;
     },
 
     /**

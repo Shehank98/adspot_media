@@ -399,14 +399,27 @@ function sendQuotationEmail(data) {
 
 /**
  * Send invoice email after payment confirmed - Simple clean design
+ * Includes PDF attachment if provided
  */
 function sendInvoiceEmail(data) {
-  const { customer_email, customer_name, quotation_number, invoice_number, items, total_amount } = data;
+  const { customer_email, customer_name, quotation_number, invoice_number, items, total_amount, pdfBase64 } = data;
 
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
   const subject = `Invoice ${invoice_number} - AdSpot Media`;
+
+  // Create PDF attachment if provided
+  let attachments = [];
+  if (pdfBase64) {
+    try {
+      const decodedData = Utilities.base64Decode(pdfBase64);
+      const blob = Utilities.newBlob(decodedData, 'application/pdf', `Invoice-${invoice_number}.pdf`);
+      attachments.push(blob);
+    } catch (e) {
+      console.log('Failed to create PDF attachment:', e.message);
+    }
+  }
 
   // Build items table rows
   const itemsHtml = items ? items.map(item => `
@@ -537,13 +550,20 @@ function sendInvoiceEmail(data) {
   `;
 
   try {
-    MailApp.sendEmail({
+    const emailOptions = {
       to: customer_email,
       subject: subject,
       htmlBody: htmlBody,
       replyTo: CONFIG.ADMIN_EMAIL
-    });
-    return jsonResponse(true, 'Invoice email sent to ' + customer_email);
+    };
+
+    // Add PDF attachment if available
+    if (attachments.length > 0) {
+      emailOptions.attachments = attachments;
+    }
+
+    MailApp.sendEmail(emailOptions);
+    return jsonResponse(true, 'Invoice email sent to ' + customer_email + (attachments.length > 0 ? ' with PDF attachment' : ''));
   } catch (error) {
     return jsonResponse(false, 'Failed to send: ' + error.message);
   }
