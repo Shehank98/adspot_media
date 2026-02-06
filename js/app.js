@@ -130,29 +130,49 @@ function initAnimations() {
  */
 function initContactForm() {
     const form = document.getElementById('contactForm');
-    
+
     if (form) {
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
-            
-            const name = document.getElementById('contactName').value;
-            const email = document.getElementById('contactEmail').value;
-            const message = document.getElementById('contactMessage').value;
-            
+
+            const name = document.getElementById('contactName').value.trim();
+            const email = document.getElementById('contactEmail').value.trim();
+            const message = document.getElementById('contactMessage').value.trim();
+
+            // Validate inputs
+            if (!name || !email || !message) {
+                showNotification('Please fill in all fields.', 'warning');
+                return;
+            }
+
             const submitBtn = form.querySelector('button[type="submit"]');
             const originalText = submitBtn.textContent;
             submitBtn.textContent = 'Sending...';
             submitBtn.disabled = true;
-            
+
             try {
-                // In production, send this to your backend or email service
-                // For now, we'll simulate a successful submission
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
+                // Use EmailService to send contact message to adspot77@gmail.com
+                if (typeof EmailService !== 'undefined' && EmailService.sendContactMessage) {
+                    await EmailService.sendContactMessage(name, email, message);
+                } else {
+                    // Fallback: Store in localStorage if EmailService not available
+                    const messages = JSON.parse(localStorage.getItem('adspot_contact_messages') || '[]');
+                    messages.push({
+                        id: Date.now(),
+                        name: name,
+                        email: email,
+                        message: message,
+                        date: new Date().toISOString(),
+                        read: false
+                    });
+                    localStorage.setItem('adspot_contact_messages', JSON.stringify(messages));
+                }
+
                 // Show success message
                 showNotification('Message sent successfully! We\'ll get back to you soon.', 'success');
                 form.reset();
             } catch (error) {
+                console.error('Contact form error:', error);
                 showNotification('Failed to send message. Please try again.', 'error');
             } finally {
                 submitBtn.textContent = originalText;

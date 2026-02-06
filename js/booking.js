@@ -145,8 +145,12 @@ function updateQuickRates() {
                 <strong>Rs. ${selectedNewspaper.colorRate}/sq cm</strong>
             </div>
             <div class="rate-item">
-                <span>Platform Commission:</span>
+                <span>Commission:</span>
                 <strong>10%</strong>
+            </div>
+            <div class="rate-item">
+                <span>VAT:</span>
+                <strong>18%</strong>
             </div>
             <div class="rate-item small">
                 <span>Max Height:</span>
@@ -453,12 +457,14 @@ function updatePrice() {
 
         details = [
             { label: 'Newspaper', value: selectedNewspaper.name },
-            { label: 'Size', value: `${columns} col x ${height} cm = ${calc.area.toFixed(1)} sq cm` },
+            { label: 'Size', value: `${columns} col x ${height} cm (H)` },
             { label: 'Column Width', value: `${calc.columnWidth.toFixed(1)} cm (${selectedNewspaper.language})` },
+            { label: 'Area', value: `${calc.columnWidth.toFixed(1)} x ${height} = ${calc.area.toFixed(1)} sq cm` },
             { label: colorOption === 'color' ? 'Color Rate' : 'B&W Rate', value: `${formatCurrency(calc.rate)}/sq cm` },
-            { label: 'Calculation', value: `${calc.area.toFixed(1)} x ${formatCurrency(calc.rate)}` },
+            { label: 'Calculation', value: `${calc.area.toFixed(1)} sq cm x ${formatCurrency(calc.rate)}` },
             { label: 'Ad Total', value: formatCurrency(calc.adTotal) },
-            { label: 'Platform Commission (10%)', value: formatCurrency(calc.commission) }
+            { label: 'Platform Commission (10%)', value: formatCurrency(calc.commission) },
+            { label: 'VAT (18%)', value: formatCurrency(calc.vat) }
         ];
     } else {
         const text = document.getElementById('classifiedText')?.value || '';
@@ -780,14 +786,21 @@ function updateOrderSummary() {
 
     const totalCommission = adCart.reduce((sum, item) => {
         if (item.adType === 'box') {
-            return sum + item.details.commission;
+            return sum + (item.details.commission || 0);
+        }
+        return sum;
+    }, 0);
+
+    const totalVAT = adCart.reduce((sum, item) => {
+        if (item.adType === 'box') {
+            return sum + (item.details.vat || 0);
         }
         return sum;
     }, 0);
 
     const totalServiceCharge = adCart.reduce((sum, item) => {
         if (item.adType === 'classified') {
-            return sum + item.details.serviceCharge;
+            return sum + (item.details.serviceCharge || 0);
         }
         return sum;
     }, 0);
@@ -808,7 +821,7 @@ function updateOrderSummary() {
                         <span>${item.description}</span>
                         <small>${formatDate(item.pubDate)}</small>
                     </div>
-                    <div class="item-price">${formatCurrency(item.adType === 'box' ? item.details.adTotal : item.details.adTotal)}</div>
+                    <div class="item-price">${formatCurrency(item.details.adTotal)}</div>
                 </div>
             `).join('')}
         </div>
@@ -821,6 +834,12 @@ function updateOrderSummary() {
             <div class="charge-row">
                 <span>Platform Commission (10%):</span>
                 <span>${formatCurrency(totalCommission)}</span>
+            </div>
+            ` : ''}
+            ${totalVAT > 0 ? `
+            <div class="charge-row">
+                <span>VAT (18%):</span>
+                <span>${formatCurrency(totalVAT)}</span>
             </div>
             ` : ''}
             ${totalServiceCharge > 0 ? `

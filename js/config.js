@@ -48,7 +48,8 @@ const CONFIG = {
     // Service Charges and Commissions
     CHARGES: {
         classifiedServiceCharge: 100, // Rs. 100 for classified ads
-        boxAdCommission: 0.10 // 10% platform commission for box ads
+        boxAdCommission: 0.10, // 10% platform commission for box ads
+        vatRate: 0.18 // 18% VAT for box ads
     },
 
     // Column Widths by Language (in cm)
@@ -534,7 +535,11 @@ function calculateBoxAdPrice(newspaper, height, columns, colorOption) {
 
     // Add 10% platform commission
     const commission = adTotal * CONFIG.CHARGES.boxAdCommission;
-    const total = adTotal + commission;
+
+    // Add 18% VAT on (adTotal + commission)
+    const subtotal = adTotal + commission;
+    const vat = subtotal * CONFIG.CHARGES.vatRate;
+    const total = subtotal + vat;
 
     return {
         height: height,
@@ -544,6 +549,7 @@ function calculateBoxAdPrice(newspaper, height, columns, colorOption) {
         rate: rate,
         adTotal: adTotal,
         commission: commission,
+        vat: vat,
         total: total
     };
 }

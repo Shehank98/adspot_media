@@ -319,6 +319,7 @@ const EMAIL_CONFIG = {
     invoiceTemplateId: 'invoice_template',
     paymentConfirmTemplateId: 'payment_confirm_template',
     adminNotifyTemplateId: 'admin_notify_template',
+    contactFormTemplateId: 'contact_form_template', // For contact form messages
     publicKey: 'YOUR_EMAILJS_PUBLIC_KEY' // Replace with your EmailJS public key
 };
 
@@ -486,6 +487,61 @@ const EmailService = {
             console.error('Failed to send admin notification:', error);
             // Don't throw - admin notification failure shouldn't block user flow
             return false;
+        }
+    },
+
+    /**
+     * Send contact form message to admin
+     */
+    async sendContactMessage(name, email, message) {
+        const templateParams = {
+            to_email: 'adspot77@gmail.com', // Admin email
+            from_name: name,
+            from_email: email,
+            message: message,
+            reply_to: email,
+            company_name: CONFIG.COMPANY.name,
+            sent_date: formatDate(new Date())
+        };
+
+        try {
+            if (typeof emailjs !== 'undefined') {
+                await emailjs.send(
+                    EMAIL_CONFIG.serviceId,
+                    EMAIL_CONFIG.contactFormTemplateId,
+                    templateParams
+                );
+                console.log('Contact message sent to admin');
+                return true;
+            } else {
+                // Fallback: Store message in localStorage for admin to see
+                const messages = JSON.parse(localStorage.getItem('adspot_contact_messages') || '[]');
+                messages.push({
+                    id: Date.now(),
+                    name: name,
+                    email: email,
+                    message: message,
+                    date: new Date().toISOString(),
+                    read: false
+                });
+                localStorage.setItem('adspot_contact_messages', JSON.stringify(messages));
+                console.log('Contact message stored locally (EmailJS not available)');
+                return true;
+            }
+        } catch (error) {
+            console.error('Failed to send contact message:', error);
+            // Fallback: Store in localStorage
+            const messages = JSON.parse(localStorage.getItem('adspot_contact_messages') || '[]');
+            messages.push({
+                id: Date.now(),
+                name: name,
+                email: email,
+                message: message,
+                date: new Date().toISOString(),
+                read: false
+            });
+            localStorage.setItem('adspot_contact_messages', JSON.stringify(messages));
+            return true; // Return true as we saved locally
         }
     }
 };

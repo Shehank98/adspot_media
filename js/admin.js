@@ -131,10 +131,25 @@ function initNavigation() {
     });
 
     // Logout
-    document.getElementById('logoutBtn').addEventListener('click', async function() {
-        await supabase.auth.signOut();
-        window.location.href = 'index.html';
-    });
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            try {
+                if (typeof supabase !== 'undefined' && supabase && supabase.auth) {
+                    await supabase.auth.signOut();
+                }
+                // Clear any local session data
+                localStorage.removeItem('sb-auth-token');
+                sessionStorage.clear();
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('Logout error:', error);
+                // Force redirect even if signOut fails
+                window.location.href = 'index.html';
+            }
+        });
+    }
 }
 
 /**
@@ -273,30 +288,47 @@ async function loadDashboardData() {
     try {
         let stats = { totalQuotations: 0, totalRevenue: 0, pendingPayments: 0, totalCustomers: 0 };
 
-        // Try to load from database
-        if (typeof QuotationDB !== 'undefined') {
+        // First try to load from localStorage
+        const localOrders = JSON.parse(localStorage.getItem('adspot_orders') || '[]');
+
+        if (localOrders.length > 0) {
+            stats.totalQuotations = localOrders.length;
+            stats.totalRevenue = localOrders.reduce((sum, o) => sum + (parseFloat(o.total_amount) || 0), 0);
+            stats.pendingPayments = localOrders.filter(o => o.payment_status === 'pending').length;
+
+            // Get unique customers
+            const uniqueCustomers = new Set(localOrders.map(o => o.customer_email));
+            stats.totalCustomers = uniqueCustomers.size;
+        }
+
+        // Try to load from database (will merge with local)
+        if (typeof QuotationDB !== 'undefined' && typeof supabase !== 'undefined' && supabase) {
             try {
                 const quotationStats = await QuotationDB.getStats();
-                stats.totalQuotations = quotationStats.total || 0;
-                stats.totalRevenue = quotationStats.revenue || 0;
+                if (quotationStats.total > 0) {
+                    stats.totalQuotations = quotationStats.total + localOrders.length;
+                    stats.totalRevenue = (quotationStats.revenue || 0) + localOrders.reduce((sum, o) => sum + (parseFloat(o.total_amount) || 0), 0);
+                }
             } catch (e) {
-                console.log('Using fallback stats');
+                console.log('Database not available, using localStorage');
             }
         }
 
-        if (typeof PaymentDB !== 'undefined') {
+        if (typeof PaymentDB !== 'undefined' && typeof supabase !== 'undefined' && supabase) {
             try {
-                stats.pendingPayments = await PaymentDB.getPendingCount();
+                const dbPending = await PaymentDB.getPendingCount();
+                stats.pendingPayments += dbPending || 0;
             } catch (e) {
-                console.log('Using fallback pending count');
+                console.log('Using localStorage pending count');
             }
         }
 
-        if (typeof CustomerDB !== 'undefined') {
+        if (typeof CustomerDB !== 'undefined' && typeof supabase !== 'undefined' && supabase) {
             try {
-                stats.totalCustomers = await CustomerDB.getCount();
+                const dbCustomers = await CustomerDB.getCount();
+                stats.totalCustomers += dbCustomers || 0;
             } catch (e) {
-                console.log('Using fallback customer count');
+                console.log('Using localStorage customer count');
             }
         }
 
@@ -310,6 +342,9 @@ async function loadDashboardData() {
 
         // Load recent payments
         loadRecentPayments();
+
+        // Load customers
+        loadCustomers();
 
     } catch (error) {
         console.error('Error loading dashboard:', error);
@@ -326,14 +361,32 @@ async function loadRecentQuotations() {
     try {
         let quotations = [];
 
-        if (typeof QuotationDB !== 'undefined') {
+        // Load from localStorage first
+        const localOrders = JSON.parse(localStorage.getItem('adspot_orders') || '[]');
+        quotations = localOrders.map(o => ({
+            quotation_number: o.quotation_number,
+            customer: { name: o.customer_name, email: o.customer_email },
+            total_amount: o.total_amount,
+            status: o.payment_status || 'pending',
+            created_at: o.created_at,
+            source: 'local'
+        }));
+
+        // Try to load from database
+        if (typeof QuotationDB !== 'undefined' && typeof supabase !== 'undefined' && supabase) {
             try {
                 const data = await QuotationDB.getAll({});
-                quotations = data.slice(0, 5);
+                if (data && data.length > 0) {
+                    quotations = [...data.map(q => ({...q, source: 'database'})), ...quotations];
+                }
             } catch (e) {
-                console.log('Using empty quotations');
+                console.log('Using localStorage quotations only');
             }
         }
+
+        // Sort by date and take first 5
+        quotations.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        quotations = quotations.slice(0, 5);
 
         if (quotations.length === 0) {
             tbody.innerHTML = '<tr><td colspan="4" class="loading">No quotations found</td></tr>';
@@ -394,21 +447,50 @@ async function loadRecentPayments() {
  */
 async function loadQuotations() {
     const tbody = document.getElementById('quotationsTable');
-    const statusFilter = document.getElementById('quotationStatusFilter').value;
-    const dateFilter = document.getElementById('quotationDateFilter').value;
+    const statusFilter = document.getElementById('quotationStatusFilter')?.value || '';
+    const dateFilter = document.getElementById('quotationDateFilter')?.value || '';
 
     tbody.innerHTML = '<tr><td colspan="8" class="loading">Loading...</td></tr>';
 
     try {
         let quotations = [];
 
-        if (typeof QuotationDB !== 'undefined') {
+        // Load from localStorage
+        const localOrders = JSON.parse(localStorage.getItem('adspot_orders') || '[]');
+        const localQuotations = localOrders.map(o => ({
+            id: o.id || o.quotation_number,
+            quotation_number: o.quotation_number,
+            customer: { name: o.customer_name, email: o.customer_email, phone: o.customer_phone },
+            newspaper_name: o.items?.[0]?.newspaperName || 'Multiple',
+            ad_type: o.items?.[0]?.adType || 'box',
+            total_amount: o.total_amount,
+            status: o.payment_status || 'pending',
+            created_at: o.created_at,
+            items: o.items,
+            source: 'local'
+        }));
+
+        quotations = [...localQuotations];
+
+        // Try to load from database
+        if (typeof QuotationDB !== 'undefined' && typeof supabase !== 'undefined' && supabase) {
             try {
-                quotations = await QuotationDB.getAll({ status: statusFilter, date: dateFilter });
+                const dbQuotations = await QuotationDB.getAll({ status: statusFilter, date: dateFilter });
+                if (dbQuotations && dbQuotations.length > 0) {
+                    quotations = [...dbQuotations.map(q => ({...q, source: 'database'})), ...quotations];
+                }
             } catch (e) {
-                console.log('Database not available');
+                console.log('Database not available, using localStorage');
             }
         }
+
+        // Apply filters
+        if (statusFilter) {
+            quotations = quotations.filter(q => q.status === statusFilter);
+        }
+
+        // Sort by date (newest first)
+        quotations.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
         if (quotations.length === 0) {
             tbody.innerHTML = '<tr><td colspan="8" class="loading">No quotations found</td></tr>';
@@ -419,14 +501,17 @@ async function loadQuotations() {
             <tr>
                 <td><strong>${q.quotation_number}</strong></td>
                 <td>${q.customer?.name || 'N/A'}</td>
-                <td>${q.newspaper_name}</td>
+                <td>${q.newspaper_name || 'N/A'}</td>
                 <td>${q.ad_type === 'box' ? 'Box Ad' : 'Classified'}</td>
                 <td>${formatCurrency(q.total_amount)}</td>
-                <td><span class="status-badge ${q.status}">${q.status}</span></td>
+                <td>
+                    <span class="status-badge ${q.status}">${q.status}</span>
+                    ${q.status === 'pending' ? `<button class="btn btn-xs btn-success" onclick="confirmOrderPayment('${q.id}', '${q.source}')" style="margin-left:5px;">Confirm</button>` : ''}
+                </td>
                 <td>${formatDate(q.created_at)}</td>
                 <td>
                     <div class="actions-group">
-                        <button class="action-btn" onclick="viewQuotation('${q.id}')" title="View">
+                        <button class="action-btn" onclick="viewQuotation('${q.id}', '${q.source}')" title="View">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                                 <circle cx="12" cy="12" r="3"/>
@@ -623,23 +708,64 @@ async function loadPublications() {
  */
 async function loadCustomers() {
     const tbody = document.getElementById('customersTable');
-    const searchQuery = document.getElementById('customerSearch').value;
+    if (!tbody) return;
+
+    const searchQuery = document.getElementById('customerSearch')?.value || '';
 
     tbody.innerHTML = '<tr><td colspan="7" class="loading">Loading...</td></tr>';
 
     try {
         let customers = [];
 
-        if (typeof CustomerDB !== 'undefined') {
+        // Load customers from localStorage orders
+        const localOrders = JSON.parse(localStorage.getItem('adspot_orders') || '[]');
+        const customerMap = {};
+
+        localOrders.forEach(order => {
+            const email = order.customer_email;
+            if (!customerMap[email]) {
+                customerMap[email] = {
+                    id: email,
+                    name: order.customer_name,
+                    company: order.customer_company || '',
+                    email: email,
+                    phone: order.customer_phone,
+                    orders: [],
+                    totalSpent: 0,
+                    source: 'local'
+                };
+            }
+            customerMap[email].orders.push(order);
+            customerMap[email].totalSpent += parseFloat(order.total_amount) || 0;
+        });
+
+        customers = Object.values(customerMap);
+
+        // Try to load from database
+        if (typeof CustomerDB !== 'undefined' && typeof supabase !== 'undefined' && supabase) {
             try {
+                let dbCustomers;
                 if (searchQuery) {
-                    customers = await CustomerDB.search(searchQuery);
+                    dbCustomers = await CustomerDB.search(searchQuery);
                 } else {
-                    customers = await CustomerDB.getAll();
+                    dbCustomers = await CustomerDB.getAll();
+                }
+                if (dbCustomers && dbCustomers.length > 0) {
+                    customers = [...dbCustomers.map(c => ({...c, source: 'database'})), ...customers];
                 }
             } catch (e) {
-                console.log('Database not available');
+                console.log('Database not available, using localStorage');
             }
+        }
+
+        // Apply search filter
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            customers = customers.filter(c =>
+                c.name?.toLowerCase().includes(query) ||
+                c.email?.toLowerCase().includes(query) ||
+                c.phone?.includes(query)
+            );
         }
 
         if (customers.length === 0) {
@@ -648,20 +774,20 @@ async function loadCustomers() {
         }
 
         tbody.innerHTML = customers.map(c => {
-            const totalOrders = c.quotations?.length || 0;
-            const totalSpent = c.quotations?.reduce((sum, q) => sum + parseFloat(q.total_amount || 0), 0) || 0;
+            const totalOrders = c.orders?.length || c.quotations?.length || 0;
+            const totalSpent = c.totalSpent || c.quotations?.reduce((sum, q) => sum + parseFloat(q.total_amount || 0), 0) || 0;
 
             return `
                 <tr>
                     <td><strong>${c.name}</strong></td>
                     <td>${c.company || '-'}</td>
                     <td>${c.email}</td>
-                    <td>${c.phone}</td>
+                    <td>${c.phone || '-'}</td>
                     <td>${totalOrders}</td>
                     <td>${formatCurrency(totalSpent)}</td>
                     <td>
                         <div class="actions-group">
-                            <button class="action-btn" onclick="viewCustomer('${c.id}')" title="View">
+                            <button class="action-btn" onclick="viewCustomer('${c.id}', '${c.source}')" title="View">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                                     <circle cx="12" cy="12" r="3"/>
@@ -680,9 +806,73 @@ async function loadCustomers() {
 }
 
 /**
+ * Confirm order payment (for bank transfers)
+ */
+async function confirmOrderPayment(id, source) {
+    if (!confirm('Confirm this payment? This will mark the order as paid and send invoice to customer.')) {
+        return;
+    }
+
+    try {
+        if (source === 'local') {
+            // Update in localStorage
+            const orders = JSON.parse(localStorage.getItem('adspot_orders') || '[]');
+            const orderIndex = orders.findIndex(o => (o.id == id) || (o.quotation_number == id));
+
+            if (orderIndex !== -1) {
+                orders[orderIndex].payment_status = 'paid';
+                orders[orderIndex].payment_confirmed_at = new Date().toISOString();
+                localStorage.setItem('adspot_orders', JSON.stringify(orders));
+
+                // Send invoice email
+                const order = orders[orderIndex];
+                if (typeof EmailService !== 'undefined') {
+                    try {
+                        await EmailService.sendInvoice({
+                            quotation_number: order.quotation_number,
+                            invoice_number: order.invoice_number,
+                            newspaper_name: order.items?.[0]?.newspaperName || 'Multiple',
+                            ad_type: order.items?.[0]?.adType || 'box',
+                            publication_date: order.items?.[0]?.pubDate,
+                            total_amount: order.total_amount,
+                            ad_details: order.items?.[0]?.details
+                        }, {
+                            name: order.customer_name,
+                            email: order.customer_email,
+                            phone: order.customer_phone
+                        });
+                        showToast('Payment confirmed and invoice sent!', 'success');
+                    } catch (emailError) {
+                        console.error('Email failed:', emailError);
+                        showToast('Payment confirmed. Invoice email failed - please send manually.', 'warning');
+                    }
+                } else {
+                    showToast('Payment confirmed!', 'success');
+                }
+            }
+        } else {
+            // Update in database
+            if (typeof QuotationDB !== 'undefined') {
+                await QuotationDB.update(id, { status: 'paid' });
+            }
+            showToast('Payment confirmed!', 'success');
+        }
+
+        // Reload data
+        loadQuotations();
+        loadDashboardData();
+
+    } catch (error) {
+        console.error('Error confirming payment:', error);
+        showToast('Failed to confirm payment', 'error');
+    }
+}
+window.confirmOrderPayment = confirmOrderPayment;
+
+/**
  * View quotation details
  */
-async function viewQuotation(id) {
+async function viewQuotation(id, source = 'database') {
     const modal = document.getElementById('viewQuotationModal');
     const details = document.getElementById('quotationDetails');
 
@@ -692,7 +882,30 @@ async function viewQuotation(id) {
     try {
         let quotation = null;
 
-        if (typeof QuotationDB !== 'undefined') {
+        // Check localStorage first
+        if (source === 'local') {
+            const orders = JSON.parse(localStorage.getItem('adspot_orders') || '[]');
+            const order = orders.find(o => (o.id == id) || (o.quotation_number == id));
+            if (order) {
+                quotation = {
+                    id: order.id,
+                    quotation_number: order.quotation_number,
+                    customer: { name: order.customer_name, email: order.customer_email, phone: order.customer_phone },
+                    newspaper_name: order.items?.[0]?.newspaperName || 'Multiple',
+                    ad_type: order.items?.[0]?.adType || 'box',
+                    ad_details: order.items?.[0]?.details || {},
+                    publication_date: order.items?.[0]?.pubDate,
+                    total_amount: order.total_amount,
+                    status: order.payment_status || 'pending',
+                    created_at: order.created_at,
+                    items: order.items,
+                    source: 'local'
+                };
+            }
+        }
+
+        // Try database if not found in localStorage
+        if (!quotation && typeof QuotationDB !== 'undefined' && typeof supabase !== 'undefined' && supabase) {
             quotation = await QuotationDB.getById(id);
         }
 
