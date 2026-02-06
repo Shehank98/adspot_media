@@ -459,9 +459,8 @@ function updatePrice() {
             { label: 'Newspaper', value: selectedNewspaper.name },
             { label: 'Size', value: `${columns} col x ${height} cm (H)` },
             { label: 'Column Width', value: `${calc.columnWidth.toFixed(1)} cm (${selectedNewspaper.language})` },
-            { label: 'Area', value: `${calc.columnWidth.toFixed(1)} x ${height} = ${calc.area.toFixed(1)} sq cm` },
-            { label: colorOption === 'color' ? 'Color Rate' : 'B&W Rate', value: `${formatCurrency(calc.rate)}/sq cm` },
-            { label: 'Calculation', value: `${calc.columnWidth.toFixed(1)} cm x ${height} cm x ${formatCurrency(calc.rate)}` },
+            { label: colorOption === 'color' ? 'Color Rate' : 'B&W Rate', value: `${formatCurrency(calc.rate)}/col-cm` },
+            { label: 'Calculation', value: `${columns} col x ${height} cm x ${formatCurrency(calc.rate)}` },
             { label: 'Ad Total', value: formatCurrency(calc.adTotal) },
             { label: 'Platform Commission (10%)', value: formatCurrency(calc.commission) },
             { label: 'VAT (18%)', value: formatCurrency(calc.vat) }

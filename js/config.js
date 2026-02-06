@@ -525,11 +525,11 @@ function getMaxColumns(language) {
 }
 
 // Calculate Box Ad price with column system
-// Formula: Height (cm) x Column width (cm) x Rate
+// Formula: Height (cm) x Columns (count) x Rate
 function calculateBoxAdPrice(newspaper, height, columns, colorOption) {
     const language = newspaper.language || 'english';
     const columnWidth = getColumnWidth(language, columns);
-    const area = height * columnWidth;
+    const area = height * columns; // columns count x height (not column width x height)
     const rate = colorOption === 'color' ? newspaper.colorRate : newspaper.bwRate;
     const adTotal = area * rate;
 
@@ -545,7 +545,7 @@ function calculateBoxAdPrice(newspaper, height, columns, colorOption) {
         height: height,
         columns: columns,
         columnWidth: columnWidth,
-        area: area,
+        area: area, // This is now columns x height, not column width x height
         rate: rate,
         adTotal: adTotal,
         commission: commission,
