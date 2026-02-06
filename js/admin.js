@@ -1054,15 +1054,15 @@ async function markAsPaid(quotationId) {
             }
         }
 
-        // Fallback to localStorage
+        // Fallback to localStorage - find and update
         if (!updated) {
             const localOrders = JSON.parse(localStorage.getItem('adspot_orders') || '[]');
-            const orderIndex = localOrders.findIndex((o, idx) =>
-                idx === parseInt(quotationId) ||
+            const orderIndex = localOrders.findIndex(o =>
+                String(o.id) === String(quotationId) ||
                 o.quotation_number === quotationId ||
-                o.id === quotationId ||
-                String(o.id) === String(quotationId)
+                String(o.quotation_number) === String(quotationId)
             );
+
             if (orderIndex !== -1) {
                 localOrders[orderIndex].payment_status = 'paid';
                 localOrders[orderIndex].status = 'paid';
@@ -1074,21 +1074,21 @@ async function markAsPaid(quotationId) {
         }
 
         if (updated && orderData) {
-            // Prepare quotation and customer data for invoice
-            const quotation = {
+            // Use helper to extract quotation data consistently
+            const quotation = extractQuotationFromOrder ? extractQuotationFromOrder(orderData) : {
                 quotation_number: orderData.quotation_number,
-                invoice_number: orderData.invoice_number || (typeof generateInvoiceNumber !== 'undefined' ? generateInvoiceNumber() : `INV-${Date.now()}`),
-                newspaper_name: orderData.newspaper_name || orderData.items?.[0]?.newspaperName || 'N/A',
-                ad_type: orderData.ad_type || orderData.items?.[0]?.adType || 'box',
-                publication_date: orderData.publication_date || orderData.items?.[0]?.pubDate,
+                invoice_number: orderData.invoice_number || `INV-${Date.now()}`,
+                newspaper_name: orderData.items?.[0]?.newspaperName || orderData.newspaper_name || 'N/A',
+                ad_type: orderData.items?.[0]?.adType || orderData.ad_type || 'box',
+                publication_date: orderData.items?.[0]?.pubDate || orderData.publication_date,
                 total_amount: orderData.total_amount,
-                ad_details: orderData.ad_details || orderData.items?.[0]?.details || {}
+                ad_details: orderData.items?.[0]?.details || orderData.ad_details || {}
             };
 
-            const customer = {
-                name: orderData.customer_name || orderData.customer?.name || 'Customer',
-                email: orderData.customer_email || orderData.customer?.email || '',
-                phone: orderData.customer_phone || orderData.customer?.phone || ''
+            const customer = quotation.customer || {
+                name: orderData.customer_name || 'Customer',
+                email: orderData.customer_email || '',
+                phone: orderData.customer_phone || ''
             };
 
             // Send invoice email
@@ -1108,6 +1108,7 @@ async function markAsPaid(quotationId) {
             loadQuotations();
             loadDashboardData();
         } else {
+            console.error('Quotation not found for ID:', quotationId);
             showToast('Quotation not found', 'error');
         }
     } catch (error) {
@@ -1797,14 +1798,74 @@ function debounce(func, wait) {
 }
 
 /**
+ * Find order from localStorage with flexible ID matching
+ */
+function findOrderById(quotationId) {
+    const localOrders = JSON.parse(localStorage.getItem('adspot_orders') || '[]');
+
+    // Try different matching strategies
+    let order = localOrders.find(o =>
+        String(o.id) === String(quotationId) ||
+        o.quotation_number === quotationId ||
+        String(o.quotation_number) === String(quotationId)
+    );
+
+    // Also try matching by index if quotationId is a small number
+    if (!order && !isNaN(quotationId) && parseInt(quotationId) < localOrders.length) {
+        order = localOrders[parseInt(quotationId)];
+    }
+
+    return order;
+}
+
+/**
+ * Extract quotation data from order object
+ */
+function extractQuotationFromOrder(order) {
+    if (!order) return null;
+
+    return {
+        id: order.id,
+        quotation_number: order.quotation_number,
+        invoice_number: order.invoice_number || `INV-${Date.now()}`,
+        newspaper_name: order.items?.[0]?.newspaperName || order.newspaper_name || 'N/A',
+        ad_type: order.items?.[0]?.adType || order.ad_type || 'box',
+        publication_date: order.items?.[0]?.pubDate || order.publication_date,
+        total_amount: order.total_amount,
+        ad_details: order.items?.[0]?.details || order.ad_details || {},
+        items: order.items || [],
+        customer: {
+            name: order.customer_name || order.customer?.name || 'Customer',
+            email: order.customer_email || order.customer?.email || '',
+            phone: order.customer_phone || order.customer?.phone || '',
+            company: order.customer_company || order.customer?.company || '',
+            address: order.customer_address || order.customer?.address || ''
+        }
+    };
+}
+
+/**
  * Download invoice as PDF
  */
 async function downloadInvoice(quotationId) {
     try {
+        // First try to use stored PDF
+        if (typeof PdfStorage !== 'undefined' && PdfStorage.hasForOrder(quotationId)) {
+            const order = findOrderById(quotationId);
+            const quotation = extractQuotationFromOrder(order);
+            const filename = `Invoice_${quotation?.quotation_number || quotationId}.pdf`;
+
+            if (PdfStorage.download(quotationId, filename)) {
+                showToast('Invoice downloaded!', 'success');
+                return;
+            }
+        }
+
+        // Generate new PDF
         let quotation = null;
 
         // Try database first
-        if (typeof QuotationDB !== 'undefined') {
+        if (typeof QuotationDB !== 'undefined' && typeof isSupabaseAvailable !== 'undefined' && isSupabaseAvailable()) {
             try {
                 quotation = await QuotationDB.getById(quotationId);
             } catch (e) {
@@ -1814,33 +1875,12 @@ async function downloadInvoice(quotationId) {
 
         // Fallback to localStorage
         if (!quotation) {
-            const localOrders = JSON.parse(localStorage.getItem('adspot_orders') || '[]');
-            const order = localOrders.find((o, idx) =>
-                idx === parseInt(quotationId) ||
-                o.quotation_number === quotationId ||
-                o.id === quotationId
-            );
-            if (order) {
-                quotation = {
-                    quotation_number: order.quotation_number,
-                    invoice_number: order.invoice_number || `INV-${Date.now()}`,
-                    newspaper_name: order.newspaper_name,
-                    ad_type: order.ad_type,
-                    publication_date: order.publication_date,
-                    total_amount: order.total_amount,
-                    ad_details: order.ad_details || {},
-                    customer: {
-                        name: order.customer_name,
-                        email: order.customer_email,
-                        phone: order.customer_phone,
-                        company: order.customer_company || '',
-                        address: order.customer_address || ''
-                    }
-                };
-            }
+            const order = findOrderById(quotationId);
+            quotation = extractQuotationFromOrder(order);
         }
 
         if (!quotation) {
+            console.error('Quotation not found for ID:', quotationId);
             showToast('Quotation not found', 'error');
             return;
         }
@@ -1864,10 +1904,19 @@ async function downloadInvoice(quotationId) {
  */
 async function previewInvoice(quotationId) {
     try {
+        // First try to use stored PDF
+        if (typeof PdfStorage !== 'undefined' && PdfStorage.hasForOrder(quotationId)) {
+            if (PdfStorage.openInNewTab(quotationId)) {
+                showToast('Invoice opened in new tab', 'success');
+                return;
+            }
+        }
+
+        // Generate new PDF
         let quotation = null;
 
         // Try database first
-        if (typeof QuotationDB !== 'undefined') {
+        if (typeof QuotationDB !== 'undefined' && typeof isSupabaseAvailable !== 'undefined' && isSupabaseAvailable()) {
             try {
                 quotation = await QuotationDB.getById(quotationId);
             } catch (e) {
@@ -1877,33 +1926,12 @@ async function previewInvoice(quotationId) {
 
         // Fallback to localStorage
         if (!quotation) {
-            const localOrders = JSON.parse(localStorage.getItem('adspot_orders') || '[]');
-            const order = localOrders.find((o, idx) =>
-                idx === parseInt(quotationId) ||
-                o.quotation_number === quotationId ||
-                o.id === quotationId
-            );
-            if (order) {
-                quotation = {
-                    quotation_number: order.quotation_number,
-                    invoice_number: order.invoice_number || `INV-${Date.now()}`,
-                    newspaper_name: order.newspaper_name,
-                    ad_type: order.ad_type,
-                    publication_date: order.publication_date,
-                    total_amount: order.total_amount,
-                    ad_details: order.ad_details || {},
-                    customer: {
-                        name: order.customer_name,
-                        email: order.customer_email,
-                        phone: order.customer_phone,
-                        company: order.customer_company || '',
-                        address: order.customer_address || ''
-                    }
-                };
-            }
+            const order = findOrderById(quotationId);
+            quotation = extractQuotationFromOrder(order);
         }
 
         if (!quotation) {
+            console.error('Quotation not found for ID:', quotationId);
             showToast('Quotation not found', 'error');
             return;
         }

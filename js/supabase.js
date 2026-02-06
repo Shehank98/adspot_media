@@ -832,14 +832,150 @@ const InvoiceGenerator = {
      * Open invoice in new tab for preview
      */
     preview(quotation, customer) {
+        // First check if we have a stored PDF
+        const storedPdf = PdfStorage.getForOrder(quotation.id || quotation.quotation_number);
+        if (storedPdf) {
+            const byteCharacters = atob(storedPdf);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+            return true;
+        }
+
+        // Generate new PDF if not stored
         const doc = this.generate(quotation, customer);
         if (doc) {
             const pdfBlob = doc.output('blob');
             const url = URL.createObjectURL(pdfBlob);
             window.open(url, '_blank');
+
+            // Save for future use
+            const base64 = doc.output('datauristring').split(',')[1];
+            PdfStorage.saveForOrder(quotation.id || quotation.quotation_number, base64);
+
             return true;
         }
         return false;
+    },
+
+    /**
+     * Generate and save PDF for an order
+     */
+    generateAndSave(quotation, customer) {
+        const doc = this.generate(quotation, customer);
+        if (doc) {
+            const base64 = doc.output('datauristring').split(',')[1];
+            PdfStorage.saveForOrder(quotation.id || quotation.quotation_number, base64);
+            return base64;
+        }
+        return null;
+    }
+};
+
+/**
+ * PDF Storage - saves generated PDFs to localStorage for reliable retrieval
+ */
+const PdfStorage = {
+    STORAGE_KEY: 'adspot_pdfs',
+
+    /**
+     * Save PDF for an order
+     */
+    saveForOrder(orderId, base64Data) {
+        if (!orderId || !base64Data) return false;
+
+        const pdfs = JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '{}');
+        pdfs[String(orderId)] = {
+            data: base64Data,
+            created_at: new Date().toISOString()
+        };
+
+        // Limit storage to last 50 PDFs to avoid localStorage limits
+        const keys = Object.keys(pdfs);
+        if (keys.length > 50) {
+            const sortedKeys = keys.sort((a, b) =>
+                new Date(pdfs[a].created_at) - new Date(pdfs[b].created_at)
+            );
+            for (let i = 0; i < keys.length - 50; i++) {
+                delete pdfs[sortedKeys[i]];
+            }
+        }
+
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(pdfs));
+        console.log('PDF saved for order:', orderId);
+        return true;
+    },
+
+    /**
+     * Get stored PDF for an order
+     */
+    getForOrder(orderId) {
+        if (!orderId) return null;
+
+        const pdfs = JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '{}');
+
+        // Try different ID formats
+        const pdf = pdfs[String(orderId)] ||
+                   pdfs[orderId] ||
+                   Object.entries(pdfs).find(([key]) =>
+                       key.includes(orderId) || String(orderId).includes(key)
+                   )?.[1];
+
+        return pdf?.data || null;
+    },
+
+    /**
+     * Check if PDF exists for an order
+     */
+    hasForOrder(orderId) {
+        return !!this.getForOrder(orderId);
+    },
+
+    /**
+     * Delete PDF for an order
+     */
+    deleteForOrder(orderId) {
+        const pdfs = JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '{}');
+        delete pdfs[String(orderId)];
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(pdfs));
+    },
+
+    /**
+     * Open stored PDF in new tab
+     */
+    openInNewTab(orderId) {
+        const base64 = this.getForOrder(orderId);
+        if (!base64) return false;
+
+        const byteCharacters = atob(base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        return true;
+    },
+
+    /**
+     * Download stored PDF
+     */
+    download(orderId, filename) {
+        const base64 = this.getForOrder(orderId);
+        if (!base64) return false;
+
+        const link = document.createElement('a');
+        link.href = `data:application/pdf;base64,${base64}`;
+        link.download = filename || `Invoice_${orderId}.pdf`;
+        link.click();
+        return true;
     }
 };
 
@@ -952,6 +1088,7 @@ window.PublicationDB = PublicationDB;
 window.OrdersDB = OrdersDB;
 window.EmailService = EmailService;
 window.InvoiceGenerator = InvoiceGenerator;
+window.PdfStorage = PdfStorage;
 window.EMAIL_CONFIG = EMAIL_CONFIG;
 window.formatDate = formatDate;
 window.formatCurrency = formatCurrency;

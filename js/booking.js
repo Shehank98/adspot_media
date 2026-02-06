@@ -1018,13 +1018,42 @@ async function handleSubmit(e) {
         // Fallback: Save to local storage if database not available
         if (!saveSuccess) {
             const orders = JSON.parse(localStorage.getItem('adspot_orders') || '[]');
+            const orderId = Date.now();
             orders.push({
                 ...formData,
-                id: Date.now(),
+                id: orderId,
                 created_at: new Date().toISOString()
             });
             localStorage.setItem('adspot_orders', JSON.stringify(orders));
             console.log('Order saved to local storage:', quotationNumber);
+
+            // Generate and store PDF for later retrieval
+            if (typeof InvoiceGenerator !== 'undefined' && typeof PdfStorage !== 'undefined') {
+                try {
+                    const quotationForPdf = {
+                        id: orderId,
+                        quotation_number: quotationNumber,
+                        invoice_number: invoiceNumber,
+                        newspaper_name: adCart[0]?.newspaperName || 'Multiple',
+                        ad_type: adCart[0]?.adType || 'box',
+                        publication_date: adCart[0]?.pubDate,
+                        total_amount: formData.total_amount,
+                        items: adCart,
+                        ad_details: adCart[0]?.details || {}
+                    };
+                    const customerForPdf = {
+                        name: formData.customer_name,
+                        email: formData.customer_email,
+                        phone: formData.customer_phone,
+                        company: formData.customer_company,
+                        address: formData.customer_address
+                    };
+                    InvoiceGenerator.generateAndSave(quotationForPdf, customerForPdf);
+                    console.log('PDF generated and saved for order:', quotationNumber);
+                } catch (pdfError) {
+                    console.warn('Failed to generate PDF:', pdfError);
+                }
+            }
         }
 
         // Small delay for UX
