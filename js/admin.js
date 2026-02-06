@@ -553,21 +553,56 @@ async function loadQuotations() {
  */
 async function loadPayments() {
     const tbody = document.getElementById('paymentsTable');
-    const methodFilter = document.getElementById('paymentMethodFilter').value;
-    const statusFilter = document.getElementById('paymentStatusFilter').value;
+    const methodFilter = document.getElementById('paymentMethodFilter')?.value || '';
+    const statusFilter = document.getElementById('paymentStatusFilter')?.value || '';
 
     tbody.innerHTML = '<tr><td colspan="9" class="loading">Loading...</td></tr>';
 
     try {
         let payments = [];
 
-        if (typeof PaymentDB !== 'undefined') {
+        // Try database first
+        if (typeof PaymentDB !== 'undefined' && typeof isSupabaseAvailable !== 'undefined' && isSupabaseAvailable()) {
             try {
                 payments = await PaymentDB.getAll({ method: methodFilter, status: statusFilter });
             } catch (e) {
                 console.log('Database not available');
             }
         }
+
+        // Also get paid orders from localStorage
+        const localOrders = JSON.parse(localStorage.getItem('adspot_orders') || '[]');
+        const paidOrders = localOrders.filter(o =>
+            o.payment_status === 'paid' || o.status === 'paid'
+        );
+
+        // Convert paid orders to payment format
+        const localPayments = paidOrders.map(order => ({
+            id: order.id || order.quotation_number,
+            quotation_number: order.quotation_number,
+            customer_name: order.customer_name,
+            amount: order.total_amount,
+            payment_method: order.payment_method || 'bank',
+            reference_number: order.payment_reference || order.quotation_number,
+            status: 'completed',
+            created_at: order.updated_at || order.created_at,
+            invoice_number: order.invoice_number,
+            source: 'local'
+        }));
+
+        // Merge and deduplicate
+        payments = [...payments, ...localPayments];
+
+        // Apply filters
+        if (methodFilter) {
+            payments = payments.filter(p => p.payment_method === methodFilter);
+        }
+        if (statusFilter) {
+            payments = payments.filter(p => p.status === statusFilter);
+        }
+
+        // Sort by date (newest first)
+        payments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
         if (payments.length === 0) {
             tbody.innerHTML = '<tr><td colspan="9" class="loading">No payments found</td></tr>';
@@ -576,23 +611,31 @@ async function loadPayments() {
 
         tbody.innerHTML = payments.map(p => `
             <tr>
-                <td><strong>#${p.id.substring(0, 8)}</strong></td>
-                <td>${p.quotation?.quotation_number || 'N/A'}</td>
-                <td>${p.quotation?.customer?.name || 'N/A'}</td>
+                <td><strong>${p.invoice_number || '#' + String(p.id).substring(0, 8)}</strong></td>
+                <td>${p.quotation_number || p.quotation?.quotation_number || 'N/A'}</td>
+                <td>${p.customer_name || p.quotation?.customer?.name || 'N/A'}</td>
                 <td>${formatCurrency(p.amount)}</td>
                 <td>${p.payment_method === 'card' ? 'Card' : 'Bank Transfer'}</td>
                 <td>${p.reference_number || '-'}</td>
-                <td><span class="status-badge ${p.status}">${p.status}</span></td>
+                <td><span class="status-badge completed">Paid</span></td>
                 <td>${formatDate(p.created_at)}</td>
                 <td>
                     <div class="actions-group">
-                        ${p.status === 'pending' ? `
-                            <button class="action-btn" onclick="confirmPayment('${p.id}')" title="Confirm Payment">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                    <polyline points="20 6 9 17 4 12"/>
-                                </svg>
-                            </button>
-                        ` : ''}
+                        <button class="action-btn" onclick="previewInvoice('${p.id}')" title="View Invoice">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/>
+                            </svg>
+                        </button>
+                        <button class="action-btn" onclick="downloadInvoice('${p.id}')" title="Download Invoice">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                        </button>
                     </div>
                 </td>
             </tr>
