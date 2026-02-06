@@ -25,38 +25,27 @@ window.addEventListener('supabaseReady', function() {
 });
 
 /**
- * Check authentication
+ * Check authentication - uses local session
  */
-async function checkAuth() {
+function checkAuth() {
     try {
-        // Wait for Supabase to be ready
-        const sb = typeof ensureSupabase !== 'undefined' ? await ensureSupabase() : null;
+        const session = JSON.parse(localStorage.getItem('adspot_admin_session') || 'null');
 
-        if (sb && sb.auth) {
-            const { data: { session } } = await sb.auth.getSession();
+        if (!session || !session.loggedIn) {
+            // Not logged in - redirect to login page
+            window.location.href = 'index.html';
+            return;
+        }
 
-            if (!session) {
-                // Check if we have a local admin session (for demo/testing)
-                const localAdmin = localStorage.getItem('adspot_admin_session');
-                if (!localAdmin) {
-                    // For demo purposes, allow access
-                    console.log('Running in demo mode - no session');
-                    document.getElementById('adminName').textContent = 'Admin (Demo)';
-                    return;
-                }
-                document.getElementById('adminName').textContent = 'Admin (Local)';
-            } else {
-                document.getElementById('adminName').textContent = session.user.email;
-            }
-        } else {
-            // Supabase not available - allow demo access
-            console.log('Running in demo mode - Supabase not available');
-            document.getElementById('adminName').textContent = 'Admin (Demo)';
+        // Display admin email
+        const adminNameEl = document.getElementById('adminName');
+        if (adminNameEl) {
+            adminNameEl.textContent = session.email || 'Admin';
         }
     } catch (error) {
         console.error('Auth check error:', error);
-        // Allow demo access on error
-        document.getElementById('adminName').textContent = 'Admin (Demo)';
+        // Redirect to login on error
+        window.location.href = 'index.html';
     }
 }
 
@@ -148,21 +137,12 @@ function initNavigation() {
     // Logout
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', async function(e) {
+        logoutBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            try {
-                if (typeof supabase !== 'undefined' && supabase && supabase.auth) {
-                    await supabase.auth.signOut();
-                }
-                // Clear any local session data
-                localStorage.removeItem('sb-auth-token');
-                sessionStorage.clear();
-                window.location.href = 'index.html';
-            } catch (error) {
-                console.error('Logout error:', error);
-                // Force redirect even if signOut fails
-                window.location.href = 'index.html';
-            }
+            // Clear local admin session
+            localStorage.removeItem('adspot_admin_session');
+            // Redirect to login
+            window.location.href = 'index.html';
         });
     }
 }

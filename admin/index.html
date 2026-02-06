@@ -62,12 +62,18 @@
     <script src="../js/config.js"></script>
     <script src="../js/supabase.js"></script>
     <script>
+        // Admin credentials (simple local auth)
+        const ADMIN_CREDENTIALS = {
+            email: 'shehan.k98@gmail.com',
+            password: 'Shehan@98'
+        };
+
         // Toggle password visibility
         document.querySelector('.toggle-password').addEventListener('click', function() {
             const input = document.getElementById('adminPassword');
             const eyeOpen = this.querySelector('.eye-open');
             const eyeClosed = this.querySelector('.eye-closed');
-            
+
             if (input.type === 'password') {
                 input.type = 'text';
                 eyeOpen.style.display = 'none';
@@ -82,27 +88,36 @@
         // Login form handler
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
-            const email = document.getElementById('adminEmail').value;
+
+            const email = document.getElementById('adminEmail').value.trim();
             const password = document.getElementById('adminPassword').value;
             const loginText = document.getElementById('loginText');
             const loginLoader = document.getElementById('loginLoader');
             const errorDiv = document.getElementById('loginError');
-            
+
             loginText.style.display = 'none';
             loginLoader.style.display = 'block';
             errorDiv.style.display = 'none';
-            
+
+            // Small delay for UX
+            await new Promise(resolve => setTimeout(resolve, 500));
+
             try {
-                const { data, error } = await supabase.auth.signInWithPassword({
-                    email: email,
-                    password: password
-                });
-                
-                if (error) throw error;
-                
-                // Redirect to dashboard
-                window.location.href = 'dashboard.html';
+                // Check credentials
+                if (email === ADMIN_CREDENTIALS.email && password === ADMIN_CREDENTIALS.password) {
+                    // Store session in localStorage
+                    const session = {
+                        email: email,
+                        loggedIn: true,
+                        loginTime: new Date().toISOString()
+                    };
+                    localStorage.setItem('adspot_admin_session', JSON.stringify(session));
+
+                    // Redirect to dashboard
+                    window.location.href = 'dashboard.html';
+                } else {
+                    throw new Error('Invalid email or password');
+                }
             } catch (error) {
                 errorDiv.textContent = error.message || 'Invalid credentials';
                 errorDiv.style.display = 'block';
@@ -112,11 +127,10 @@
         });
 
         // Check if already logged in
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session) {
-                window.location.href = 'dashboard.html';
-            }
-        });
+        const session = JSON.parse(localStorage.getItem('adspot_admin_session') || 'null');
+        if (session && session.loggedIn) {
+            window.location.href = 'dashboard.html';
+        }
     </script>
 </body>
 </html>
