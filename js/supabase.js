@@ -8,21 +8,42 @@ const supabaseUrl = CONFIG.SUPABASE_URL;
 const supabaseKey = CONFIG.SUPABASE_ANON_KEY;
 
 // Create Supabase client (loaded from CDN)
-let supabase;
+let supabase = null;
+let supabaseReady = false;
 
-// Load Supabase from CDN
-(function loadSupabase() {
+// Promise that resolves when Supabase is ready
+const supabasePromise = new Promise((resolve) => {
     const script = document.createElement('script');
     script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
     script.onload = function() {
-        supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-        console.log('Supabase initialized');
-        
-        // Dispatch event when ready
-        window.dispatchEvent(new Event('supabaseReady'));
+        try {
+            supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+            supabaseReady = true;
+            console.log('Supabase initialized successfully');
+            window.dispatchEvent(new Event('supabaseReady'));
+            resolve(supabase);
+        } catch (e) {
+            console.error('Failed to initialize Supabase:', e);
+            resolve(null);
+        }
+    };
+    script.onerror = function() {
+        console.error('Failed to load Supabase script');
+        resolve(null);
     };
     document.head.appendChild(script);
-})();
+});
+
+// Helper function to ensure Supabase is ready
+async function ensureSupabase() {
+    if (supabaseReady && supabase) return supabase;
+    return await supabasePromise;
+}
+
+// Check if Supabase is available
+function isSupabaseAvailable() {
+    return supabaseReady && supabase !== null;
+}
 
 /**
  * Database Operations
@@ -805,14 +826,134 @@ const InvoiceGenerator = {
      */
     getBase64(quotation, customer) {
         return this.generate(quotation, customer, true);
+    },
+
+    /**
+     * Open invoice in new tab for preview
+     */
+    preview(quotation, customer) {
+        const doc = this.generate(quotation, customer);
+        if (doc) {
+            const pdfBlob = doc.output('blob');
+            const url = URL.createObjectURL(pdfBlob);
+            window.open(url, '_blank');
+            return true;
+        }
+        return false;
     }
 };
 
+/**
+ * Orders Database (localStorage + Supabase sync)
+ * Ensures data persists even when Supabase is not available
+ */
+const OrdersDB = {
+    async getAll() {
+        try {
+            const sb = await ensureSupabase();
+            if (sb) {
+                const { data, error } = await sb
+                    .from('orders')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (!error && data) {
+                    localStorage.setItem('adspot_orders', JSON.stringify(data));
+                    return data;
+                }
+            }
+        } catch (e) {
+            console.log('Database not available, using localStorage');
+        }
+        return JSON.parse(localStorage.getItem('adspot_orders') || '[]');
+    },
+
+    async create(orderData) {
+        const localOrders = JSON.parse(localStorage.getItem('adspot_orders') || '[]');
+        const order = {
+            ...orderData,
+            id: orderData.id || `local_${Date.now()}`,
+            created_at: new Date().toISOString()
+        };
+        localOrders.unshift(order);
+        localStorage.setItem('adspot_orders', JSON.stringify(localOrders));
+
+        try {
+            const sb = await ensureSupabase();
+            if (sb) {
+                const { data, error } = await sb
+                    .from('orders')
+                    .insert([orderData])
+                    .select();
+                if (!error && data) return data[0];
+            }
+        } catch (e) {
+            console.log('Failed to sync to database, saved locally');
+        }
+        return order;
+    },
+
+    async update(id, updates) {
+        const localOrders = JSON.parse(localStorage.getItem('adspot_orders') || '[]');
+        const idx = localOrders.findIndex(o => o.id === id || o.quotation_number === id);
+        if (idx !== -1) {
+            localOrders[idx] = { ...localOrders[idx], ...updates };
+            localStorage.setItem('adspot_orders', JSON.stringify(localOrders));
+        }
+        return localOrders[idx];
+    },
+
+    async getById(id) {
+        const localOrders = JSON.parse(localStorage.getItem('adspot_orders') || '[]');
+        return localOrders.find(o => o.id === id || o.quotation_number === id || String(o.id) === String(id));
+    }
+};
+
+/**
+ * Helper functions
+ */
+function formatDate(date) {
+    if (!date) return 'N/A';
+    const d = new Date(date);
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function formatCurrency(amount) {
+    const num = parseFloat(amount) || 0;
+    return 'Rs. ' + num.toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function generateInvoiceNumber() {
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    return `INV-${year}${month}-${random}`;
+}
+
+function generateQuotationNumber() {
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    return `QT-${year}${month}${day}-${random}`;
+}
+
 // Export for global access
+window.supabase = supabase;
+window.supabasePromise = supabasePromise;
+window.ensureSupabase = ensureSupabase;
+window.isSupabaseAvailable = isSupabaseAvailable;
 window.QuotationDB = QuotationDB;
 window.CustomerDB = CustomerDB;
 window.PaymentDB = PaymentDB;
 window.PublicationDB = PublicationDB;
+window.OrdersDB = OrdersDB;
 window.EmailService = EmailService;
 window.InvoiceGenerator = InvoiceGenerator;
 window.EMAIL_CONFIG = EMAIL_CONFIG;
+window.formatDate = formatDate;
+window.formatCurrency = formatCurrency;
+window.generateInvoiceNumber = generateInvoiceNumber;
+window.generateQuotationNumber = generateQuotationNumber;

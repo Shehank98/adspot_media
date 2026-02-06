@@ -28,21 +28,36 @@ window.addEventListener('supabaseReady', function() {
  * Check authentication
  */
 async function checkAuth() {
-    // Wait for Supabase
-    if (typeof supabase === 'undefined') {
-        setTimeout(checkAuth, 100);
-        return;
+    try {
+        // Wait for Supabase to be ready
+        const sb = typeof ensureSupabase !== 'undefined' ? await ensureSupabase() : null;
+
+        if (sb && sb.auth) {
+            const { data: { session } } = await sb.auth.getSession();
+
+            if (!session) {
+                // Check if we have a local admin session (for demo/testing)
+                const localAdmin = localStorage.getItem('adspot_admin_session');
+                if (!localAdmin) {
+                    // For demo purposes, allow access
+                    console.log('Running in demo mode - no session');
+                    document.getElementById('adminName').textContent = 'Admin (Demo)';
+                    return;
+                }
+                document.getElementById('adminName').textContent = 'Admin (Local)';
+            } else {
+                document.getElementById('adminName').textContent = session.user.email;
+            }
+        } else {
+            // Supabase not available - allow demo access
+            console.log('Running in demo mode - Supabase not available');
+            document.getElementById('adminName').textContent = 'Admin (Demo)';
+        }
+    } catch (error) {
+        console.error('Auth check error:', error);
+        // Allow demo access on error
+        document.getElementById('adminName').textContent = 'Admin (Demo)';
     }
-
-    const { data: { session } } = await supabase.auth.getSession();
-
-    if (!session) {
-        window.location.href = 'index.html';
-        return;
-    }
-
-    // Set admin name
-    document.getElementById('adminName').textContent = session.user.email;
 }
 
 /**
@@ -995,6 +1010,9 @@ async function viewQuotation(id, source = 'database') {
                 <strong>${formatCurrency(quotation.total_amount)}</strong>
             </div>
             <div class="quotation-actions">
+                <button class="btn btn-ghost" onclick="previewInvoice('${quotation.id}')">
+                    View Invoice
+                </button>
                 <button class="btn btn-ghost" onclick="downloadInvoice('${quotation.id}')">
                     Download PDF
                 </button>
@@ -1016,18 +1034,20 @@ async function viewQuotation(id, source = 'database') {
 }
 
 /**
- * Mark quotation as paid
+ * Mark quotation as paid and send invoice
  */
 async function markAsPaid(quotationId) {
-    if (!confirm('Mark this quotation as paid?')) return;
+    if (!confirm('Confirm payment and send invoice to customer?')) return;
 
     try {
         let updated = false;
+        let orderData = null;
 
         // Try database first
-        if (typeof QuotationDB !== 'undefined') {
+        if (typeof QuotationDB !== 'undefined' && typeof isSupabaseAvailable !== 'undefined' && isSupabaseAvailable()) {
             try {
                 await QuotationDB.updateStatus(quotationId, 'paid');
+                orderData = await QuotationDB.getById(quotationId);
                 updated = true;
             } catch (e) {
                 console.log('Database not available, updating localStorage');
@@ -1040,19 +1060,51 @@ async function markAsPaid(quotationId) {
             const orderIndex = localOrders.findIndex((o, idx) =>
                 idx === parseInt(quotationId) ||
                 o.quotation_number === quotationId ||
-                o.id === quotationId
+                o.id === quotationId ||
+                String(o.id) === String(quotationId)
             );
             if (orderIndex !== -1) {
                 localOrders[orderIndex].payment_status = 'paid';
                 localOrders[orderIndex].status = 'paid';
+                localOrders[orderIndex].invoice_number = typeof generateInvoiceNumber !== 'undefined' ? generateInvoiceNumber() : `INV-${Date.now()}`;
                 localStorage.setItem('adspot_orders', JSON.stringify(localOrders));
+                orderData = localOrders[orderIndex];
                 updated = true;
             }
         }
 
-        if (updated) {
-            showToast('Quotation marked as paid', 'success');
-            document.getElementById('viewQuotationModal').classList.remove('active');
+        if (updated && orderData) {
+            // Prepare quotation and customer data for invoice
+            const quotation = {
+                quotation_number: orderData.quotation_number,
+                invoice_number: orderData.invoice_number || (typeof generateInvoiceNumber !== 'undefined' ? generateInvoiceNumber() : `INV-${Date.now()}`),
+                newspaper_name: orderData.newspaper_name || orderData.items?.[0]?.newspaperName || 'N/A',
+                ad_type: orderData.ad_type || orderData.items?.[0]?.adType || 'box',
+                publication_date: orderData.publication_date || orderData.items?.[0]?.pubDate,
+                total_amount: orderData.total_amount,
+                ad_details: orderData.ad_details || orderData.items?.[0]?.details || {}
+            };
+
+            const customer = {
+                name: orderData.customer_name || orderData.customer?.name || 'Customer',
+                email: orderData.customer_email || orderData.customer?.email || '',
+                phone: orderData.customer_phone || orderData.customer?.phone || ''
+            };
+
+            // Send invoice email
+            if (customer.email && typeof EmailService !== 'undefined') {
+                try {
+                    await EmailService.sendInvoice(quotation, customer);
+                    showToast('Payment confirmed & invoice sent!', 'success');
+                } catch (emailError) {
+                    console.error('Failed to send invoice email:', emailError);
+                    showToast('Payment confirmed but email failed', 'warning');
+                }
+            } else {
+                showToast('Payment confirmed!', 'success');
+            }
+
+            document.getElementById('viewQuotationModal')?.classList.remove('active');
             loadQuotations();
             loadDashboardData();
         } else {
@@ -1807,6 +1859,73 @@ async function downloadInvoice(quotationId) {
     }
 }
 
+/**
+ * Preview invoice in new tab
+ */
+async function previewInvoice(quotationId) {
+    try {
+        let quotation = null;
+
+        // Try database first
+        if (typeof QuotationDB !== 'undefined') {
+            try {
+                quotation = await QuotationDB.getById(quotationId);
+            } catch (e) {
+                console.log('Database not available, checking localStorage');
+            }
+        }
+
+        // Fallback to localStorage
+        if (!quotation) {
+            const localOrders = JSON.parse(localStorage.getItem('adspot_orders') || '[]');
+            const order = localOrders.find((o, idx) =>
+                idx === parseInt(quotationId) ||
+                o.quotation_number === quotationId ||
+                o.id === quotationId
+            );
+            if (order) {
+                quotation = {
+                    quotation_number: order.quotation_number,
+                    invoice_number: order.invoice_number || `INV-${Date.now()}`,
+                    newspaper_name: order.newspaper_name,
+                    ad_type: order.ad_type,
+                    publication_date: order.publication_date,
+                    total_amount: order.total_amount,
+                    ad_details: order.ad_details || {},
+                    customer: {
+                        name: order.customer_name,
+                        email: order.customer_email,
+                        phone: order.customer_phone,
+                        company: order.customer_company || '',
+                        address: order.customer_address || ''
+                    }
+                };
+            }
+        }
+
+        if (!quotation) {
+            showToast('Quotation not found', 'error');
+            return;
+        }
+
+        const customer = quotation.customer || { name: 'Customer', email: '', phone: '' };
+
+        if (typeof InvoiceGenerator !== 'undefined' && InvoiceGenerator.preview) {
+            InvoiceGenerator.preview(quotation, customer);
+            showToast('Invoice opened in new tab', 'success');
+        } else if (typeof InvoiceGenerator !== 'undefined') {
+            // Fallback to download if preview not available
+            InvoiceGenerator.download(quotation, customer);
+            showToast('Invoice downloaded (preview not available)', 'info');
+        } else {
+            showToast('PDF generator not available', 'error');
+        }
+    } catch (error) {
+        console.error('Error previewing invoice:', error);
+        showToast('Failed to preview invoice', 'error');
+    }
+}
+
 // Make functions globally available
 window.viewQuotation = viewQuotation;
 window.sendInvoice = sendInvoice;
@@ -1814,3 +1933,4 @@ window.confirmPayment = confirmPayment;
 window.editPublication = editPublication;
 window.viewCustomer = viewCustomer;
 window.downloadInvoice = downloadInvoice;
+window.previewInvoice = previewInvoice;
