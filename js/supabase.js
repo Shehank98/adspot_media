@@ -314,13 +314,13 @@ const PublicationDB = {
  * Set up at: https://www.emailjs.com/
  */
 const EMAIL_CONFIG = {
-    serviceId: 'YOUR_EMAILJS_SERVICE_ID', // Replace with your EmailJS service ID
+    serviceId: 'service_24jb70m', // Replace with your EmailJS service ID
     quotationTemplateId: 'quotation_template',
     invoiceTemplateId: 'invoice_template',
     paymentConfirmTemplateId: 'payment_confirm_template',
     adminNotifyTemplateId: 'admin_notify_template',
     contactFormTemplateId: 'contact_form_template', // For contact form messages
-    publicKey: 'YOUR_EMAILJS_PUBLIC_KEY' // Replace with your EmailJS public key
+    publicKey: 'vbRza-h7pYJytZhLc' // Replace with your EmailJS public key
 };
 
 // Load EmailJS library
