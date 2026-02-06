@@ -1071,6 +1071,47 @@ async function handleSubmit(e) {
             }
         }
 
+        // Send admin notification and customer confirmation emails
+        if (typeof EmailService !== 'undefined' && EmailService.isConfigured()) {
+            try {
+                // Prepare data for emails
+                const quotationData = {
+                    quotation_number: quotationNumber,
+                    invoice_number: invoiceNumber,
+                    newspaper_name: adCart[0]?.newspaperName || 'Multiple',
+                    ad_type: adCart[0]?.adType || 'box',
+                    total_amount: formData.total_amount,
+                    items: adCart.map(item => ({
+                        newspaperName: item.newspaperName,
+                        adType: item.adType,
+                        pubDate: item.pubDate,
+                        price: item.price,
+                        description: item.description,
+                        details: item.details // Includes classified text
+                    }))
+                };
+
+                const customerData = {
+                    name: formData.customer_name,
+                    email: formData.customer_email,
+                    phone: formData.customer_phone
+                };
+
+                // Send admin notification (you receive the order)
+                EmailService.notifyAdmin(quotationData, customerData)
+                    .then(() => console.log('Admin notification sent'))
+                    .catch(err => console.warn('Admin notification failed:', err));
+
+                // Send quotation/confirmation to customer
+                EmailService.sendQuotation(quotationData, customerData)
+                    .then(() => console.log('Customer confirmation sent'))
+                    .catch(err => console.warn('Customer email failed:', err));
+
+            } catch (emailError) {
+                console.warn('Email sending failed:', emailError);
+            }
+        }
+
         // Small delay for UX
         await new Promise(resolve => setTimeout(resolve, 500));
 

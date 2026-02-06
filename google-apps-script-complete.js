@@ -87,14 +87,35 @@ function sendAdminNotification(data) {
 
   const subject = `🔔 New Ad Booking: ${quotation_number}`;
 
-  const itemsList = items ? items.map(item => `
-    <tr style="border-bottom: 1px solid #e5e7eb;">
-      <td style="padding: 12px;">${item.newspaperName || 'N/A'}</td>
-      <td style="padding: 12px;">${item.adType || 'N/A'}</td>
-      <td style="padding: 12px;">${item.pubDate || 'N/A'}</td>
-      <td style="padding: 12px; text-align: right; font-weight: 600;">Rs. ${(item.price || 0).toLocaleString()}</td>
-    </tr>
-  `).join('') : '';
+  const itemsList = items ? items.map(item => {
+    // Check if this is a classified ad with text
+    const classifiedText = item.details?.text || item.adText || '';
+    const adTypeDisplay = item.adType === 'classified' ? '📝 Classified' : '📦 Box Ad';
+
+    let textSection = '';
+    if (classifiedText) {
+      textSection = `
+        <tr style="background: #fffbeb;">
+          <td colspan="4" style="padding: 12px;">
+            <div style="background: #fef3c7; border-radius: 8px; padding: 12px; border-left: 4px solid #f59e0b;">
+              <strong style="color: #92400e;">📝 Ad Text:</strong>
+              <p style="color: #1f2937; margin: 8px 0 0 0; white-space: pre-wrap;">${classifiedText}</p>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
+    return `
+      <tr style="border-bottom: 1px solid #e5e7eb;">
+        <td style="padding: 12px;">${item.newspaperName || 'N/A'}</td>
+        <td style="padding: 12px;">${adTypeDisplay}</td>
+        <td style="padding: 12px;">${item.pubDate || 'N/A'}</td>
+        <td style="padding: 12px; text-align: right; font-weight: 600;">Rs. ${(item.price || 0).toLocaleString()}</td>
+      </tr>
+      ${textSection}
+    `;
+  }).join('') : '';
 
   const htmlBody = `
     <!DOCTYPE html>
@@ -202,21 +223,37 @@ function sendQuotationEmail(data) {
 
   const subject = `📋 Your Quotation ${quotation_number} - AdSpot Media`;
 
-  const itemsHtml = items ? items.map((item, i) => `
-    <div style="background: ${i % 2 === 0 ? '#ffffff' : '#f9fafb'}; padding: 20px; border-bottom: 1px solid #e5e7eb;">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div>
-          <div style="color: #1e40af; font-weight: 700; font-size: 16px;">${item.newspaperName || 'Newspaper'}</div>
-          <div style="color: #6b7280; font-size: 14px; margin-top: 4px;">
-            📅 ${item.pubDate || 'TBD'} • ${item.adType === 'box' ? '📦 Box Ad' : '📝 Classified'}
+  const itemsHtml = items ? items.map((item, i) => {
+    const classifiedText = item.details?.text || item.adText || '';
+    const adTypeIcon = item.adType === 'classified' ? '📝 Classified' : '📦 Box Ad';
+
+    let textSection = '';
+    if (classifiedText) {
+      textSection = `
+        <div style="background: #fffbeb; border-radius: 8px; padding: 12px; margin-top: 12px; border-left: 4px solid #f59e0b;">
+          <strong style="color: #92400e; font-size: 12px;">AD TEXT:</strong>
+          <p style="color: #1f2937; margin: 6px 0 0 0; font-size: 14px; white-space: pre-wrap;">${classifiedText}</p>
+        </div>
+      `;
+    }
+
+    return `
+      <div style="background: ${i % 2 === 0 ? '#ffffff' : '#f9fafb'}; padding: 20px; border-bottom: 1px solid #e5e7eb;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="color: #1e40af; font-weight: 700; font-size: 16px;">${item.newspaperName || 'Newspaper'}</div>
+            <div style="color: #6b7280; font-size: 14px; margin-top: 4px;">
+              📅 ${item.pubDate || 'TBD'} • ${adTypeIcon}
+            </div>
+          </div>
+          <div style="background: #10b981; color: white; padding: 8px 16px; border-radius: 8px; font-weight: 700;">
+            Rs. ${(item.price || 0).toLocaleString()}
           </div>
         </div>
-        <div style="background: #10b981; color: white; padding: 8px 16px; border-radius: 8px; font-weight: 700;">
-          Rs. ${(item.price || 0).toLocaleString()}
-        </div>
+        ${textSection}
       </div>
-    </div>
-  `).join('') : '';
+    `;
+  }).join('') : '';
 
   const htmlBody = `
     <!DOCTYPE html>
