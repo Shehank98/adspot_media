@@ -152,9 +152,12 @@ function initContactForm() {
 
             try {
                 // Use EmailService to send contact message to adspot77@gmail.com
-                if (typeof EmailService !== 'undefined' && EmailService.sendContactMessage) {
-                    await EmailService.sendContactMessage(name, email, message);
+                if (typeof EmailService !== 'undefined' && EmailService.isConfigured && EmailService.isConfigured()) {
+                    console.log('Sending contact form via EmailService...');
+                    const result = await EmailService.sendContactMessage(name, email, message);
+                    console.log('Contact form email result:', result);
                 } else {
+                    console.warn('EmailService not configured, storing message locally');
                     // Fallback: Store in localStorage if EmailService not available
                     const messages = JSON.parse(localStorage.getItem('adspot_contact_messages') || '[]');
                     messages.push({

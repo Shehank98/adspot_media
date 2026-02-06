@@ -1072,8 +1072,14 @@ async function handleSubmit(e) {
         }
 
         // Send admin notification and customer confirmation emails
+        console.log('Checking EmailService...', {
+            exists: typeof EmailService !== 'undefined',
+            configured: typeof EmailService !== 'undefined' ? EmailService.isConfigured() : false
+        });
+
         if (typeof EmailService !== 'undefined' && EmailService.isConfigured()) {
             try {
+                console.log('Sending order notification emails...');
                 // Prepare data for emails
                 const quotationData = {
                     quotation_number: quotationNumber,
