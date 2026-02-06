@@ -906,7 +906,37 @@ async function viewQuotation(id, source = 'database') {
 
         // Try database if not found in localStorage
         if (!quotation && typeof QuotationDB !== 'undefined' && typeof supabase !== 'undefined' && supabase) {
-            quotation = await QuotationDB.getById(id);
+            try {
+                quotation = await QuotationDB.getById(id);
+            } catch (e) {
+                console.log('Database not available');
+            }
+        }
+
+        // If still not found, try localStorage with different ID formats
+        if (!quotation) {
+            const orders = JSON.parse(localStorage.getItem('adspot_orders') || '[]');
+            const order = orders.find((o, idx) =>
+                idx === parseInt(id) ||
+                o.id == id ||
+                o.quotation_number == id
+            );
+            if (order) {
+                quotation = {
+                    id: order.id || id,
+                    quotation_number: order.quotation_number,
+                    customer: { name: order.customer_name, email: order.customer_email, phone: order.customer_phone },
+                    newspaper_name: order.items?.[0]?.newspaperName || order.newspaper_name || 'Multiple',
+                    ad_type: order.items?.[0]?.adType || order.ad_type || 'box',
+                    ad_details: order.items?.[0]?.details || order.ad_details || {},
+                    publication_date: order.items?.[0]?.pubDate || order.publication_date,
+                    total_amount: order.total_amount,
+                    status: order.payment_status || order.status || 'pending',
+                    created_at: order.created_at,
+                    items: order.items,
+                    source: 'local'
+                };
+            }
         }
 
         if (!quotation) {
@@ -992,14 +1022,44 @@ async function markAsPaid(quotationId) {
     if (!confirm('Mark this quotation as paid?')) return;
 
     try {
+        let updated = false;
+
+        // Try database first
         if (typeof QuotationDB !== 'undefined') {
-            await QuotationDB.updateStatus(quotationId, 'paid');
+            try {
+                await QuotationDB.updateStatus(quotationId, 'paid');
+                updated = true;
+            } catch (e) {
+                console.log('Database not available, updating localStorage');
+            }
         }
-        showToast('Quotation marked as paid', 'success');
-        document.getElementById('viewQuotationModal').classList.remove('active');
-        loadQuotations();
-        loadDashboardData();
+
+        // Fallback to localStorage
+        if (!updated) {
+            const localOrders = JSON.parse(localStorage.getItem('adspot_orders') || '[]');
+            const orderIndex = localOrders.findIndex((o, idx) =>
+                idx === parseInt(quotationId) ||
+                o.quotation_number === quotationId ||
+                o.id === quotationId
+            );
+            if (orderIndex !== -1) {
+                localOrders[orderIndex].payment_status = 'paid';
+                localOrders[orderIndex].status = 'paid';
+                localStorage.setItem('adspot_orders', JSON.stringify(localOrders));
+                updated = true;
+            }
+        }
+
+        if (updated) {
+            showToast('Quotation marked as paid', 'success');
+            document.getElementById('viewQuotationModal').classList.remove('active');
+            loadQuotations();
+            loadDashboardData();
+        } else {
+            showToast('Quotation not found', 'error');
+        }
     } catch (error) {
+        console.error('Failed to update quotation:', error);
         showToast('Failed to update quotation', 'error');
     }
 }
@@ -1035,8 +1095,38 @@ async function handleSendInvoice() {
     try {
         // Get quotation details
         let quotation = null;
+
+        // Try database first
         if (typeof QuotationDB !== 'undefined') {
-            quotation = await QuotationDB.getByNumber(quotationNumber);
+            try {
+                quotation = await QuotationDB.getByNumber(quotationNumber);
+            } catch (e) {
+                console.log('Database not available, checking localStorage');
+            }
+        }
+
+        // Fallback to localStorage
+        if (!quotation) {
+            const localOrders = JSON.parse(localStorage.getItem('adspot_orders') || '[]');
+            const order = localOrders.find(o => o.quotation_number === quotationNumber);
+            if (order) {
+                quotation = {
+                    quotation_number: order.quotation_number,
+                    invoice_number: order.invoice_number || `INV-${Date.now()}`,
+                    newspaper_name: order.newspaper_name,
+                    ad_type: order.ad_type,
+                    publication_date: order.publication_date,
+                    total_amount: order.total_amount,
+                    ad_details: order.ad_details || {},
+                    customer: {
+                        name: order.customer_name,
+                        email: order.customer_email || email,
+                        phone: order.customer_phone,
+                        company: order.customer_company || '',
+                        address: order.customer_address || ''
+                    }
+                };
+            }
         }
 
         if (!quotation) {
@@ -1055,9 +1145,17 @@ async function handleSendInvoice() {
         // Send email with PDF attachment
         if (typeof EmailService !== 'undefined') {
             await EmailService.sendInvoice(quotation, customer, pdfBase64);
+            showToast('Invoice sent successfully!', 'success');
+        } else {
+            // If email service not available, just download the invoice
+            if (typeof InvoiceGenerator !== 'undefined') {
+                InvoiceGenerator.download(quotation, customer);
+                showToast('Invoice downloaded (email service not available)', 'warning');
+            } else {
+                showToast('Email and PDF services not available', 'error');
+            }
         }
 
-        showToast('Invoice sent successfully!', 'success');
         document.getElementById('sendInvoiceModal').classList.remove('active');
     } catch (error) {
         console.error('Failed to send invoice:', error);
@@ -1418,8 +1516,39 @@ async function viewCustomer(id) {
     try {
         let customer = null;
 
+        // Try database first
         if (typeof CustomerDB !== 'undefined') {
-            customer = await CustomerDB.getById(id);
+            try {
+                customer = await CustomerDB.getById(id);
+            } catch (e) {
+                console.log('Database not available, checking localStorage');
+            }
+        }
+
+        // Fallback to localStorage
+        if (!customer) {
+            const localOrders = JSON.parse(localStorage.getItem('adspot_orders') || '[]');
+            // Find customer from localStorage orders (id could be index or email)
+            const order = localOrders.find((o, idx) => idx === parseInt(id) || o.customer_email === id || o.id === id);
+            if (order) {
+                customer = {
+                    name: order.customer_name,
+                    email: order.customer_email,
+                    phone: order.customer_phone,
+                    company: order.customer_company || '',
+                    address: order.customer_address || '',
+                    created_at: order.created_at,
+                    quotations: localOrders
+                        .filter(o => o.customer_email === order.customer_email)
+                        .map(o => ({
+                            quotation_number: o.quotation_number,
+                            newspaper_name: o.newspaper_name,
+                            total_amount: o.total_amount,
+                            status: o.payment_status || o.status || 'pending',
+                            created_at: o.created_at
+                        }))
+                };
+            }
         }
 
         if (!customer) {
@@ -1621,8 +1750,42 @@ function debounce(func, wait) {
 async function downloadInvoice(quotationId) {
     try {
         let quotation = null;
+
+        // Try database first
         if (typeof QuotationDB !== 'undefined') {
-            quotation = await QuotationDB.getById(quotationId);
+            try {
+                quotation = await QuotationDB.getById(quotationId);
+            } catch (e) {
+                console.log('Database not available, checking localStorage');
+            }
+        }
+
+        // Fallback to localStorage
+        if (!quotation) {
+            const localOrders = JSON.parse(localStorage.getItem('adspot_orders') || '[]');
+            const order = localOrders.find((o, idx) =>
+                idx === parseInt(quotationId) ||
+                o.quotation_number === quotationId ||
+                o.id === quotationId
+            );
+            if (order) {
+                quotation = {
+                    quotation_number: order.quotation_number,
+                    invoice_number: order.invoice_number || `INV-${Date.now()}`,
+                    newspaper_name: order.newspaper_name,
+                    ad_type: order.ad_type,
+                    publication_date: order.publication_date,
+                    total_amount: order.total_amount,
+                    ad_details: order.ad_details || {},
+                    customer: {
+                        name: order.customer_name,
+                        email: order.customer_email,
+                        phone: order.customer_phone,
+                        company: order.customer_company || '',
+                        address: order.customer_address || ''
+                    }
+                };
+            }
         }
 
         if (!quotation) {
