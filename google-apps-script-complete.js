@@ -398,19 +398,26 @@ function sendQuotationEmail(data) {
 }
 
 /**
- * Send invoice email after payment confirmed
+ * Send invoice email after payment confirmed - Simple clean design
  */
 function sendInvoiceEmail(data) {
   const { customer_email, customer_name, quotation_number, invoice_number, items, total_amount } = data;
 
-  const subject = `✅ Invoice ${invoice_number} - Payment Confirmed - AdSpot Media`;
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
-  const itemsHtml = items ? items.map((item, i) => `
-    <tr style="background: ${i % 2 === 0 ? '#ffffff' : '#f9fafb'};">
-      <td style="padding: 14px; border-bottom: 1px solid #e5e7eb;">${item.newspaperName || 'N/A'}</td>
-      <td style="padding: 14px; border-bottom: 1px solid #e5e7eb;">${item.adType === 'box' ? 'Box Ad' : 'Classified'}</td>
-      <td style="padding: 14px; border-bottom: 1px solid #e5e7eb;">${item.pubDate || 'TBD'}</td>
-      <td style="padding: 14px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600;">Rs. ${(item.price || 0).toLocaleString()}</td>
+  const subject = `Invoice ${invoice_number} - AdSpot Media`;
+
+  // Build items table rows
+  const itemsHtml = items ? items.map(item => `
+    <tr>
+      <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb; color: #374151;">
+        ${item.newspaperName || 'Advertisement'} - ${item.adType === 'classified' ? 'Classified Ad' : 'Box Ad'}
+        ${item.pubDate ? '<br><span style="color: #6b7280; font-size: 13px;">Publication: ' + item.pubDate + '</span>' : ''}
+      </td>
+      <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb; text-align: center; color: #374151;">1</td>
+      <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb; text-align: right; color: #374151;">Rs. ${(item.price || 0).toLocaleString()}</td>
+      <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb; text-align: right; color: #374151; font-weight: 500;">Rs. ${(item.price || 0).toLocaleString()}</td>
     </tr>
   `).join('') : '';
 
@@ -418,101 +425,110 @@ function sendInvoiceEmail(data) {
     <!DOCTYPE html>
     <html>
     <head>
-      <style>body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; background: #f5f7fa; }</style>
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background: #ffffff; color: #1f2937; }
+      </style>
     </head>
     <body>
-      <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, #f5f7fa 0%, #e8eef3 100%); padding: 40px 20px;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 650px; margin: 0 auto; padding: 40px 20px;">
         <tr>
-          <td align="center">
-            <table width="600" cellpadding="0" cellspacing="0" style="background: #ffffff; border-radius: 20px; box-shadow: 0 20px 50px rgba(16, 185, 129, 0.2); overflow: hidden;">
-
-              <!-- Header -->
+          <td>
+            <!-- Header -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 30px;">
               <tr>
-                <td style="background: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%); padding: 50px 40px; text-align: center;">
-                  <div style="background: rgba(255,255,255,0.1); border-radius: 16px; padding: 30px; border: 1px solid rgba(255,255,255,0.2);">
-                    <div style="font-size: 56px; margin-bottom: 12px;">✅</div>
-                    <h1 style="color: #ffffff; margin: 0; font-size: 32px; font-weight: 800;">Payment Confirmed!</h1>
-                    <p style="color: rgba(255,255,255,0.9); margin: 12px 0 0 0; font-size: 16px;">Invoice: ${invoice_number}</p>
-                  </div>
+                <td>
+                  <h1 style="color: #1e40af; font-size: 28px; font-weight: 600; margin: 0;">Invoice</h1>
+                </td>
+                <td style="text-align: right;">
+                  <div style="font-size: 24px; font-weight: 700; color: #1e40af;">◈ AdSpot</div>
                 </td>
               </tr>
-
-              <!-- Success Message -->
-              <tr>
-                <td style="padding: 40px 40px 20px 40px;">
-                  <div style="background: #ecfdf5; border-radius: 16px; padding: 30px; border-left: 5px solid #10b981; text-align: center;">
-                    <h2 style="color: #065f46; margin: 0 0 8px 0; font-size: 24px;">Thank You, ${customer_name}! 🎉</h2>
-                    <p style="color: #047857; margin: 0; font-size: 15px; line-height: 1.6;">
-                      Your payment has been received. Your advertisement will be published as scheduled.
-                    </p>
-                  </div>
-                </td>
-              </tr>
-
-              <!-- Invoice Details -->
-              <tr>
-                <td style="padding: 20px 40px;">
-                  <table width="100%" style="background: #f9fafb; border-radius: 12px; padding: 20px;">
-                    <tr>
-                      <td width="50%" style="padding: 12px;">
-                        <div style="color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Invoice Number</div>
-                        <div style="color: #1f2937; font-size: 20px; font-weight: 800; margin-top: 4px;">${invoice_number}</div>
-                      </td>
-                      <td width="50%" style="padding: 12px; text-align: right;">
-                        <div style="color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Quotation Ref</div>
-                        <div style="color: #1f2937; font-size: 16px; font-weight: 600; margin-top: 4px;">${quotation_number}</div>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-
-              <!-- Items Table -->
-              <tr>
-                <td style="padding: 20px 40px;">
-                  <table width="100%" style="border-collapse: collapse; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb;">
-                    <thead>
-                      <tr style="background: #1f2937;">
-                        <th style="padding: 14px; text-align: left; color: white; font-weight: 600;">Newspaper</th>
-                        <th style="padding: 14px; text-align: left; color: white; font-weight: 600;">Type</th>
-                        <th style="padding: 14px; text-align: left; color: white; font-weight: 600;">Date</th>
-                        <th style="padding: 14px; text-align: right; color: white; font-weight: 600;">Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${itemsHtml}
-                    </tbody>
-                  </table>
-                </td>
-              </tr>
-
-              <!-- Total Paid -->
-              <tr>
-                <td style="padding: 20px 40px 40px 40px;">
-                  <div style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%); border-radius: 16px; padding: 30px; text-align: center; box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);">
-                    <div style="color: rgba(255,255,255,0.9); font-size: 14px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Total Paid</div>
-                    <div style="color: #ffffff; font-size: 42px; font-weight: 900;">Rs. ${parseFloat(total_amount || 0).toLocaleString()}</div>
-                    <div style="background: rgba(255,255,255,0.2); border-radius: 50px; padding: 8px 24px; display: inline-block; margin-top: 12px;">
-                      <span style="color: #ffffff; font-weight: 600;">✓ FULLY PAID</span>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-
-              <!-- Footer -->
-              <tr>
-                <td style="background: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
-                  <p style="color: #6b7280; margin: 0 0 16px 0; font-size: 14px;">
-                    📧 This is your official invoice. Please save for your records.
-                  </p>
-                  <div style="color: #1e40af; font-size: 16px; font-weight: 700;">${CONFIG.COMPANY_NAME}</div>
-                  <div style="color: #6b7280; font-size: 13px; margin-top: 8px;">
-                    📞 ${CONFIG.COMPANY_PHONE} | 📧 ${CONFIG.ADMIN_EMAIL}
-                  </div>
-                </td>
-              </tr>
-
             </table>
+
+            <!-- Invoice Details -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 25px; font-size: 14px;">
+              <tr>
+                <td style="color: #6b7280;">Invoice number</td>
+                <td style="font-weight: 500;">${invoice_number}</td>
+              </tr>
+              <tr>
+                <td style="color: #6b7280; padding-top: 4px;">Date of issue</td>
+                <td style="padding-top: 4px;">${dateStr}</td>
+              </tr>
+              <tr>
+                <td style="color: #6b7280; padding-top: 4px;">Reference</td>
+                <td style="padding-top: 4px;">${quotation_number}</td>
+              </tr>
+            </table>
+
+            <!-- Company & Customer Info -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 30px; font-size: 14px;">
+              <tr>
+                <td width="50%" style="vertical-align: top;">
+                  <div style="font-weight: 600; color: #1f2937; margin-bottom: 8px;">${CONFIG.COMPANY_NAME}</div>
+                  <div style="color: #6b7280; line-height: 1.6;">
+                    ${CONFIG.COMPANY_ADDRESS}<br>
+                    ${CONFIG.ADMIN_EMAIL}
+                  </div>
+                </td>
+                <td width="50%" style="vertical-align: top;">
+                  <div style="font-weight: 600; color: #1f2937; margin-bottom: 8px;">Bill to</div>
+                  <div style="color: #6b7280; line-height: 1.6;">
+                    ${customer_name}<br>
+                    ${customer_email}
+                  </div>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Amount Due -->
+            <div style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 16px 20px; margin-bottom: 30px;">
+              <div style="font-size: 20px; font-weight: 700; color: #065f46;">
+                Rs. ${parseFloat(total_amount || 0).toLocaleString()} - PAID
+              </div>
+              <div style="color: #047857; font-size: 14px; margin-top: 4px;">Payment received - Thank you!</div>
+            </div>
+
+            <!-- Items Table -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px; font-size: 14px;">
+              <thead>
+                <tr style="border-bottom: 2px solid #e5e7eb;">
+                  <th style="padding: 12px 0; text-align: left; color: #6b7280; font-weight: 500;">Description</th>
+                  <th style="padding: 12px 0; text-align: center; color: #6b7280; font-weight: 500;">Qty</th>
+                  <th style="padding: 12px 0; text-align: right; color: #6b7280; font-weight: 500;">Unit price</th>
+                  <th style="padding: 12px 0; text-align: right; color: #6b7280; font-weight: 500;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${itemsHtml}
+              </tbody>
+            </table>
+
+            <!-- Totals -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 40px; font-size: 14px;">
+              <tr>
+                <td width="60%"></td>
+                <td style="padding: 8px 0; color: #6b7280;">Subtotal</td>
+                <td style="padding: 8px 0; text-align: right;">Rs. ${parseFloat(total_amount || 0).toLocaleString()}</td>
+              </tr>
+              <tr>
+                <td></td>
+                <td style="padding: 8px 0; color: #6b7280;">Total</td>
+                <td style="padding: 8px 0; text-align: right;">Rs. ${parseFloat(total_amount || 0).toLocaleString()}</td>
+              </tr>
+              <tr>
+                <td></td>
+                <td style="padding: 12px 0; font-weight: 700; color: #1f2937; border-top: 2px solid #1f2937;">Amount paid</td>
+                <td style="padding: 12px 0; text-align: right; font-weight: 700; color: #1f2937; border-top: 2px solid #1f2937;">Rs. ${parseFloat(total_amount || 0).toLocaleString()}</td>
+              </tr>
+            </table>
+
+            <!-- Footer -->
+            <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; font-size: 13px; color: #6b7280;">
+              <p style="margin: 0 0 8px 0;">${CONFIG.COMPANY_NAME}</p>
+              <p style="margin: 0;">Phone: ${CONFIG.COMPANY_PHONE} | Email: ${CONFIG.ADMIN_EMAIL}</p>
+            </div>
+
           </td>
         </tr>
       </table>

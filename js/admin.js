@@ -1189,11 +1189,12 @@ async function handleSendInvoice() {
                 quotation = {
                     quotation_number: order.quotation_number,
                     invoice_number: order.invoice_number || `INV-${Date.now()}`,
-                    newspaper_name: order.newspaper_name,
-                    ad_type: order.ad_type,
-                    publication_date: order.publication_date,
+                    newspaper_name: order.newspaper_name || order.items?.[0]?.newspaperName || 'N/A',
+                    ad_type: order.ad_type || order.items?.[0]?.adType || 'box',
+                    publication_date: order.publication_date || order.items?.[0]?.pubDate,
                     total_amount: order.total_amount,
                     ad_details: order.ad_details || {},
+                    items: order.items || [], // Include items array!
                     customer: {
                         name: order.customer_name,
                         email: order.customer_email || email,
@@ -1210,6 +1211,8 @@ async function handleSendInvoice() {
             return;
         }
 
+        console.log('Sending invoice for quotation:', quotation);
+
         const customer = quotation.customer || { email: email, name: 'Customer' };
 
         // Generate PDF invoice
@@ -1219,9 +1222,12 @@ async function handleSendInvoice() {
         }
 
         // Send email with PDF attachment
-        if (typeof EmailService !== 'undefined') {
+        if (typeof EmailService !== 'undefined' && EmailService.isConfigured()) {
             await EmailService.sendInvoice(quotation, customer, pdfBase64);
             showToast('Invoice sent successfully!', 'success');
+        } else if (typeof EmailService !== 'undefined') {
+            console.warn('EmailService exists but not configured');
+            showToast('Email service not configured', 'warning');
         } else {
             // If email service not available, just download the invoice
             if (typeof InvoiceGenerator !== 'undefined') {

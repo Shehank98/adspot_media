@@ -1077,10 +1077,11 @@ function generateQuotationNumber() {
  * Google Drive Storage Configuration
  * Update SCRIPT_URL after deploying the Google Apps Script
  */
+// Google Drive uses the same Apps Script as email service
 const GOOGLE_DRIVE_CONFIG = {
-    // IMPORTANT: Replace this URL with your deployed Google Apps Script Web App URL
-    SCRIPT_URL: '', // e.g., 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec'
-    ENABLED: false  // Set to true after configuring SCRIPT_URL
+    // Uses the same URL as GOOGLE_APPS_CONFIG since it's the same Apps Script
+    get SCRIPT_URL() { return GOOGLE_APPS_CONFIG.SCRIPT_URL; },
+    get ENABLED() { return GOOGLE_APPS_CONFIG.ENABLED; }
 };
 
 /**
@@ -1115,7 +1116,7 @@ const GoogleDriveStorage = {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    action: 'upload',
+                    action: 'uploadPdf',  // Match Apps Script action name
                     pdfBase64: pdfBase64,
                     filename: filename,
                     quotationNumber: metadata.quotationNumber || '',
@@ -1168,7 +1169,7 @@ const GoogleDriveStorage = {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    action: 'get',
+                    action: 'getPdf',  // Match Apps Script action name
                     quotationNumber: quotationNumber
                 })
             });
@@ -1197,7 +1198,7 @@ const GoogleDriveStorage = {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    action: 'list',
+                    action: 'listPdfs',  // Match Apps Script action name
                     ...options
                 })
             });
