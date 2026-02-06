@@ -340,8 +340,8 @@ const PublicationDB = {
  */
 const GOOGLE_APPS_CONFIG = {
     // PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE:
-    SCRIPT_URL: '',  // e.g., 'https://script.google.com/macros/s/AKfycbx.../exec'
-    ENABLED: false   // Set to true after adding SCRIPT_URL
+    SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbxqC7dhbLgOB9PjLuMFHBwn2uyTVQyJnDdt92GwWLC-q-UlJ3mB0a7eWNvwOnyhDxHV/exec',  // e.g., 'https://script.google.com/macros/s/AKfycbx.../exec'
+    ENABLED: true   // Set to true after adding SCRIPT_URL
 };
 
 // Keep EMAIL_CONFIG for backwards compatibility (not used anymore)
