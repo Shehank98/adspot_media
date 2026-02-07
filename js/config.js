@@ -115,15 +115,15 @@ const CONFIG = {
     // bwRate and colorRate are SEPARATE fixed rates (no multiplier)
     PUBLICATIONS: {
         'lake-house': {
-            name: 'Lake House (ANCL)',
+            name: 'Lake House (ANCL) ලේක් හව්ස්',
             newspapers: [
                 {
                     id: 'daily-news',
                     name: 'Daily News',
                     language: 'english',
-                    bwRate: 180,
-                    colorRate: 320,
-                    classifiedBase: 1800,
+                    bwRate: 400,
+                    colorRate: 560,
+                    classifiedBase: 1000,
                     classifiedFreeWords: 20,
                     classifiedExtraRate: 45,
                     isSundayPaper: false
@@ -132,8 +132,8 @@ const CONFIG = {
                     id: 'sunday-observer',
                     name: 'Sunday Observer',
                     language: 'english',
-                    bwRate: 220,
-                    colorRate: 380,
+                    bwRate: 550,
+                    colorRate: 730,
                     classifiedBase: 2200,
                     classifiedFreeWords: 20,
                     classifiedExtraRate: 55,
@@ -143,8 +143,8 @@ const CONFIG = {
                     id: 'dinamina',
                     name: 'Dinamina',
                     language: 'sinhala',
-                    bwRate: 150,
-                    colorRate: 280,
+                    bwRate: 450,
+                    colorRate: 575,
                     classifiedBase: 1500,
                     classifiedFreeWords: 20,
                     classifiedExtraRate: 40,
@@ -154,8 +154,8 @@ const CONFIG = {
                     id: 'silumina',
                     name: 'Silumina',
                     language: 'sinhala',
-                    bwRate: 200,
-                    colorRate: 350,
+                    bwRate: 910,
+                    colorRate: 1195,
                     classifiedBase: 2000,
                     classifiedFreeWords: 25,
                     classifiedExtraRate: 50,
@@ -163,10 +163,10 @@ const CONFIG = {
                 },
                 {
                     id: 'thinakaran',
-                    name: 'Thinakaran',
+                    name: 'Daily Thinakaran',
                     language: 'tamil',
-                    bwRate: 140,
-                    colorRate: 260,
+                    bwRate: 360,
+                    colorRate: 445,
                     classifiedBase: 1400,
                     classifiedFreeWords: 20,
                     classifiedExtraRate: 35,
@@ -174,10 +174,10 @@ const CONFIG = {
                 },
                 {
                     id: 'thinakaran-varamanjari',
-                    name: 'Thinakaran Varamanjari',
+                    name: 'Sunday Thinakaran',
                     language: 'tamil',
-                    bwRate: 160,
-                    colorRate: 290,
+                    bwRate: 450,
+                    colorRate: 540,
                     classifiedBase: 1600,
                     classifiedFreeWords: 25,
                     classifiedExtraRate: 40,
@@ -186,61 +186,61 @@ const CONFIG = {
             ]
         },
         'wijeya': {
-            name: 'Wijeya Newspapers',
+            name: 'Wijeya Newspapers විජය',
             newspapers: [
                 {
                     id: 'sunday-times',
                     name: 'Sunday Times',
                     language: 'english',
-                    bwRate: 280,
-                    colorRate: 480,
-                    classifiedBase: 2800,
-                    classifiedFreeWords: 25,
-                    classifiedExtraRate: 70,
+                    bwRate: 650,
+                    colorRate: 790,
+                    classifiedBase: 500,
+                    classifiedFreeWords: 15,
+                    classifiedExtraRate: 20,
                     isSundayPaper: true
                 },
                 {
                     id: 'daily-mirror',
                     name: 'Daily Mirror',
                     language: 'english',
-                    bwRate: 200,
-                    colorRate: 350,
-                    classifiedBase: 2000,
-                    classifiedFreeWords: 20,
-                    classifiedExtraRate: 50,
+                    bwRate: 490,
+                    colorRate: 580,
+                    classifiedBase: 200,
+                    classifiedFreeWords: 15,
+                    classifiedExtraRate: 15,
                     isSundayPaper: false
                 },
                 {
                     id: 'lankadeepa',
-                    name: 'Lankadeepa',
+                    name: 'Daily Lankadeepa',
                     language: 'sinhala',
-                    bwRate: 220,
-                    colorRate: 400,
-                    classifiedBase: 2200,
-                    classifiedFreeWords: 20,
-                    classifiedExtraRate: 55,
+                    bwRate: 650,
+                    colorRate: 770,
+                    classifiedBase: 525,
+                    classifiedFreeWords: 15,
+                    classifiedExtraRate: 25,
                     isSundayPaper: false
                 },
                 {
                     id: 'lankadeepa-irida',
-                    name: 'Irida Lankadeepa',
+                    name: 'Sunday Lankadeepa',
                     language: 'sinhala',
-                    bwRate: 260,
-                    colorRate: 450,
-                    classifiedBase: 2600,
-                    classifiedFreeWords: 25,
-                    classifiedExtraRate: 65,
+                    bwRate: 1120,
+                    colorRate: 1310,
+                    classifiedBase: 2200,
+                    classifiedFreeWords: 15,
+                    classifiedExtraRate: 50,
                     isSundayPaper: true
                 },
                 {
-                    id: 'ada',
-                    name: 'Ada',
-                    language: 'sinhala',
-                    bwRate: 180,
-                    colorRate: 320,
-                    classifiedBase: 1800,
-                    classifiedFreeWords: 20,
-                    classifiedExtraRate: 45,
+                    id: 'daily-ft',
+                    name: 'Daily FT',
+                    language: 'English',
+                    bwRate: 420,
+                    colorRate: 500,
+                    classifiedBase: 0,
+                    classifiedFreeWords: 0,
+                    classifiedExtraRate: 0,
                     isSundayPaper: false
                 }
             ]
@@ -250,57 +250,57 @@ const CONFIG = {
             newspapers: [
                 {
                     id: 'the-island',
-                    name: 'The Island',
+                    name: 'Daily Island',
                     language: 'english',
-                    bwRate: 200,
-                    colorRate: 360,
-                    classifiedBase: 2000,
+                    bwRate: 220,
+                    colorRate: 352,
+                    classifiedBase: 115,
                     classifiedFreeWords: 20,
-                    classifiedExtraRate: 50,
+                    classifiedExtraRate: 12,
                     isSundayPaper: false
                 },
                 {
                     id: 'sunday-island',
                     name: 'Sunday Island',
                     language: 'english',
-                    bwRate: 240,
-                    colorRate: 420,
-                    classifiedBase: 2400,
-                    classifiedFreeWords: 25,
-                    classifiedExtraRate: 60,
+                    bwRate: 285,
+                    colorRate: 456,
+                    classifiedBase: 160,
+                    classifiedFreeWords: 20,
+                    classifiedExtraRate: 12,
                     isSundayPaper: true
                 },
                 {
                     id: 'divaina',
-                    name: 'Divaina',
+                    name: 'Daily Divaina',
                     language: 'sinhala',
-                    bwRate: 180,
-                    colorRate: 320,
-                    classifiedBase: 1800,
+                    bwRate: 350,
+                    colorRate: 560,
+                    classifiedBase: 200,
                     classifiedFreeWords: 20,
-                    classifiedExtraRate: 45,
+                    classifiedExtraRate: 12,
                     isSundayPaper: false
                 },
                 {
                     id: 'irida-divaina',
-                    name: 'Irida Divaina',
+                    name: 'Sunday Divaina',
                     language: 'sinhala',
-                    bwRate: 220,
-                    colorRate: 380,
-                    classifiedBase: 2200,
-                    classifiedFreeWords: 25,
-                    classifiedExtraRate: 55,
+                    bwRate: 650,
+                    colorRate: 1040,
+                    classifiedBase: 500,
+                    classifiedFreeWords: 20,
+                    classifiedExtraRate: 20,
                     isSundayPaper: true
                 },
                 {
                     id: 'navaliya',
                     name: 'Navaliya',
                     language: 'sinhala',
-                    bwRate: 160,
-                    colorRate: 290,
-                    classifiedBase: 1600,
+                    bwRate: 280,
+                    colorRate: 448,
+                    classifiedBase: 120,
                     classifiedFreeWords: 20,
-                    classifiedExtraRate: 40,
+                    classifiedExtraRate: 6,
                     isSundayPaper: false
                 }
             ]
@@ -310,36 +310,25 @@ const CONFIG = {
             newspapers: [
                 {
                     id: 'virakesari',
-                    name: 'Virakesari',
+                    name: 'Daily Virakesari',
                     language: 'tamil',
-                    bwRate: 160,
-                    colorRate: 300,
-                    classifiedBase: 1600,
+                    bwRate: 400,
+                    colorRate: 600,
+                    classifiedBase: 500,
                     classifiedFreeWords: 20,
-                    classifiedExtraRate: 40,
+                    classifiedExtraRate: 10,
                     isSundayPaper: false
                 },
                 {
                     id: 'virakesari-sunday',
                     name: 'Sunday Virakesari',
                     language: 'tamil',
-                    bwRate: 200,
-                    colorRate: 360,
-                    classifiedBase: 2000,
-                    classifiedFreeWords: 25,
-                    classifiedExtraRate: 50,
-                    isSundayPaper: true
-                },
-                {
-                    id: 'sudar-oli',
-                    name: 'Sudar Oli',
-                    language: 'tamil',
-                    bwRate: 140,
-                    colorRate: 260,
-                    classifiedBase: 1400,
+                    bwRate: 600,
+                    colorRate: 900,
+                    classifiedBase: 900,
                     classifiedFreeWords: 20,
-                    classifiedExtraRate: 35,
-                    isSundayPaper: false
+                    classifiedExtraRate: 20,
+                    isSundayPaper: true
                 }
             ]
         },
@@ -348,106 +337,75 @@ const CONFIG = {
             newspapers: [
                 {
                     id: 'mawbima',
-                    name: 'Mawbima',
+                    name: 'Daily Mawbima',
                     language: 'sinhala',
-                    bwRate: 170,
-                    colorRate: 310,
-                    classifiedBase: 1700,
-                    classifiedFreeWords: 20,
-                    classifiedExtraRate: 42,
+                    bwRate: 400,
+                    colorRate: 640,
+                    classifiedBase: 0,
+                    classifiedFreeWords: 0,
+                    classifiedExtraRate: 0,
                     isSundayPaper: false
                 },
                 {
-                    id: 'rivira',
-                    name: 'Rivira',
+                    id: 'Sunday-Mawbima',
+                    name: 'Sunday Mawbima',
                     language: 'sinhala',
-                    bwRate: 200,
-                    colorRate: 360,
-                    classifiedBase: 2000,
-                    classifiedFreeWords: 25,
-                    classifiedExtraRate: 50,
+                    bwRate: 750,
+                    colorRate: 1150,
+                    classifiedBase: 0,
+                    classifiedFreeWords: 0,
+                    classifiedExtraRate: 0,
                     isSundayPaper: true
                 },
                 {
                     id: 'ceylon-today',
-                    name: 'Ceylon Today',
+                    name: 'Daily Ceylon Today',
                     language: 'english',
-                    bwRate: 180,
-                    colorRate: 320,
-                    classifiedBase: 1800,
-                    classifiedFreeWords: 20,
-                    classifiedExtraRate: 45,
-                    isSundayPaper: false
-                }
-            ]
-        },
-        'ravaya': {
-            name: 'Ravaya Group',
-            newspapers: [
-                {
-                    id: 'ravaya',
-                    name: 'Ravaya',
-                    language: 'sinhala',
-                    bwRate: 150,
-                    colorRate: 280,
-                    classifiedBase: 1500,
-                    classifiedFreeWords: 20,
-                    classifiedExtraRate: 38,
-                    isSundayPaper: true
-                },
-                {
-                    id: 'aruna',
-                    name: 'Aruna',
-                    language: 'sinhala',
-                    bwRate: 140,
-                    colorRate: 260,
-                    classifiedBase: 1400,
-                    classifiedFreeWords: 20,
-                    classifiedExtraRate: 35,
-                    isSundayPaper: false
-                }
-            ]
-        },
-        'lakbima': {
-            name: 'Lakbima Group',
-            newspapers: [
-                {
-                    id: 'lakbima',
-                    name: 'Lakbima',
-                    language: 'sinhala',
-                    bwRate: 160,
-                    colorRate: 290,
-                    classifiedBase: 1600,
-                    classifiedFreeWords: 20,
-                    classifiedExtraRate: 40,
+                    bwRate: 300,
+                    colorRate: 450,
+                    classifiedBase: 0,
+                    classifiedFreeWords: 0,
+                    classifiedExtraRate: 0,
                     isSundayPaper: false
                 },
                 {
-                    id: 'lakbima-sunday',
-                    name: 'Sunday Lakbima',
-                    language: 'sinhala',
-                    bwRate: 190,
-                    colorRate: 340,
-                    classifiedBase: 1900,
-                    classifiedFreeWords: 25,
-                    classifiedExtraRate: 48,
-                    isSundayPaper: true
+                    id: 'Sunday-ceylon-today',
+                    name: 'Sunday Ceylon Today',
+                    language: 'english',
+                    bwRate: 450,
+                    colorRate: 600,
+                    classifiedBase: 0,
+                    classifiedFreeWords: 0,
+                    classifiedExtraRate: 0,
+                    isSundayPaper: false
                 }
+                
             ]
         },
-        'government': {
-            name: 'Government Gazette',
+        'Liberty': {
+            name: 'Liberty Publication',
             newspapers: [
                 {
-                    id: 'gazette',
-                    name: 'Government Gazette',
+                    id: 'Sunday-aruna',
+                    name: 'Sathi aga Aruna',
+                    language: 'sinhala',
+                    bwRate: 780,
+                    colorRate: 1260,
+                    classifiedBase: 990,
+                    classifiedFreeWords: 15,
+                    classifiedExtraRate: 50,
+                    isSundayPaper: true
+                },
+                {
+                    id: 'the-morning',
+                    name: 'The Morning',
                     language: 'english',
-                    bwRate: 250,
-                    colorRate: 250, // No color option
-                    classifiedBase: 2500,
-                    classifiedFreeWords: 25,
-                    classifiedExtraRate: 62,
-                    isSundayPaper: false
+                    bwRate: 510,
+                    colorRate: 620,
+                    classifiedBase: 0,
+                    classifiedFreeWords: 0,
+                    classifiedExtraRate: 0,
+                    isSundayPaper: true
                 }
             ]
         }
@@ -474,8 +432,8 @@ const CONFIG = {
     },
 
     // Full page dimensions (triggers contact form)
-    FULL_PAGE_WIDTH: 25, // cm - if width >= this, it's full page
-    FULL_PAGE_THRESHOLD: 800, // sq cm - area threshold for full page
+    FULL_PAGE_WIDTH: 32, // cm - if width >= this, it's full page
+    FULL_PAGE_THRESHOLD: 416, // sq cm - area threshold for full page
 
     // Quotation Number Prefix
     QUOTATION_PREFIX: 'ADM',
