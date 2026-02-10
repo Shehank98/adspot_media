@@ -34,7 +34,10 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 const storage = firebase.storage();
 
-// Export for global access
+// Export for global access (both naming conventions for compatibility)
+window.auth = auth;
+window.db = db;
+window.storage = storage;
 window.firebaseAuth = auth;
 window.firebaseDB = db;
 window.firebaseStorage = storage;

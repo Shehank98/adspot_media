@@ -298,7 +298,10 @@
                     throw new Error('Firebase SDK not loaded');
                 }
 
-                if (typeof db === 'undefined') {
+                // Use the correct exported variable name
+                const db = window.firebaseDB || window.db;
+
+                if (typeof db === 'undefined' || !db) {
                     throw new Error('Firebase not configured. Please update firebase-config.js first!');
                 }
 
