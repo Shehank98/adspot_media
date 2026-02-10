@@ -1092,8 +1092,8 @@
 .ad-placement {
     position: absolute;
     top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    right: 10px;
+    transform: translateY(-50%);
     background: rgba(37, 99, 235, 0.2);
     border: 2px dashed var(--primary);
     display: flex;
@@ -1167,11 +1167,17 @@
 
 .comparison-table tbody tr {
     border-bottom: 1px solid var(--gray-100);
-    transition: background var(--transition-fast);
+    transition: all var(--transition-fast);
+    cursor: pointer;
 }
 
 .comparison-table tbody tr:hover {
     background: var(--gray-50);
+}
+
+.comparison-table tbody tr.selected {
+    background: var(--primary-pale);
+    border-left: 3px solid var(--primary);
 }
 
 .comparison-table td {

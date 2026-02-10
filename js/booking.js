@@ -81,8 +81,46 @@ function updateNewspapersByLanguage(language) {
         selectedGroup = selectedNewspaper.groupId;
         updateColumnOptions();
         updateComparisonTable(filteredNewspapers);
+        updateClassifiedNewspaperGrid(filteredNewspapers);
         updateNewspaperPreview();
     }
+}
+
+/**
+ * Update classified newspaper selection grid
+ */
+function updateClassifiedNewspaperGrid(newspapers) {
+    const container = document.getElementById('classifiedNewspaperSelect');
+    if (!container) return;
+
+    const langLabels = {
+        'english': 'EN',
+        'sinhala': 'SI',
+        'tamil': 'TA'
+    };
+
+    container.innerHTML = newspapers.map((paper, index) => `
+        <label class="newspaper-card">
+            <input type="radio" name="classifiedNewspaper" value="${paper.id}" ${index === 0 ? 'checked' : ''}>
+            <div class="card-content">
+                <span class="lang-badge">${langLabels[paper.language] || 'EN'}</span>
+                <span class="paper-name">${paper.name}</span>
+                <span class="paper-rate">From Rs. ${paper.classifiedBase}</span>
+                ${paper.isSundayPaper ? '<span class="sunday-badge">Sunday</span>' : ''}
+            </div>
+        </label>
+    `).join('');
+
+    // Add change listeners
+    container.querySelectorAll('input[name="classifiedNewspaper"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            selectedNewspaper = newspapers.find(p => p.id === this.value);
+            selectedGroup = selectedNewspaper.groupId;
+            updateQuickRates();
+            updateWordCount();
+            updatePrice();
+        });
+    });
 }
 
 /**
@@ -135,12 +173,47 @@ function updateComparisonTable(newspapers) {
         `;
     }).join('');
 
-    // Add click listeners to all add buttons
-    tableBody.querySelectorAll('.btn-add-to-cart').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const paperId = this.dataset.paperId;
+    // Add click listeners to table rows to update sidebar
+    tableBody.querySelectorAll('tr').forEach(row => {
+        row.addEventListener('click', function(e) {
+            // Don't trigger if clicking the add button
+            if (e.target.closest('.btn-add-to-cart')) return;
+
+            const btn = this.querySelector('.btn-add-to-cart');
+            const paperId = btn.dataset.paperId;
             selectedNewspaper = newspapers.find(p => p.id === paperId);
             selectedGroup = selectedNewspaper.groupId;
+
+            // Update price sidebar and preview
+            updateColumnOptions();
+            updateQuickRates();
+            updatePrice();
+            updateNewspaperPreview();
+
+            // Highlight selected row
+            tableBody.querySelectorAll('tr').forEach(r => r.classList.remove('selected'));
+            this.classList.add('selected');
+        });
+    });
+
+    // Add click listeners to all add buttons
+    tableBody.querySelectorAll('.btn-add-to-cart').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent row click
+            const paperId = this.dataset.paperId;
+            const newspaper = newspapers.find(p => p.id === paperId);
+
+            // Set selected newspaper and calculate price for THIS newspaper
+            selectedNewspaper = newspaper;
+            selectedGroup = newspaper.groupId;
+
+            // Calculate price for this specific newspaper
+            const columns = parseInt(document.getElementById('adColumns')?.value) || 1;
+            const height = parseFloat(document.getElementById('adHeight')?.value) || 0;
+            const colorOption = document.getElementById('colorOption')?.value || 'bw';
+            const calc = calculateBoxAdPrice(newspaper, height, columns, colorOption);
+            window.currentAdPrice = calc.total;
+
             showPubDateModal();
         });
     });
