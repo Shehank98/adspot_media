@@ -325,6 +325,7 @@
             </a>
             <ul class="nav-links">
                 <li><a href="admin-bookings.html" class="active">Manage Bookings</a></li>
+                <li><a href="admin-publications.html">Publications</a></li>
                 <li><a href="index.html">Back to Home</a></li>
             </ul>
             <div class="nav-actions">
@@ -439,10 +440,16 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <!-- Firebase Config -->
     <script src="js/firebase-config.js"></script>
     <script src="js/auth.js"></script>
+    <script src="js/firebase-db.js"></script>
+    <script src="js/invoice-pdf.js"></script>
 
     <script>
         let allBookings = [];
@@ -676,10 +683,10 @@
         }
 
         // Generate invoice and send to customer
-        async function generateAndSendInvoice() {
+        async function generateAndSendInvoice(event) {
             if (!currentBooking) return;
 
-            const btn = event.target;
+            const btn = event ? event.target : document.querySelector('button[onclick*="generateAndSendInvoice"]');
             btn.disabled = true;
             btn.textContent = 'Generating...';
 
@@ -727,17 +734,35 @@
 
                 await db.collection('invoices').doc(invoiceNumber).set(invoiceData, { merge: true });
 
+                // Generate PDF and upload to Firebase Storage
+                try {
+                    btn.textContent = 'Generating PDF...';
+                    const pdfUrl = await generateInvoicePDF(invoiceData, currentBooking);
+
+                    // Update invoice with PDF URL
+                    await db.collection('invoices').doc(invoiceNumber).update({
+                        pdfUrl: pdfUrl
+                    });
+
+                    invoiceData.pdfUrl = pdfUrl;
+                    console.log('✅ Invoice PDF generated:', pdfUrl);
+                } catch (pdfError) {
+                    console.error('PDF generation error:', pdfError);
+                    // Continue even if PDF fails
+                }
+
                 // Send invoice email to customer
                 try {
+                    btn.textContent = 'Sending email...';
                     if (typeof sendInvoiceEmail === 'function') {
                         await sendInvoiceEmail(currentBooking, invoiceData);
-                        alert('✅ Invoice generated and sent to: ' + currentBooking.customerEmail);
+                        alert('✅ Invoice generated and sent to: ' + currentBooking.customerEmail + '\n\nPDF available for download.');
                     } else {
-                        alert('✅ Invoice generated in Firestore.\n\n⚠️ Email function not loaded. Invoice created but not sent.');
+                        alert('✅ Invoice generated with PDF.\n\n⚠️ Email function not loaded. Invoice created but not sent.');
                     }
                 } catch (emailError) {
                     console.error('Email sending error:', emailError);
-                    alert('✅ Invoice generated but email failed to send.\nInvoice saved in database.');
+                    alert('✅ Invoice generated with PDF but email failed to send.\nInvoice and PDF saved in database.');
                 }
 
                 currentBooking.invoiceNumber = invoiceNumber;
