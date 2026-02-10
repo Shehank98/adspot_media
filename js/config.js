@@ -494,10 +494,11 @@ function calculateBoxAdPrice(newspaper, height, columns, colorOption) {
     // Add 10% platform commission
     const commission = adTotal * CONFIG.CHARGES.boxAdCommission;
 
-    // Add 18% VAT on (adTotal + commission)
-    const subtotal = adTotal;
-    const vat = subtotal * CONFIG.CHARGES.vatRate;
-    const total = subtotal + vat;
+    // Add 18% VAT on adTotal only (not on adTotal + commission)
+    const vat = adTotal * CONFIG.CHARGES.vatRate;
+
+    // Total = Ad Total + Commission + VAT
+    const total = adTotal + commission + vat;
 
     return {
         height: height,

@@ -150,7 +150,21 @@ function updateComparisonTable(newspapers) {
         'tamil': 'Tamil'
     };
 
-    tableBody.innerHTML = newspapers.map(paper => {
+    // Sort newspapers: Daily papers first, then by price (low to high)
+    const sortedNewspapers = newspapers.map(paper => ({
+        ...paper,
+        calculatedPrice: calculateBoxAdPrice(paper, height, columns, colorOption).total,
+        sortOrder: paper.isSundayPaper ? 1 : 0 // 0 for daily, 1 for sunday
+    })).sort((a, b) => {
+        // First sort by frequency (daily first)
+        if (a.sortOrder !== b.sortOrder) {
+            return a.sortOrder - b.sortOrder;
+        }
+        // Then sort by price (low to high)
+        return a.calculatedPrice - b.calculatedPrice;
+    });
+
+    tableBody.innerHTML = sortedNewspapers.map(paper => {
         const calc = calculateBoxAdPrice(paper, height, columns, colorOption);
         const frequency = paper.isSundayPaper ? 'Sunday' : 'Daily';
 
@@ -181,11 +195,10 @@ function updateComparisonTable(newspapers) {
 
             const btn = this.querySelector('.btn-add-to-cart');
             const paperId = btn.dataset.paperId;
-            selectedNewspaper = newspapers.find(p => p.id === paperId);
+            selectedNewspaper = sortedNewspapers.find(p => p.id === paperId);
             selectedGroup = selectedNewspaper.groupId;
 
-            // Update price sidebar and preview
-            updateColumnOptions();
+            // Update price sidebar and preview (DON'T update column options to prevent reset)
             updateQuickRates();
             updatePrice();
             updateNewspaperPreview();
@@ -201,7 +214,7 @@ function updateComparisonTable(newspapers) {
         btn.addEventListener('click', function(e) {
             e.stopPropagation(); // Prevent row click
             const paperId = this.dataset.paperId;
-            const newspaper = newspapers.find(p => p.id === paperId);
+            const newspaper = sortedNewspapers.find(p => p.id === paperId);
 
             // Set selected newspaper and calculate price for THIS newspaper
             selectedNewspaper = newspaper;
@@ -938,6 +951,36 @@ function removeFromCart(itemId) {
 window.removeFromCart = removeFromCart;
 
 /**
+ * Update sidebar for step 2 to show cart items
+ */
+function updateStep2Sidebar() {
+    const priceCard = document.querySelector('.price-card');
+    if (!priceCard) return;
+
+    const total = adCart.reduce((sum, item) => sum + item.price, 0);
+
+    priceCard.innerHTML = `
+        <h3>Your Selected Newspapers</h3>
+        <div class="cart-summary" id="sidebarCartItems">
+            ${adCart.map(item => `
+                <div class="sidebar-cart-item">
+                    <div class="sidebar-item-info">
+                        <strong>${item.newspaperName}</strong>
+                        <small>${item.description}</small>
+                        <small>${formatDate(item.pubDate)}</small>
+                    </div>
+                    <div class="sidebar-item-price">${formatCurrency(item.price)}</div>
+                </div>
+            `).join('')}
+        </div>
+        <div class="price-total">
+            <span>Cart Total</span>
+            <span class="total-amount">${formatCurrency(total)}</span>
+        </div>
+    `;
+}
+
+/**
  * Navigate to step
  */
 function goToStep(step) {
@@ -967,8 +1010,10 @@ function goToStep(step) {
 
     currentStep = step;
 
-    // Update order summary on payment step
-    if (step === 3) {
+    // Update sidebar based on step
+    if (step === 2) {
+        updateStep2Sidebar();
+    } else if (step === 3) {
         updateOrderSummary();
     }
 
