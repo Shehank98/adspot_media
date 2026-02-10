@@ -13,12 +13,13 @@
  */
 
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY_HERE",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyC-3O50ecypPkYwp6bOt8qfjegvBjDmQpQ",
+    authDomain: "adspot-b44ef.firebaseapp.com",
+    projectId: "adspot-b44ef",
+    storageBucket: "adspot-b44ef.firebasestorage.app",
+    messagingSenderId: "810904997217",
+    appId: "1:810904997217:web:3a85856521cac0177dc920",
+    measurementId: "G-R20R2Y35KX"
 };
 
 // Initialize Firebase
