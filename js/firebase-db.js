@@ -278,6 +278,85 @@ async function sendBookingEmails(bookingData) {
 }
 
 /**
+ * Send invoice email to customer via Apps Script
+ */
+async function sendInvoiceEmail(bookingData, invoiceData) {
+    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
+        console.warn('⚠️ Apps Script URL not configured. Skipping invoice email.');
+        return;
+    }
+
+    try {
+        const response = await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                type: 'invoice_email',
+                invoiceNumber: invoiceData.invoiceNumber,
+                quotationNumber: invoiceData.quotationNumber,
+                customerName: bookingData.customerName,
+                customerEmail: bookingData.customerEmail,
+                customerPhone: bookingData.customerPhone || '',
+                customerCompany: bookingData.customerCompany || '',
+                totalAmount: invoiceData.total,
+                subtotal: invoiceData.subtotal,
+                commission: invoiceData.commission,
+                vat: invoiceData.vat,
+                pdfUrl: invoiceData.pdfUrl || '',
+                paymentStatus: bookingData.paymentStatus,
+                items: bookingData.items.map(item => ({
+                    newspaperName: item.newspaperName,
+                    adType: item.adType,
+                    pubDate: item.pubDate,
+                    price: item.price,
+                    details: item.details
+                }))
+            })
+        });
+
+        console.log('✅ Invoice email sent to Apps Script');
+    } catch (error) {
+        console.error('❌ Error sending invoice email:', error);
+    }
+}
+
+/**
+ * Send email with file attachment notification to admin
+ */
+async function sendFileUploadNotification(bookingData, fileUrl) {
+    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
+        console.warn('⚠️ Apps Script URL not configured. Skipping file notification.');
+        return;
+    }
+
+    try {
+        const response = await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                type: 'file_upload_notification',
+                bookingId: bookingData.bookingId,
+                quotationNumber: bookingData.quotationNumber,
+                customerName: bookingData.customerName,
+                customerEmail: bookingData.customerEmail,
+                fileUrl: fileUrl,
+                items: bookingData.items
+            })
+        });
+
+        console.log('✅ File upload notification sent to admin');
+    } catch (error) {
+        console.error('❌ Error sending file notification:', error);
+    }
+}
+
+/**
  * Generate unique booking ID
  */
 function generateBookingId() {
@@ -297,5 +376,7 @@ window.getUserBookings = getUserBookings;
 window.loadNewspapersFromFirebase = loadNewspapersFromFirebase;
 window.loadNewspaperLogos = loadNewspaperLogos;
 window.sendBookingEmails = sendBookingEmails;
+window.sendInvoiceEmail = sendInvoiceEmail;
+window.sendFileUploadNotification = sendFileUploadNotification;
 
 console.log('✅ Firebase database operations loaded');

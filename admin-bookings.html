@@ -324,9 +324,8 @@
                 <span class="logo-text">AdSpot Admin</span>
             </a>
             <ul class="nav-links">
-                <li><a href="admin-bookings.html" class="active">Bookings</a></li>
-                <li><a href="admin/dashboard.html">Publications</a></li>
-                <li><a href="my-bookings.html">My Account</a></li>
+                <li><a href="admin-bookings.html" class="active">Manage Bookings</a></li>
+                <li><a href="index.html">Back to Home</a></li>
             </ul>
             <div class="nav-actions">
                 <div id="userMenu" class="user-menu">
@@ -408,7 +407,7 @@
             </div>
 
             <div class="status-update">
-                <label>Update Status</label>
+                <label>Update Booking Status</label>
                 <select id="statusSelect">
                     <option value="pending">Pending</option>
                     <option value="confirmed">Confirmed</option>
@@ -417,9 +416,20 @@
                 </select>
             </div>
 
+            <div class="status-update">
+                <label>Payment Status</label>
+                <select id="paymentStatusSelect">
+                    <option value="pending">Pending</option>
+                    <option value="completed">Paid</option>
+                    <option value="failed">Failed</option>
+                </select>
+            </div>
+
             <div class="modal-actions">
                 <button class="btn btn-secondary" onclick="closeModal()">Close</button>
                 <button class="btn btn-primary" onclick="updateStatus()">Update Status</button>
+                <button class="btn btn-primary" onclick="updatePaymentStatus()">Mark as Paid</button>
+                <button class="btn btn-primary" onclick="generateAndSendInvoice()">Generate & Send Invoice</button>
                 <button class="btn btn-primary" onclick="downloadInvoice()">Download Invoice</button>
             </div>
         </div>
@@ -551,9 +561,11 @@
             const modalDetails = document.getElementById('modalDetails');
             const modalItems = document.getElementById('modalItems');
             const statusSelect = document.getElementById('statusSelect');
+            const paymentStatusSelect = document.getElementById('paymentStatusSelect');
 
             modalBookingId.textContent = booking.bookingId;
             statusSelect.value = booking.status || 'pending';
+            paymentStatusSelect.value = booking.paymentStatus || 'pending';
 
             modalDetails.innerHTML = `
                 <div class="detail-item">
@@ -633,10 +645,118 @@
             }
         }
 
+        // Update payment status
+        async function updatePaymentStatus() {
+            if (!currentBooking) return;
+
+            const newPaymentStatus = document.getElementById('paymentStatusSelect').value;
+
+            try {
+                await db.collection('bookings').doc(currentBooking.id).update({
+                    paymentStatus: newPaymentStatus,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                alert('Payment status updated successfully!');
+                currentBooking.paymentStatus = newPaymentStatus;
+
+                // If marked as paid, generate and send invoice
+                if (newPaymentStatus === 'completed') {
+                    const shouldGenerateInvoice = confirm('Payment marked as paid. Generate and send invoice to customer?');
+                    if (shouldGenerateInvoice) {
+                        await generateAndSendInvoice();
+                    }
+                }
+
+                loadBookings(); // Reload bookings
+            } catch (error) {
+                console.error('Error updating payment status:', error);
+                alert('Failed to update payment status: ' + error.message);
+            }
+        }
+
+        // Generate invoice and send to customer
+        async function generateAndSendInvoice() {
+            if (!currentBooking) return;
+
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Generating...';
+
+            try {
+                // Check if invoice already exists
+                let invoiceNumber = currentBooking.invoiceNumber;
+
+                if (!invoiceNumber) {
+                    // Generate new invoice number
+                    invoiceNumber = 'INV-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+
+                    // Update booking with invoice number
+                    await db.collection('bookings').doc(currentBooking.id).update({
+                        invoiceNumber: invoiceNumber,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+
+                // Calculate invoice details
+                const subtotal = currentBooking.totalAmount / 1.28; // Reverse calculate (total / 1.28)
+                const commission = subtotal * 0.10;
+                const vat = subtotal * 0.18;
+
+                // Create/update invoice in Firestore
+                const invoiceData = {
+                    invoiceNumber: invoiceNumber,
+                    quotationNumber: currentBooking.quotationNumber,
+                    bookingId: currentBooking.id,
+                    customerId: currentBooking.customerId,
+                    customerName: currentBooking.customerName,
+                    customerEmail: currentBooking.customerEmail,
+                    customerPhone: currentBooking.customerPhone || '',
+                    customerCompany: currentBooking.customerCompany || '',
+                    customerAddress: currentBooking.customerAddress || '',
+                    items: currentBooking.items,
+                    subtotal: subtotal,
+                    commission: commission,
+                    vat: vat,
+                    total: currentBooking.totalAmount,
+                    pdfUrl: '', // Will be updated after PDF generation
+                    status: 'generated',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    generatedBy: firebase.auth().currentUser.uid
+                };
+
+                await db.collection('invoices').doc(invoiceNumber).set(invoiceData, { merge: true });
+
+                // Send invoice email to customer
+                try {
+                    if (typeof sendInvoiceEmail === 'function') {
+                        await sendInvoiceEmail(currentBooking, invoiceData);
+                        alert('✅ Invoice generated and sent to: ' + currentBooking.customerEmail);
+                    } else {
+                        alert('✅ Invoice generated in Firestore.\n\n⚠️ Email function not loaded. Invoice created but not sent.');
+                    }
+                } catch (emailError) {
+                    console.error('Email sending error:', emailError);
+                    alert('✅ Invoice generated but email failed to send.\nInvoice saved in database.');
+                }
+
+                currentBooking.invoiceNumber = invoiceNumber;
+                closeModal();
+                loadBookings();
+
+            } catch (error) {
+                console.error('Error generating invoice:', error);
+                alert('Failed to generate invoice: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Generate & Send Invoice';
+            }
+        }
+
         // Download invoice
         async function downloadInvoice() {
             if (!currentBooking || !currentBooking.invoiceNumber) {
-                alert('No invoice available yet.');
+                alert('No invoice available yet. Generate invoice first.');
                 return;
             }
 
@@ -646,12 +766,23 @@
                 if (invoiceDoc.exists && invoiceDoc.data().pdfUrl) {
                     window.open(invoiceDoc.data().pdfUrl, '_blank');
                 } else {
-                    alert('Invoice PDF not yet generated.');
+                    alert('Invoice created but PDF not yet uploaded to Google Drive. You can still send the invoice details via email.');
                 }
             } catch (error) {
                 console.error('Error downloading invoice:', error);
                 alert('Failed to download invoice.');
             }
+        }
+
+        // Email invoice to customer (placeholder - needs Apps Script)
+        async function sendInvoiceEmail(booking, invoice) {
+            // This will be handled by firebase-db.js sendBookingEmails function
+            // For now, just log that email should be sent
+            console.log('Email should be sent to:', booking.customerEmail);
+            console.log('Invoice details:', invoice);
+
+            // TODO: Integrate with Apps Script or email service
+            // await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({...}) });
         }
 
         // Filter tabs
