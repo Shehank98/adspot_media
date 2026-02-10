@@ -2,7 +2,156 @@
    AdSpot Booking Page - Additional Styles
    ============================================ */
 
-/* Publication Group Cards */
+/* Language Selection Buttons */
+.language-select {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.language-btn {
+    flex: 1;
+    min-width: 120px;
+    padding: 0.875rem 1.5rem;
+    background: white;
+    border: 2px solid var(--gray-300);
+    border-radius: var(--radius-lg);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--gray-700);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.language-btn:hover {
+    border-color: var(--primary);
+    background: var(--primary-pale);
+    color: var(--primary);
+    transform: translateY(-2px);
+}
+
+.language-btn.active {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: white;
+}
+
+/* Compact Ad Type Cards */
+.ad-type-select-compact {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.ad-type-card-compact {
+    position: relative;
+    flex: 1;
+    min-width: 150px;
+    cursor: pointer;
+}
+
+.ad-type-card-compact input {
+    position: absolute;
+    opacity: 0;
+}
+
+.ad-type-card-compact .card-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    transition: all var(--transition-fast);
+    background: white;
+}
+
+.ad-type-card-compact:hover .card-content {
+    border-color: var(--primary);
+    background: var(--primary-pale);
+}
+
+.ad-type-card-compact input:checked + .card-content {
+    border-color: var(--primary);
+    background: var(--primary-pale);
+}
+
+.ad-type-card-compact svg {
+    width: 32px;
+    height: 32px;
+    color: var(--gray-600);
+}
+
+.ad-type-card-compact input:checked + .card-content svg {
+    color: var(--primary);
+}
+
+.ad-type-card-compact .type-name {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--gray-900);
+}
+
+/* Sample Preview Popup */
+.sample-popup {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 0.5rem;
+    background: white;
+    border: 2px solid var(--primary);
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    width: 400px;
+    max-width: 90vw;
+    opacity: 0;
+    visibility: hidden;
+    transition: all var(--transition-fast);
+    pointer-events: none;
+}
+
+.ad-type-card-compact:hover .sample-popup {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.popup-header {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--gray-900);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--gray-200);
+}
+
+.sample-images {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+}
+
+.sample-images img {
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--gray-200);
+}
+
+.sample-placeholder {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--gray-500);
+    font-size: 0.875rem;
+    font-style: italic;
+}
+
+/* Publication Group Cards (kept for backwards compatibility) */
 .publication-groups {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));

@@ -8,15 +8,17 @@
 let currentStep = 1;
 let selectedNewspaper = null;
 let selectedGroup = null;
+let selectedLanguage = 'sinhala'; // Default language
 let adCart = [];
 let stripe = null;
 let cardElement = null;
 
 document.addEventListener('DOMContentLoaded', function() {
-    initPublicationGroups();
+    initLanguageSelection();
     initBookingForm();
     initStripe();
     setMinDate();
+    loadSampleImages();
 
     // Check URL params for ad type
     const urlParams = new URLSearchParams(window.location.search);
@@ -31,44 +33,48 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /**
- * Initialize Publication Groups
+ * Initialize Language Selection
  */
-function initPublicationGroups() {
-    const container = document.getElementById('pubGroupSelect');
-    if (!container) return;
+function initLanguageSelection() {
+    const languageButtons = document.querySelectorAll('.language-btn');
 
-    container.innerHTML = Object.entries(CONFIG.PUBLICATIONS).map(([groupId, group], index) => `
-        <label class="pub-group-card">
-            <input type="radio" name="pubGroup" value="${groupId}" ${index === 0 ? 'checked' : ''}>
-            <div class="card-content">
-                <span class="pub-name">${group.name}</span>
-                <span class="pub-count">${group.newspapers.length} papers</span>
-            </div>
-        </label>
-    `).join('');
-
-    // Add change listeners
-    container.querySelectorAll('input[name="pubGroup"]').forEach(radio => {
-        radio.addEventListener('change', function() {
-            updateNewspaperOptions(this.value);
+    languageButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Remove active class from all buttons
+            languageButtons.forEach(b => b.classList.remove('active'));
+            // Add active class to clicked button
+            this.classList.add('active');
+            // Update selected language
+            selectedLanguage = this.dataset.language;
+            // Update newspaper options
+            updateNewspapersByLanguage(selectedLanguage);
         });
     });
 
-    // Initialize with first group
-    const firstGroup = Object.keys(CONFIG.PUBLICATIONS)[0];
-    updateNewspaperOptions(firstGroup);
+    // Initialize with default language (Sinhala)
+    updateNewspapersByLanguage(selectedLanguage);
 }
 
 /**
- * Update newspaper options based on selected group
+ * Update newspaper options based on selected language
  */
-function updateNewspaperOptions(groupId) {
+function updateNewspapersByLanguage(language) {
     const container = document.getElementById('newspaperSelect');
-    const group = CONFIG.PUBLICATIONS[groupId];
 
-    if (!group) return;
+    // Collect all newspapers from all publication groups
+    let allNewspapers = [];
+    Object.entries(CONFIG.PUBLICATIONS).forEach(([groupId, group]) => {
+        group.newspapers.forEach(paper => {
+            allNewspapers.push({
+                ...paper,
+                groupId: groupId,
+                groupName: group.name
+            });
+        });
+    });
 
-    selectedGroup = groupId;
+    // Filter by selected language
+    const filteredNewspapers = allNewspapers.filter(paper => paper.language === language);
 
     const langLabels = {
         'english': 'EN',
@@ -77,7 +83,12 @@ function updateNewspaperOptions(groupId) {
         'all': 'ALL'
     };
 
-    container.innerHTML = group.newspapers.map((paper, index) => `
+    if (filteredNewspapers.length === 0) {
+        container.innerHTML = '<p class="no-papers-message">No newspapers available for this language.</p>';
+        return;
+    }
+
+    container.innerHTML = filteredNewspapers.map((paper, index) => `
         <label class="newspaper-card">
             <input type="radio" name="newspaper" value="${paper.id}" ${index === 0 ? 'checked' : ''}>
             <div class="card-content">
@@ -92,7 +103,8 @@ function updateNewspaperOptions(groupId) {
     // Add change listeners
     container.querySelectorAll('input[name="newspaper"]').forEach(radio => {
         radio.addEventListener('change', function() {
-            selectedNewspaper = group.newspapers.find(p => p.id === this.value);
+            selectedNewspaper = filteredNewspapers.find(p => p.id === this.value);
+            selectedGroup = selectedNewspaper.groupId;
             updateColumnOptions();
             updateQuickRates();
             updatePrice();
@@ -100,7 +112,8 @@ function updateNewspaperOptions(groupId) {
     });
 
     // Select first by default
-    selectedNewspaper = group.newspapers[0];
+    selectedNewspaper = filteredNewspapers[0];
+    selectedGroup = selectedNewspaper.groupId;
     updateColumnOptions();
     updateQuickRates();
     updatePrice();
@@ -530,7 +543,7 @@ function addToCart() {
         newspaperId: selectedNewspaper.id,
         newspaperName: selectedNewspaper.name,
         newspaperLanguage: selectedNewspaper.language,
-        groupName: CONFIG.PUBLICATIONS[selectedGroup].name,
+        groupName: selectedNewspaper.groupName || (CONFIG.PUBLICATIONS[selectedGroup]?.name || 'Unknown'),
         adType: adType,
         pubDate: pubDate,
         price: window.currentAdPrice || 0
@@ -1277,3 +1290,56 @@ function showNotification(message, type = 'info') {
     }, 5000);
 }
 window.showNotification = showNotification;
+
+/**
+ * Load sample images for ad types
+ */
+function loadSampleImages() {
+    const boxAdContainer = document.getElementById('boxAdSamples');
+    const classifiedContainer = document.getElementById('classifiedAdSamples');
+
+    // Box Ad Samples
+    const boxAdImages = [
+        'images/samples/box-ad-sample-1.jpg',
+        'images/samples/box-ad-sample-2.jpg',
+        'images/samples/box-ad-sample-3.jpg'
+    ];
+
+    // Classified Ad Samples
+    const classifiedImages = [
+        'images/samples/classified-ad-sample-1.jpg',
+        'images/samples/classified-ad-sample-2.jpg',
+        'images/samples/classified-ad-sample-3.jpg'
+    ];
+
+    // Function to check if image exists and load it
+    function loadImages(container, images) {
+        let loadedCount = 0;
+        const imageElements = images.map(src => {
+            const img = new Image();
+            img.onload = function() {
+                loadedCount++;
+                if (loadedCount === 1) {
+                    // Replace placeholder when first image loads
+                    container.innerHTML = '';
+                }
+                container.appendChild(img);
+            };
+            img.onerror = function() {
+                // Image doesn't exist, skip it
+                console.log('Sample image not found:', src);
+            };
+            img.src = src;
+            img.alt = 'Ad Sample';
+            return img;
+        });
+    }
+
+    if (boxAdContainer) {
+        loadImages(boxAdContainer, boxAdImages);
+    }
+
+    if (classifiedContainer) {
+        loadImages(classifiedContainer, classifiedImages);
+    }
+}
