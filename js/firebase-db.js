@@ -247,6 +247,7 @@ function getDefaultNewspaperLogos() {
 
 /**
  * Send booking confirmation emails via Apps Script
+ * Sends both customer confirmation AND admin notification
  */
 async function sendBookingEmails(bookingData) {
     if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
@@ -255,7 +256,19 @@ async function sendBookingEmails(bookingData) {
     }
 
     try {
-        const response = await fetch(APPS_SCRIPT_URL, {
+        // Prepare items with all necessary data including ad file URLs
+        const items = bookingData.items.map(item => ({
+            newspaperName: item.newspaperName,
+            adType: item.adType,
+            pubDate: item.pubDate,
+            price: item.price,
+            description: item.description,
+            adFileUrl: item.adFileUrl || '',
+            details: item.details
+        }));
+
+        // 1. Send booking confirmation to CUSTOMER
+        const customerEmailResponse = await fetch(APPS_SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors', // Apps Script requires no-cors
             headers: {
@@ -270,17 +283,31 @@ async function sendBookingEmails(bookingData) {
                 customerPhone: bookingData.customerPhone,
                 totalAmount: bookingData.totalAmount,
                 paymentMethod: bookingData.paymentMethod,
-                items: bookingData.items.map(item => ({
-                    newspaperName: item.newspaperName,
-                    adType: item.adType,
-                    pubDate: item.pubDate,
-                    price: item.price,
-                    description: item.description
-                }))
+                items: items
             })
         });
+        console.log('✅ Customer confirmation email sent');
 
-        console.log('✅ Email request sent to Apps Script');
+        // 2. Send notification to ADMIN
+        const adminEmailResponse = await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                action: 'sendAdminNotification',
+                quotation_number: bookingData.quotationNumber,
+                customer_name: bookingData.customerName,
+                customer_email: bookingData.customerEmail,
+                customer_phone: bookingData.customerPhone,
+                total_amount: bookingData.totalAmount,
+                payment_method: bookingData.paymentMethod,
+                items: items
+            })
+        });
+        console.log('✅ Admin notification email sent');
+
     } catch (error) {
         console.error('❌ Error sending emails:', error);
         // Don't throw error - email failure shouldn't block booking
@@ -330,6 +357,38 @@ async function sendInvoiceEmail(bookingData, invoiceData) {
         console.log('✅ Invoice email sent to Apps Script');
     } catch (error) {
         console.error('❌ Error sending invoice email:', error);
+    }
+}
+
+/**
+ * Send payment confirmation email to customer via Apps Script
+ */
+async function sendPaymentConfirmationEmail(bookingData, amount) {
+    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
+        console.warn('⚠️ Apps Script URL not configured. Skipping payment confirmation email.');
+        return;
+    }
+
+    try {
+        const response = await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                type: 'payment_confirmation',
+                quotationNumber: bookingData.quotationNumber,
+                customerName: bookingData.customerName,
+                customerEmail: bookingData.customerEmail,
+                amount: amount || bookingData.totalAmount,
+                paymentReference: bookingData.paymentReference || bookingData.quotationNumber
+            })
+        });
+
+        console.log('✅ Payment confirmation email sent to Apps Script');
+    } catch (error) {
+        console.error('❌ Error sending payment confirmation email:', error);
     }
 }
 
@@ -387,6 +446,7 @@ window.loadNewspapersFromFirebase = loadNewspapersFromFirebase;
 window.loadNewspaperLogos = loadNewspaperLogos;
 window.sendBookingEmails = sendBookingEmails;
 window.sendInvoiceEmail = sendInvoiceEmail;
+window.sendPaymentConfirmationEmail = sendPaymentConfirmationEmail;
 window.sendFileUploadNotification = sendFileUploadNotification;
 
 console.log('✅ Firebase database operations loaded');
