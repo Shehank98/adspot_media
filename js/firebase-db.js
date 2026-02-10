@@ -152,35 +152,45 @@ async function loadNewspapersFromFirebase() {
     try {
         const snapshot = await db.collection('newspapers')
             .where('active', '==', true)
-            .orderBy('language')
-            .orderBy('name')
             .get();
 
         const newspapers = {};
 
         snapshot.forEach(doc => {
             const paper = doc.data();
-            const groupId = paper.groupId;
+
+            // Use groupName as groupId if groupId doesn't exist
+            const groupId = paper.groupName || paper.groupId || 'default';
+            const groupName = paper.groupName || 'Newspapers';
 
             if (!newspapers[groupId]) {
                 newspapers[groupId] = {
-                    name: paper.groupName,
+                    name: groupName,
                     newspapers: []
                 };
             }
 
             newspapers[groupId].newspapers.push({
-                ...paper,
-                id: doc.id
+                id: doc.id,
+                name: paper.name,
+                language: paper.language,
+                bwRate: paper.bwRate,
+                colorRate: paper.colorRate,
+                classifiedBase: paper.classifiedBase || 0,
+                classifiedFreeWords: paper.classifiedFreeWords || 0,
+                classifiedExtraRate: paper.classifiedExtraRate || 0,
+                isSundayPaper: paper.isSundayPaper || false,
+                groupName: groupName
             });
         });
 
         // Update CONFIG.PUBLICATIONS
         if (typeof CONFIG !== 'undefined') {
             CONFIG.PUBLICATIONS = newspapers;
+            console.log('✅ CONFIG.PUBLICATIONS updated with', Object.keys(newspapers).length, 'groups');
+            console.log('📰 Loaded newspapers:', newspapers);
         }
 
-        console.log('✅ Newspapers loaded from Firebase:', Object.keys(newspapers).length, 'groups');
         return newspapers;
     } catch (error) {
         console.error('❌ Error loading newspapers:', error);

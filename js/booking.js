@@ -49,14 +49,18 @@ async function initNewspapersFromFirebase() {
             // If newspapers loaded successfully, they're already set in CONFIG.PUBLICATIONS
             if (Object.keys(newspapers).length > 0) {
                 console.log('✅ Newspapers loaded from Firebase:', Object.keys(newspapers).length, 'groups');
+                console.log('📋 CONFIG.PUBLICATIONS now contains:', CONFIG.PUBLICATIONS);
+
+                // Force refresh the newspaper display with new data
+                updateNewspapersByLanguage(selectedLanguage);
             } else {
-                console.log('No newspapers loaded from Firebase, using default config');
+                console.log('⚠️ No newspapers loaded from Firebase, using default config');
             }
         } catch (error) {
-            console.warn('Failed to load newspapers from Firebase, using default config:', error);
+            console.warn('❌ Failed to load newspapers from Firebase, using default config:', error);
         }
     } else {
-        console.log('Firebase not configured, using default newspaper config');
+        console.log('⚠️ Firebase not configured, using default newspaper config');
     }
 }
 
