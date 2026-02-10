@@ -358,10 +358,9 @@
             const bookingsGrid = document.getElementById('bookingsGrid');
 
             try {
-                // Query bookings for current user
+                // Query bookings for current user (without orderBy to avoid index requirement)
                 const snapshot = await db.collection('bookings')
                     .where('customerId', '==', user.uid)
-                    .orderBy('createdAt', 'desc')
                     .get();
 
                 loadingState.style.display = 'none';
@@ -371,11 +370,23 @@
                     return;
                 }
 
+                // Sort bookings in memory by createdAt
+                const bookings = [];
+                snapshot.forEach(doc => {
+                    bookings.push({ id: doc.id, ...doc.data() });
+                });
+
+                // Sort by createdAt descending
+                bookings.sort((a, b) => {
+                    const timeA = a.createdAt ? a.createdAt.toMillis() : 0;
+                    const timeB = b.createdAt ? b.createdAt.toMillis() : 0;
+                    return timeB - timeA;
+                });
+
                 bookingsGrid.style.display = 'grid';
 
                 // Render bookings
-                snapshot.forEach(doc => {
-                    const booking = doc.data();
+                bookings.forEach(booking => {
                     const bookingCard = createBookingCard(booking);
                     bookingsGrid.appendChild(bookingCard);
                 });
@@ -383,7 +394,8 @@
             } catch (error) {
                 console.error('Error loading bookings:', error);
                 loadingState.innerHTML = `
-                    <p style="color: #ef4444;">Failed to load bookings. Please try again.</p>
+                    <p style="color: #ef4444;">Failed to load bookings: ${error.message}</p>
+                    <p style="color: #64748b; font-size: 13px; margin-top: 8px;">Please check Firestore security rules.</p>
                 `;
             }
         }

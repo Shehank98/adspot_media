@@ -1,0 +1,62 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Newspapers collection - public read, admin write
+    match /newspapers/{newspaperId} {
+      allow read: if true;  // Public read
+      allow write: if isAdmin();  // Only admins can modify newspapers
+    }
+
+    // Users collection - users can read/write their own data, admins can read all
+    match /users/{userId} {
+      allow read: if request.auth != null &&
+                     (request.auth.uid == userId || isAdmin());
+      allow write: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
+    }
+
+    // Bookings collection
+    match /bookings/{bookingId} {
+      // Users can read their own bookings, admins can read all
+      allow read: if request.auth != null &&
+                     (resource.data.customerId == request.auth.uid || isAdmin());
+
+      // Authenticated users can create bookings
+      allow create: if request.auth != null;
+
+      // Only admins can update bookings (for status changes)
+      allow update: if isAdmin();
+
+      // Only admins can delete
+      allow delete: if isAdmin();
+    }
+
+    // Invoices collection
+    match /invoices/{invoiceNumber} {
+      // Users can read their own invoices, admins can read all
+      allow read: if request.auth != null &&
+                     (resource.data.customerId == request.auth.uid || isAdmin());
+
+      // Only system (via admin) can create/update invoices
+      allow create, update: if isAdmin();
+
+      // Only admins can delete
+      allow delete: if isAdmin();
+    }
+
+    // Metadata collection (internal use)
+    match /_metadata/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}
