@@ -18,8 +18,7 @@ const firebaseConfig = {
     projectId: "adspot-b44ef",
     storageBucket: "adspot-b44ef.firebasestorage.app",
     messagingSenderId: "810904997217",
-    appId: "1:810904997217:web:3a85856521cac0177dc920",
-    measurementId: "G-R20R2Y35KX"
+    appId: "1:810904997217:web:3a85856521cac0177dc920"
 };
 
 // Initialize Firebase
