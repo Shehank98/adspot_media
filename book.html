@@ -191,26 +191,41 @@
                                     </div>
                                 </div>
 
-                                <!-- Ad Preview -->
-                                <div class="ad-preview-section">
-                                    <div class="ad-preview-basic">
-                                        <div class="preview-label">Ad Size Preview</div>
-                                        <div class="preview-box" id="adPreview">
-                                            <span id="previewDimensions">3.0 x 10 cm</span>
+                                <!-- Box Ad Comparison Section -->
+                                <div class="comparison-section">
+                                    <div class="comparison-card">
+                                        <div class="comparison-header">
+                                            <h4>Your Ad Summary</h4>
                                         </div>
-                                        <div class="preview-info">
-                                            <div><span>Area:</span> <strong id="previewArea">30.0</strong> sq cm</div>
-                                            <div><span>Rate:</span> <strong id="previewRate">Rs. 0</strong>/sq cm</div>
-                                            <div><span>Total:</span> <strong id="previewTotal">Rs. 0</strong></div>
+                                        <div class="comparison-details">
+                                            <div class="detail-row">
+                                                <span class="detail-label">Newspaper:</span>
+                                                <span class="detail-value" id="comparisonNewspaper">-</span>
+                                            </div>
+                                            <div class="detail-row">
+                                                <span class="detail-label">Size:</span>
+                                                <span class="detail-value" id="comparisonSize">-</span>
+                                            </div>
+                                            <div class="detail-row">
+                                                <span class="detail-label">Area:</span>
+                                                <span class="detail-value" id="comparisonArea">-</span>
+                                            </div>
+                                            <div class="detail-row">
+                                                <span class="detail-label">Color:</span>
+                                                <span class="detail-value" id="comparisonColor">-</span>
+                                            </div>
+                                            <div class="detail-row total-row">
+                                                <span class="detail-label">Total:</span>
+                                                <span class="detail-value" id="comparisonTotal">Rs. 0.00</span>
+                                            </div>
                                         </div>
-                                    </div>
-
-                                    <!-- Newspaper Preview (52cm x 38cm) -->
-                                    <div class="newspaper-preview-container">
-                                        <div class="preview-label">Newspaper Preview (52 x 38 cm)</div>
-                                        <div id="newspaperPreview" class="newspaper-preview">
-                                            <!-- Populated by JavaScript -->
-                                        </div>
+                                        <button type="button" id="addToCartFromComparison" class="btn-add-to-cart">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <circle cx="12" cy="12" r="10"/>
+                                                <path d="M12 8v8M8 12h8"/>
+                                            </svg>
+                                            Add to Cart
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -263,25 +278,25 @@
                                 </div>
                             </div>
 
-                            <!-- Publication Date -->
-                            <div class="form-group">
+                            <!-- Publication Date for Classified Ads -->
+                            <div id="classifiedPubDate" class="form-group" style="display: none;">
                                 <label class="form-label">Publication Date</label>
-                                <input type="date" id="pubDate" name="pubDate" required>
-                                <div id="dateWarning" class="date-warning" style="display: none;"></div>
+                                <input type="date" id="classifiedDate" name="classifiedDate">
+                                <div id="classifiedDateWarning" class="date-warning" style="display: none;"></div>
                                 <span class="input-hint">Ads must be booked at least 2 days in advance. Sunday papers must be booked by Friday.</span>
                             </div>
 
-                            <!-- Add to Cart Button -->
-                            <button type="button" id="addToCartBtn" class="btn btn-primary btn-lg add-to-cart-btn">
+                            <!-- Add to Cart Button for Classified -->
+                            <button type="button" id="addClassifiedToCartBtn" class="btn btn-primary btn-lg add-to-cart-btn" style="display: none;">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <circle cx="9" cy="21" r="1"/>
                                     <circle cx="20" cy="21" r="1"/>
                                     <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>
                                 </svg>
-                                Add Newspaper to Cart
+                                Add Classified to Cart
                             </button>
 
-                            <p class="cart-hint">You can add multiple newspapers to your cart</p>
+                            <p class="cart-hint" id="classifiedCartHint" style="display: none;">You can add multiple newspapers to your cart</p>
 
                             <!-- Ad Cart -->
                             <div id="adCart" class="ad-cart" style="display: none;">
@@ -515,6 +530,27 @@
             </div>
         </div>
     </main>
+
+    <!-- Publication Date Modal -->
+    <div id="pubDateModal" class="modal">
+        <div class="modal-content date-modal">
+            <button class="modal-close" onclick="closePubDateModal()">&times;</button>
+            <h3>Select Publication Date</h3>
+            <p class="modal-desc">Choose when you want this ad to be published</p>
+
+            <div class="form-group">
+                <label class="form-label">Publication Date *</label>
+                <input type="date" id="pubDate" name="pubDate" required>
+                <div id="dateWarning" class="date-warning" style="display: none;"></div>
+                <span class="input-hint">Ads must be booked at least 2 days in advance. Sunday papers must be booked by Friday.</span>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-ghost" onclick="closePubDateModal()">Cancel</button>
+                <button type="button" id="confirmAddToCart" class="btn btn-primary">Add to Cart</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Success Modal -->
     <div id="successModal" class="modal">
