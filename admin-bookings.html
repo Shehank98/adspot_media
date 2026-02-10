@@ -755,14 +755,36 @@
                 try {
                     btn.textContent = 'Sending email...';
                     if (typeof sendInvoiceEmail === 'function') {
+                        console.log('📧 Sending invoice email to:', currentBooking.customerEmail);
+                        console.log('📋 Invoice data:', invoiceData);
+
                         await sendInvoiceEmail(currentBooking, invoiceData);
-                        alert('✅ Invoice generated and sent to: ' + currentBooking.customerEmail + '\n\nPDF available for download.');
+
+                        alert(
+                            '✅ Invoice Generated Successfully!\n\n' +
+                            '📧 Email sent to: ' + currentBooking.customerEmail + '\n' +
+                            '📄 Invoice Number: ' + invoiceData.invoiceNumber + '\n' +
+                            '💰 Total Amount: LKR ' + invoiceData.total.toLocaleString() + '\n\n' +
+                            'The customer will receive:\n' +
+                            '• Invoice details\n' +
+                            '• Payment confirmation\n' +
+                            (invoiceData.pdfUrl ? '• PDF attachment' : '• Invoice PDF (if CORS is fixed)')
+                        );
                     } else {
-                        alert('✅ Invoice generated with PDF.\n\n⚠️ Email function not loaded. Invoice created but not sent.');
+                        alert('⚠️ Email function not loaded.\n\nInvoice created but not sent.\n\nPlease check:\n1. firebase-db.js is loaded\n2. Apps Script URL is configured');
                     }
                 } catch (emailError) {
-                    console.error('Email sending error:', emailError);
-                    alert('✅ Invoice generated with PDF but email failed to send.\nInvoice and PDF saved in database.');
+                    console.error('❌ Email sending error:', emailError);
+                    alert(
+                        '⚠️ Email Failed to Send\n\n' +
+                        'Invoice and PDF created successfully but email failed.\n\n' +
+                        'Error: ' + emailError.message + '\n\n' +
+                        'Possible causes:\n' +
+                        '• Apps Script URL not configured\n' +
+                        '• Apps Script deployment issue\n' +
+                        '• Network error\n\n' +
+                        '💡 You can still download the PDF and send manually.'
+                    );
                 }
 
                 currentBooking.invoiceNumber = invoiceNumber;
@@ -799,16 +821,8 @@
             }
         }
 
-        // Email invoice to customer (placeholder - needs Apps Script)
-        async function sendInvoiceEmail(booking, invoice) {
-            // This will be handled by firebase-db.js sendBookingEmails function
-            // For now, just log that email should be sent
-            console.log('Email should be sent to:', booking.customerEmail);
-            console.log('Invoice details:', invoice);
-
-            // TODO: Integrate with Apps Script or email service
-            // await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({...}) });
-        }
+        // Note: sendInvoiceEmail() function is loaded from firebase-db.js
+        // It will send emails via Apps Script automatically
 
         // Filter tabs
         document.querySelectorAll('.filter-tab').forEach(tab => {
