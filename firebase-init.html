@@ -173,107 +173,43 @@
     </script>
 
     <script>
-        // Newspaper data to populate
+        // Complete newspaper data matching CONFIG.PUBLICATIONS structure
         const newspapersData = [
-            {
-                id: 'daily_news',
-                name: 'Daily News',
-                language: 'english',
-                frequency: 'Daily',
-                groupName: 'Lake House',
-                baseRate: 850,
-                colorCharge: 200,
-                active: true,
-                isSundayPaper: false
-            },
-            {
-                id: 'sunday_observer',
-                name: 'Sunday Observer',
-                language: 'english',
-                frequency: 'Sunday',
-                groupName: 'Lake House',
-                baseRate: 900,
-                colorCharge: 250,
-                active: true,
-                isSundayPaper: true
-            },
-            {
-                id: 'lankadeepa',
-                name: 'Lankadeepa',
-                language: 'sinhala',
-                frequency: 'Daily',
-                groupName: 'Wijeya Newspapers',
-                baseRate: 750,
-                colorCharge: 180,
-                active: true,
-                isSundayPaper: false
-            },
-            {
-                id: 'divaina',
-                name: 'Divaina',
-                language: 'sinhala',
-                frequency: 'Daily',
-                groupName: 'Upali Group',
-                baseRate: 780,
-                colorCharge: 190,
-                active: true,
-                isSundayPaper: false
-            },
-            {
-                id: 'dinamina',
-                name: 'Dinamina',
-                language: 'sinhala',
-                frequency: 'Daily',
-                groupName: 'Lake House',
-                baseRate: 820,
-                colorCharge: 200,
-                active: true,
-                isSundayPaper: false
-            },
-            {
-                id: 'silumina',
-                name: 'Silumina',
-                language: 'sinhala',
-                frequency: 'Sunday',
-                groupName: 'Lake House',
-                baseRate: 850,
-                colorCharge: 220,
-                active: true,
-                isSundayPaper: true
-            },
-            {
-                id: 'mawbima',
-                name: 'Mawbima',
-                language: 'sinhala',
-                frequency: 'Daily',
-                groupName: 'Mawbima Group',
-                baseRate: 700,
-                colorCharge: 170,
-                active: true,
-                isSundayPaper: false
-            },
-            {
-                id: 'thinakaran',
-                name: 'Thinakaran',
-                language: 'tamil',
-                frequency: 'Daily',
-                groupName: 'Express Newspapers',
-                baseRate: 700,
-                colorCharge: 170,
-                active: true,
-                isSundayPaper: false
-            },
-            {
-                id: 'virakesari',
-                name: 'Virakesari',
-                language: 'tamil',
-                frequency: 'Daily',
-                groupName: 'Express Newspapers',
-                baseRate: 720,
-                colorCharge: 175,
-                active: true,
-                isSundayPaper: false
-            }
+            // Lake House (ANCL)
+            { id: 'daily-news', name: 'Daily News', language: 'english', groupName: 'Lake House (ANCL)', bwRate: 400, colorRate: 560, classifiedBase: 1000, classifiedFreeWords: 20, classifiedExtraRate: 45, isSundayPaper: false, active: true },
+            { id: 'sunday-observer', name: 'Sunday Observer', language: 'english', groupName: 'Lake House (ANCL)', bwRate: 550, colorRate: 730, classifiedBase: 2200, classifiedFreeWords: 20, classifiedExtraRate: 55, isSundayPaper: true, active: true },
+            { id: 'dinamina', name: 'Dinamina', language: 'sinhala', groupName: 'Lake House (ANCL)', bwRate: 450, colorRate: 575, classifiedBase: 1500, classifiedFreeWords: 20, classifiedExtraRate: 40, isSundayPaper: false, active: true },
+            { id: 'silumina', name: 'Silumina', language: 'sinhala', groupName: 'Lake House (ANCL)', bwRate: 910, colorRate: 1195, classifiedBase: 2000, classifiedFreeWords: 25, classifiedExtraRate: 50, isSundayPaper: true, active: true },
+            { id: 'thinakaran', name: 'Daily Thinakaran', language: 'tamil', groupName: 'Lake House (ANCL)', bwRate: 360, colorRate: 445, classifiedBase: 1400, classifiedFreeWords: 20, classifiedExtraRate: 35, isSundayPaper: false, active: true },
+            { id: 'thinakaran-varamanjari', name: 'Sunday Thinakaran', language: 'tamil', groupName: 'Lake House (ANCL)', bwRate: 450, colorRate: 540, classifiedBase: 1600, classifiedFreeWords: 25, classifiedExtraRate: 40, isSundayPaper: true, active: true },
+
+            // Wijeya Newspapers
+            { id: 'sunday-times', name: 'Sunday Times', language: 'english', groupName: 'Wijeya Newspapers', bwRate: 650, colorRate: 790, classifiedBase: 500, classifiedFreeWords: 15, classifiedExtraRate: 20, isSundayPaper: true, active: true },
+            { id: 'daily-mirror', name: 'Daily Mirror', language: 'english', groupName: 'Wijeya Newspapers', bwRate: 490, colorRate: 580, classifiedBase: 200, classifiedFreeWords: 15, classifiedExtraRate: 15, isSundayPaper: false, active: true },
+            { id: 'lankadeepa', name: 'Daily Lankadeepa', language: 'sinhala', groupName: 'Wijeya Newspapers', bwRate: 650, colorRate: 770, classifiedBase: 525, classifiedFreeWords: 15, classifiedExtraRate: 25, isSundayPaper: false, active: true },
+            { id: 'lankadeepa-irida', name: 'Sunday Lankadeepa', language: 'sinhala', groupName: 'Wijeya Newspapers', bwRate: 1120, colorRate: 1310, classifiedBase: 2200, classifiedFreeWords: 15, classifiedExtraRate: 50, isSundayPaper: true, active: true },
+            { id: 'daily-ft', name: 'Daily FT', language: 'english', groupName: 'Wijeya Newspapers', bwRate: 420, colorRate: 500, classifiedBase: 0, classifiedFreeWords: 0, classifiedExtraRate: 0, isSundayPaper: false, active: true },
+
+            // Upali Newspapers
+            { id: 'the-island', name: 'Daily Island', language: 'english', groupName: 'Upali Newspapers', bwRate: 220, colorRate: 352, classifiedBase: 115, classifiedFreeWords: 20, classifiedExtraRate: 12, isSundayPaper: false, active: true },
+            { id: 'sunday-island', name: 'Sunday Island', language: 'english', groupName: 'Upali Newspapers', bwRate: 285, colorRate: 456, classifiedBase: 160, classifiedFreeWords: 20, classifiedExtraRate: 12, isSundayPaper: true, active: true },
+            { id: 'divaina', name: 'Daily Divaina', language: 'sinhala', groupName: 'Upali Newspapers', bwRate: 350, colorRate: 560, classifiedBase: 200, classifiedFreeWords: 20, classifiedExtraRate: 12, isSundayPaper: false, active: true },
+            { id: 'irida-divaina', name: 'Sunday Divaina', language: 'sinhala', groupName: 'Upali Newspapers', bwRate: 650, colorRate: 1040, classifiedBase: 500, classifiedFreeWords: 20, classifiedExtraRate: 20, isSundayPaper: true, active: true },
+            { id: 'navaliya', name: 'Navaliya', language: 'sinhala', groupName: 'Upali Newspapers', bwRate: 280, colorRate: 448, classifiedBase: 120, classifiedFreeWords: 20, classifiedExtraRate: 6, isSundayPaper: false, active: true },
+
+            // Express Newspapers
+            { id: 'virakesari', name: 'Daily Virakesari', language: 'tamil', groupName: 'Express Newspapers', bwRate: 400, colorRate: 600, classifiedBase: 500, classifiedFreeWords: 20, classifiedExtraRate: 10, isSundayPaper: false, active: true },
+            { id: 'virakesari-sunday', name: 'Sunday Virakesari', language: 'tamil', groupName: 'Express Newspapers', bwRate: 600, colorRate: 900, classifiedBase: 900, classifiedFreeWords: 20, classifiedExtraRate: 20, isSundayPaper: true, active: true },
+
+            // Mawbima Group
+            { id: 'mawbima', name: 'Daily Mawbima', language: 'sinhala', groupName: 'Mawbima Group', bwRate: 400, colorRate: 640, classifiedBase: 0, classifiedFreeWords: 0, classifiedExtraRate: 0, isSundayPaper: false, active: true },
+            { id: 'sunday-mawbima', name: 'Sunday Mawbima', language: 'sinhala', groupName: 'Mawbima Group', bwRate: 750, colorRate: 1150, classifiedBase: 0, classifiedFreeWords: 0, classifiedExtraRate: 0, isSundayPaper: true, active: true },
+            { id: 'ceylon-today', name: 'Daily Ceylon Today', language: 'english', groupName: 'Mawbima Group', bwRate: 300, colorRate: 450, classifiedBase: 0, classifiedFreeWords: 0, classifiedExtraRate: 0, isSundayPaper: false, active: true },
+            { id: 'sunday-ceylon-today', name: 'Sunday Ceylon Today', language: 'english', groupName: 'Mawbima Group', bwRate: 450, colorRate: 600, classifiedBase: 0, classifiedFreeWords: 0, classifiedExtraRate: 0, isSundayPaper: false, active: true },
+
+            // Liberty Publication
+            { id: 'sunday-aruna', name: 'Sathi aga Aruna', language: 'sinhala', groupName: 'Liberty Publication', bwRate: 780, colorRate: 1260, classifiedBase: 990, classifiedFreeWords: 15, classifiedExtraRate: 50, isSundayPaper: true, active: true },
+            { id: 'the-morning', name: 'The Morning', language: 'english', groupName: 'Liberty Publication', bwRate: 510, colorRate: 620, classifiedBase: 0, classifiedFreeWords: 0, classifiedExtraRate: 0, isSundayPaper: false, active: true }
         ];
 
         function log(message, type = 'info') {
