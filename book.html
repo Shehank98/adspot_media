@@ -141,14 +141,6 @@
                                 </div>
                             </div>
 
-                            <!-- Newspaper Selection -->
-                            <div class="form-section">
-                                <label class="form-label">Select Newspaper</label>
-                                <div class="newspaper-grid" id="newspaperSelect">
-                                    <!-- Populated by JavaScript -->
-                                </div>
-                            </div>
-
                             <!-- Box Ad Configuration -->
                             <div id="boxAdConfig" class="ad-config-section">
                                 <div class="config-header">
@@ -191,41 +183,58 @@
                                     </div>
                                 </div>
 
-                                <!-- Box Ad Comparison Section -->
-                                <div class="comparison-section">
-                                    <div class="comparison-card">
-                                        <div class="comparison-header">
-                                            <h4>Your Ad Summary</h4>
-                                        </div>
-                                        <div class="comparison-details">
-                                            <div class="detail-row">
-                                                <span class="detail-label">Newspaper:</span>
-                                                <span class="detail-value" id="comparisonNewspaper">-</span>
-                                            </div>
-                                            <div class="detail-row">
-                                                <span class="detail-label">Size:</span>
-                                                <span class="detail-value" id="comparisonSize">-</span>
-                                            </div>
-                                            <div class="detail-row">
-                                                <span class="detail-label">Area:</span>
-                                                <span class="detail-value" id="comparisonArea">-</span>
-                                            </div>
-                                            <div class="detail-row">
-                                                <span class="detail-label">Color:</span>
-                                                <span class="detail-value" id="comparisonColor">-</span>
-                                            </div>
-                                            <div class="detail-row total-row">
-                                                <span class="detail-label">Total:</span>
-                                                <span class="detail-value" id="comparisonTotal">Rs. 0.00</span>
-                                            </div>
-                                        </div>
-                                        <button type="button" id="addToCartFromComparison" class="btn-add-to-cart">
+                                <!-- File Upload Section -->
+                                <div class="form-group">
+                                    <label class="form-label">Upload Your Ad Artwork</label>
+                                    <div class="file-upload-area" id="fileUploadArea">
+                                        <input type="file" id="adFile" name="adFile" accept="image/*,.pdf" hidden>
+                                        <div class="upload-placeholder" id="uploadPlaceholder">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <circle cx="12" cy="12" r="10"/>
-                                                <path d="M12 8v8M8 12h8"/>
+                                                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
                                             </svg>
-                                            Add to Cart
-                                        </button>
+                                            <span>Click to upload or drag & drop</span>
+                                            <small>PNG, JPG, PDF up to 10MB</small>
+                                        </div>
+                                        <div class="upload-preview" id="uploadPreview" style="display: none;">
+                                            <img id="previewImage" src="" alt="Preview" style="display: none;">
+                                            <div class="file-info">
+                                                <span id="fileName"></span>
+                                                <button type="button" class="remove-file" id="removeFile">&times;</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <span class="input-hint">Upload your ad design. We'll use this for placement in the newspapers.</span>
+                                </div>
+
+                                <!-- Newspaper Preview Visualization -->
+                                <div class="newspaper-preview-section">
+                                    <div class="preview-label">Newspaper Preview (52cm x 38cm)</div>
+                                    <div id="newspaperPreview" class="newspaper-preview">
+                                        <!-- Populated by JavaScript -->
+                                    </div>
+                                </div>
+
+                                <!-- Price Comparison Table -->
+                                <div class="comparison-section">
+                                    <div class="comparison-header">
+                                        <h4>Price Comparison - Select Newspapers</h4>
+                                        <p>Your ad size: <strong id="adSizeDisplay">-</strong></p>
+                                    </div>
+                                    <div class="comparison-table-wrapper">
+                                        <table class="comparison-table" id="comparisonTable">
+                                            <thead>
+                                                <tr>
+                                                    <th>Newspaper</th>
+                                                    <th>Frequency</th>
+                                                    <th>Language</th>
+                                                    <th>Price</th>
+                                                    <th>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="comparisonTableBody">
+                                                <!-- Populated by JavaScript -->
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             </div>

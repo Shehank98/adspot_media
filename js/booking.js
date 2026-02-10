@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initStripe();
     setMinDate();
     loadSampleImages();
+    initFileUpload();
 
     // Check URL params for ad type
     const urlParams = new URLSearchParams(window.location.search);
@@ -56,11 +57,9 @@ function initLanguageSelection() {
 }
 
 /**
- * Update newspaper options based on selected language
+ * Update newspaper comparison table based on selected language
  */
 function updateNewspapersByLanguage(language) {
-    const container = document.getElementById('newspaperSelect');
-
     // Collect all newspapers from all publication groups
     let allNewspapers = [];
     Object.entries(CONFIG.PUBLICATIONS).forEach(([groupId, group]) => {
@@ -76,47 +75,75 @@ function updateNewspapersByLanguage(language) {
     // Filter by selected language
     const filteredNewspapers = allNewspapers.filter(paper => paper.language === language);
 
-    const langLabels = {
-        'english': 'EN',
-        'sinhala': 'SI',
-        'tamil': 'TA',
-        'all': 'ALL'
-    };
+    // Select first newspaper for preview and column options
+    if (filteredNewspapers.length > 0) {
+        selectedNewspaper = filteredNewspapers[0];
+        selectedGroup = selectedNewspaper.groupId;
+        updateColumnOptions();
+        updateComparisonTable(filteredNewspapers);
+        updateNewspaperPreview();
+    }
+}
 
-    if (filteredNewspapers.length === 0) {
-        container.innerHTML = '<p class="no-papers-message">No newspapers available for this language.</p>';
+/**
+ * Update comparison table with all newspapers
+ */
+function updateComparisonTable(newspapers) {
+    const tableBody = document.getElementById('comparisonTableBody');
+    const adType = document.querySelector('input[name="adType"]:checked').value;
+
+    if (adType !== 'box') {
+        tableBody.innerHTML = '';
         return;
     }
 
-    container.innerHTML = filteredNewspapers.map((paper, index) => `
-        <label class="newspaper-card">
-            <input type="radio" name="newspaper" value="${paper.id}" ${index === 0 ? 'checked' : ''}>
-            <div class="card-content">
-                <span class="lang-badge">${langLabels[paper.language] || 'EN'}</span>
-                <span class="paper-name">${paper.name}</span>
-                <span class="paper-rate">From Rs. ${paper.bwRate}/sq cm</span>
-                ${paper.isSundayPaper ? '<span class="sunday-badge">Sunday</span>' : ''}
-            </div>
-        </label>
-    `).join('');
+    const columns = parseInt(document.getElementById('adColumns')?.value) || 1;
+    const height = parseFloat(document.getElementById('adHeight')?.value) || 0;
+    const colorOption = document.getElementById('colorOption')?.value || 'bw';
+    const width = columns > 0 ? getColumnWidth(selectedNewspaper.language, columns) : 0;
 
-    // Add change listeners
-    container.querySelectorAll('input[name="newspaper"]').forEach(radio => {
-        radio.addEventListener('change', function() {
-            selectedNewspaper = filteredNewspapers.find(p => p.id === this.value);
+    // Update ad size display
+    document.getElementById('adSizeDisplay').textContent =
+        `${columns} col (${width.toFixed(1)}cm) x ${height}cm - ${colorOption === 'color' ? 'Full Color' : 'Black & White'}`;
+
+    const langLabels = {
+        'english': 'English',
+        'sinhala': 'Sinhala',
+        'tamil': 'Tamil'
+    };
+
+    tableBody.innerHTML = newspapers.map(paper => {
+        const calc = calculateBoxAdPrice(paper, height, columns, colorOption);
+        const frequency = paper.isSundayPaper ? 'Sunday' : 'Daily';
+
+        return `
+            <tr>
+                <td><span class="newspaper-name">${paper.name}</span></td>
+                <td><span class="newspaper-frequency">${frequency}</span></td>
+                <td><span class="newspaper-language">${langLabels[paper.language] || paper.language}</span></td>
+                <td><span class="newspaper-price">${formatCurrency(calc.total)}</span></td>
+                <td>
+                    <button type="button" class="btn-add-to-cart" data-paper-id="${paper.id}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 8v8M8 12h8"/>
+                        </svg>
+                        Add
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    // Add click listeners to all add buttons
+    tableBody.querySelectorAll('.btn-add-to-cart').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const paperId = this.dataset.paperId;
+            selectedNewspaper = newspapers.find(p => p.id === paperId);
             selectedGroup = selectedNewspaper.groupId;
-            updateColumnOptions();
-            updateQuickRates();
-            updatePrice();
+            showPubDateModal();
         });
     });
-
-    // Select first by default
-    selectedNewspaper = filteredNewspapers[0];
-    selectedGroup = selectedNewspaper.groupId;
-    updateColumnOptions();
-    updateQuickRates();
-    updatePrice();
 }
 
 /**
@@ -216,16 +243,19 @@ function initBookingForm() {
                 }
                 updatePrice();
                 checkFullPage();
+                updateComparisonSection();
             });
             el.addEventListener('change', function() {
                 updatePrice();
                 checkFullPage();
+                updateComparisonSection();
             });
         }
     });
 
     document.getElementById('colorOption')?.addEventListener('change', function() {
         updatePrice();
+        updateComparisonSection();
     });
 
     // Classified text counter
@@ -252,11 +282,6 @@ function initBookingForm() {
             validateClassifiedDate();
         });
     }
-
-    // Add to cart button for comparison section (box ads)
-    document.getElementById('addToCartFromComparison')?.addEventListener('click', function() {
-        showPubDateModal();
-    });
 
     // Confirm add to cart from modal
     document.getElementById('confirmAddToCart')?.addEventListener('click', function() {
@@ -532,19 +557,137 @@ function updatePrice() {
 function updateComparisonSection() {
     if (!selectedNewspaper) return;
 
+    // Collect newspapers in current language
+    let allNewspapers = [];
+    Object.entries(CONFIG.PUBLICATIONS).forEach(([groupId, group]) => {
+        group.newspapers.forEach(paper => {
+            allNewspapers.push({
+                ...paper,
+                groupId: groupId,
+                groupName: group.name
+            });
+        });
+    });
+
+    const filteredNewspapers = allNewspapers.filter(paper => paper.language === selectedLanguage);
+    updateComparisonTable(filteredNewspapers);
+    updateNewspaperPreview();
+}
+
+/**
+ * Update newspaper preview with ad placement
+ */
+function updateNewspaperPreview() {
+    const previewContainer = document.getElementById('newspaperPreview');
+    if (!previewContainer || !selectedNewspaper) return;
+
+    const adType = document.querySelector('input[name="adType"]:checked').value;
+    if (adType !== 'box') {
+        previewContainer.innerHTML = '';
+        return;
+    }
+
     const columns = parseInt(document.getElementById('adColumns')?.value) || 1;
-    const height = parseFloat(document.getElementById('adHeight')?.value) || 0;
-    const colorOption = document.getElementById('colorOption')?.value || 'bw';
+    const height = parseFloat(document.getElementById('adHeight')?.value) || 10;
     const language = selectedNewspaper.language || 'english';
     const width = getColumnWidth(language, columns);
 
-    const calc = calculateBoxAdPrice(selectedNewspaper, height, columns, colorOption);
+    // Newspaper dimensions
+    const paperWidth = CONFIG.NEWSPAPER_SIZE.width;
+    const paperHeight = CONFIG.NEWSPAPER_SIZE.height;
 
-    document.getElementById('comparisonNewspaper').textContent = selectedNewspaper.name;
-    document.getElementById('comparisonSize').textContent = `${columns} col (${width.toFixed(1)}cm) x ${height}cm`;
-    document.getElementById('comparisonArea').textContent = `${calc.area.toFixed(1)} sq cm`;
-    document.getElementById('comparisonColor').textContent = colorOption === 'color' ? 'Full Color' : 'Black & White';
-    document.getElementById('comparisonTotal').textContent = formatCurrency(calc.total);
+    // Calculate scale factor for preview (max preview width: 200px)
+    const maxPreviewWidth = 200;
+    const scale = maxPreviewWidth / paperWidth;
+
+    // Calculate scaled dimensions
+    const scaledPaperWidth = paperWidth * scale;
+    const scaledPaperHeight = paperHeight * scale;
+    const scaledAdWidth = width * scale;
+    const scaledAdHeight = height * scale;
+
+    previewContainer.innerHTML = `
+        <div class="newspaper-outline" style="width: ${scaledPaperWidth}px; height: ${scaledPaperHeight}px;">
+            <div class="newspaper-header">
+                <span class="paper-title">${selectedNewspaper.name}</span>
+                <span class="paper-size">${paperWidth} x ${paperHeight} cm</span>
+            </div>
+            <div class="ad-placement" style="width: ${scaledAdWidth}px; height: ${scaledAdHeight}px;">
+                <span class="ad-label">Your Ad</span>
+                <span class="ad-size">${width.toFixed(1)} x ${height} cm</span>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Initialize file upload
+ */
+function initFileUpload() {
+    const fileInput = document.getElementById('adFile');
+    const uploadArea = document.getElementById('fileUploadArea');
+    const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+    const uploadPreview = document.getElementById('uploadPreview');
+    const previewImage = document.getElementById('previewImage');
+    const fileName = document.getElementById('fileName');
+    const removeBtn = document.getElementById('removeFile');
+
+    // Click to upload
+    uploadArea.addEventListener('click', () => fileInput.click());
+
+    // File input change
+    fileInput.addEventListener('change', handleFileSelect);
+
+    // Drag and drop
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.style.borderColor = 'var(--primary)';
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.style.borderColor = 'var(--gray-300)';
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.style.borderColor = 'var(--gray-300)';
+        if (e.dataTransfer.files.length) {
+            fileInput.files = e.dataTransfer.files;
+            handleFileSelect();
+        }
+    });
+
+    // Remove file
+    removeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        fileInput.value = '';
+        uploadPlaceholder.style.display = 'flex';
+        uploadPreview.style.display = 'none';
+        previewImage.style.display = 'none';
+        previewImage.src = '';
+    });
+
+    function handleFileSelect() {
+        const file = fileInput.files[0];
+        if (!file) return;
+
+        // Show file name
+        fileName.textContent = file.name;
+        uploadPlaceholder.style.display = 'none';
+        uploadPreview.style.display = 'flex';
+
+        // Show image preview if it's an image
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImage.src = e.target.result;
+                previewImage.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            previewImage.style.display = 'none';
+        }
+    }
 }
 
 /**
