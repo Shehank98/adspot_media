@@ -7,16 +7,41 @@
 
 let currentStep = 1;
 let selectedNewspaper = null;
-let selectedGroup = null;
 let adCart = [];
 let stripe = null;
 let cardElement = null;
+let pendingNewspaperAdd = null;
+let db = null;
+let auth = null;
+
+// Initialize Firebase
+const firebaseConfig = {
+    apiKey: "AIzaSyBXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    authDomain: "adspot-media.firebaseapp.com",
+    projectId: "adspot-media",
+    storageBucket: "adspot-media.appspot.com",
+    messagingSenderId: "123456789",
+    appId: "1:123456789:web:xxxxxxxxxxxxx"
+};
+
+// Check if Firebase is loaded
+if (typeof firebase !== 'undefined') {
+    try {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+        auth = firebase.auth();
+        console.log('Firebase initialized successfully');
+    } catch (error) {
+        console.warn('Firebase initialization skipped:', error.message);
+    }
+}
 
 document.addEventListener('DOMContentLoaded', function() {
-    initPublicationGroups();
+    initAllNewspapers();
     initBookingForm();
     initStripe();
     setMinDate();
+    initFirebaseAuth();
 
     // Check URL params for ad type
     const urlParams = new URLSearchParams(window.location.search);
@@ -31,44 +56,53 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /**
- * Initialize Publication Groups
+ * Initialize all newspapers from Firebase or config
  */
-function initPublicationGroups() {
-    const container = document.getElementById('pubGroupSelect');
+async function initAllNewspapers() {
+    const container = document.getElementById('newspaperSelect');
     if (!container) return;
 
-    container.innerHTML = Object.entries(CONFIG.PUBLICATIONS).map(([groupId, group], index) => `
-        <label class="pub-group-card">
-            <input type="radio" name="pubGroup" value="${groupId}" ${index === 0 ? 'checked' : ''}>
-            <div class="card-content">
-                <span class="pub-name">${group.name}</span>
-                <span class="pub-count">${group.newspapers.length} papers</span>
-            </div>
-        </label>
-    `).join('');
+    let allNewspapers = [];
 
-    // Add change listeners
-    container.querySelectorAll('input[name="pubGroup"]').forEach(radio => {
-        radio.addEventListener('change', function() {
-            updateNewspaperOptions(this.value);
-        });
-    });
+    // Try to load from Firebase first
+    if (db) {
+        try {
+            const snapshot = await db.collection('newspapers')
+                .where('isActive', '==', true)
+                .get();
 
-    // Initialize with first group
-    const firstGroup = Object.keys(CONFIG.PUBLICATIONS)[0];
-    updateNewspaperOptions(firstGroup);
+            if (!snapshot.empty) {
+                allNewspapers = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                console.log('Loaded newspapers from Firebase:', allNewspapers.length);
+            }
+        } catch (error) {
+            console.warn('Failed to load from Firebase, using config:', error);
+        }
+    }
+
+    // Fallback to config if Firebase fails or is empty
+    if (allNewspapers.length === 0) {
+        allNewspapers = getAllNewspapers();
+    }
+
+    renderNewspapers(allNewspapers);
 }
 
 /**
- * Update newspaper options based on selected group
+ * Render newspapers to the selection grid
  */
-function updateNewspaperOptions(groupId) {
+function renderNewspapers(newspapers) {
     const container = document.getElementById('newspaperSelect');
-    const group = CONFIG.PUBLICATIONS[groupId];
+    const adType = document.querySelector('input[name="adType"]:checked')?.value || 'box';
 
-    if (!group) return;
-
-    selectedGroup = groupId;
+    // Filter based on ad type
+    let filtered = newspapers;
+    if (adType === 'classified') {
+        filtered = newspapers.filter(n => n.classifiedBase > 0 && n.classifiedFreeWords > 0);
+    }
 
     const langLabels = {
         'english': 'EN',
@@ -77,105 +111,307 @@ function updateNewspaperOptions(groupId) {
         'all': 'ALL'
     };
 
-    container.innerHTML = group.newspapers.map((paper, index) => `
-        <label class="newspaper-card">
-            <input type="radio" name="newspaper" value="${paper.id}" ${index === 0 ? 'checked' : ''}>
-            <div class="card-content">
-                <span class="lang-badge">${langLabels[paper.language] || 'EN'}</span>
-                <span class="paper-name">${paper.name}</span>
-                <span class="paper-rate">From Rs. ${paper.bwRate}/sq cm</span>
-                ${paper.isSundayPaper ? '<span class="sunday-badge">Sunday</span>' : ''}
-            </div>
-        </label>
-    `).join('');
+    if (filtered.length === 0) {
+        container.innerHTML = '<p style="padding: 2rem; text-align: center; color: var(--gray-500);">No newspapers available for classified ads. Please select Box Ad type.</p>';
+        return;
+    }
 
-    // Add change listeners
-    container.querySelectorAll('input[name="newspaper"]').forEach(radio => {
-        radio.addEventListener('change', function() {
-            selectedNewspaper = group.newspapers.find(p => p.id === this.value);
-            updateColumnOptions();
-            updateQuickRates();
-            updatePrice();
-        });
+    container.innerHTML = filtered.map((paper, index) => {
+        const isUnavailable = adType === 'classified' && (!paper.classifiedBase || paper.classifiedBase === 0);
+
+        return `
+            <div class="newspaper-card-wrapper" data-newspaper-id="${paper.id}">
+                <div class="newspaper-card ${isUnavailable ? 'unavailable' : ''}" onclick="selectNewspaper('${paper.id}')">
+                    <div class="card-content">
+                        <span class="lang-badge">${langLabels[paper.language?.toLowerCase()] || 'EN'}</span>
+                        <span class="paper-name">${paper.name}</span>
+                        ${!isUnavailable ? `
+                            <span class="paper-rate">From Rs. ${paper.bwRate}/sq cm</span>
+                            ${paper.isSundayPaper ? '<span class="sunday-badge">Sunday</span>' : ''}
+                        ` : '<span class="unavailable-badge">Classified not available</span>'}
+                    </div>
+                </div>
+                ${!isUnavailable ? `
+                    <button type="button" class="btn btn-primary btn-sm add-paper-btn" onclick="handleAddPaper('${paper.id}')">
+                        Add to Cart
+                    </button>
+                ` : ''}
+            </div>
+        `;
+    }).join('');
+
+    // Select first available newspaper
+    if (filtered.length > 0) {
+        selectNewspaper(filtered[0].id);
+    }
+}
+
+/**
+ * Select a newspaper
+ */
+function selectNewspaper(newspaperId) {
+    // Remove active class from all cards
+    document.querySelectorAll('.newspaper-card').forEach(card => {
+        card.classList.remove('active');
     });
 
-    // Select first by default
-    selectedNewspaper = group.newspapers[0];
-    updateColumnOptions();
-    updateQuickRates();
-    updatePrice();
-}
-
-/**
- * Update column options based on newspaper language
- */
-function updateColumnOptions() {
-    const columnSelect = document.getElementById('adColumns');
-    if (!columnSelect || !selectedNewspaper) return;
-
-    const language = selectedNewspaper.language || 'english';
-    const maxColumns = getMaxColumns(language);
-
-    let options = '';
-    for (let i = 1; i <= maxColumns; i++) {
-        const width = getColumnWidth(language, i);
-        options += `<option value="${i}">${i} col (${width} cm)</option>`;
+    // Add active class to selected card
+    const selectedWrapper = document.querySelector(`.newspaper-card-wrapper[data-newspaper-id="${newspaperId}"]`);
+    if (selectedWrapper) {
+        const card = selectedWrapper.querySelector('.newspaper-card');
+        if (card) {
+            card.classList.add('active');
+        }
     }
-    columnSelect.innerHTML = options;
-    columnSelect.value = '1';
+
+    // Find newspaper in config
+    selectedNewspaper = getNewspaperById(newspaperId);
+
+    if (selectedNewspaper) {
+        updatePreviewPanel();
+        updatePrice();
+    }
 }
+window.selectNewspaper = selectNewspaper;
 
 /**
- * Update quick rates display
+ * Handle add paper button click
  */
-function updateQuickRates() {
-    const container = document.getElementById('quickRates');
-    if (!selectedNewspaper || !container) return;
+function handleAddPaper(newspaperId) {
+    // First select the newspaper
+    selectNewspaper(newspaperId);
 
-    const adType = document.querySelector('input[name="adType"]:checked').value;
+    // Then open date picker
+    openDatePicker(newspaperId);
+}
+window.handleAddPaper = handleAddPaper;
+
+/**
+ * Firebase Authentication
+ */
+function initFirebaseAuth() {
+    if (!auth) return;
+
+    auth.onAuthStateChanged((user) => {
+        const loginBtn = document.getElementById('loginBtn');
+        const userInfo = document.getElementById('userInfo');
+        const userName = document.getElementById('userName');
+
+        if (user) {
+            // User signed in
+            if (loginBtn) loginBtn.style.display = 'none';
+            if (userInfo) userInfo.style.display = 'flex';
+            if (userName) userName.textContent = user.displayName || user.email;
+
+            // Pre-fill form
+            const nameField = document.getElementById('customerName');
+            const emailField = document.getElementById('customerEmail');
+            if (nameField && !nameField.value) nameField.value = user.displayName || '';
+            if (emailField && !emailField.value) emailField.value = user.email || '';
+        } else {
+            // User signed out
+            if (loginBtn) loginBtn.style.display = 'block';
+            if (userInfo) userInfo.style.display = 'none';
+        }
+    });
+}
+
+function signInWithGoogle() {
+    if (!auth) {
+        showNotification('Authentication not available', 'error');
+        return;
+    }
+
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider)
+        .then((result) => {
+            console.log('Logged in:', result.user.displayName);
+            showNotification(`Welcome, ${result.user.displayName}!`, 'success');
+        })
+        .catch((error) => {
+            console.error('Login error:', error);
+            showNotification('Login failed. Please try again.', 'error');
+        });
+}
+window.signInWithGoogle = signInWithGoogle;
+
+function signOut() {
+    if (!auth) return;
+
+    auth.signOut()
+        .then(() => {
+            showNotification('Logged out successfully', 'info');
+            // Clear pre-filled form data
+            document.getElementById('customerName').value = '';
+            document.getElementById('customerEmail').value = '';
+        })
+        .catch((error) => {
+            console.error('Logout error:', error);
+        });
+}
+window.signOut = signOut;
+
+/**
+ * Sample Popup Functions
+ */
+function showSamplePopup(type) {
+    const popup = document.getElementById(type + 'AdSamples');
+    if (popup) {
+        popup.style.display = 'flex';
+    }
+}
+window.showSamplePopup = showSamplePopup;
+
+function hideSamplePopup() {
+    document.querySelectorAll('.sample-popup').forEach(p => {
+        p.style.display = 'none';
+    });
+}
+window.hideSamplePopup = hideSamplePopup;
+
+/**
+ * Date Picker Functions
+ */
+function openDatePicker(newspaperId) {
+    if (!newspaperId) {
+        showNotification('Please select a newspaper first', 'warning');
+        return;
+    }
+
+    pendingNewspaperAdd = newspaperId;
+
+    // Set minimum date to 2 days from now
+    const minDate = new Date();
+    minDate.setDate(minDate.getDate() + 2);
+    const dateInput = document.getElementById('selectedDate');
+    if (dateInput) {
+        dateInput.min = minDate.toISOString().split('T')[0];
+        dateInput.value = '';
+    }
+
+    const modal = document.getElementById('datePickerModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        modal.classList.add('active');
+    }
+}
+window.openDatePicker = openDatePicker;
+
+function closeDatePicker() {
+    const modal = document.getElementById('datePickerModal');
+    if (modal) {
+        modal.style.display = 'none';
+        modal.classList.remove('active');
+    }
+    pendingNewspaperAdd = null;
+}
+window.closeDatePicker = closeDatePicker;
+
+function confirmAddToCart() {
+    const selectedDate = document.getElementById('selectedDate')?.value;
+    if (!selectedDate) {
+        showNotification('Please select a date', 'warning');
+        return;
+    }
+
+    // Validate date
+    const newspaper = selectedNewspaper;
+    if (!newspaper) {
+        showNotification('No newspaper selected', 'error');
+        closeDatePicker();
+        return;
+    }
+
+    const validation = validateBookingDate(selectedDate, newspaper);
+    if (!validation.isValid) {
+        showNotification(validation.errors[0], 'error');
+        return;
+    }
+
+    // Add to cart with date
+    addToCartWithDate(selectedDate);
+    closeDatePicker();
+}
+window.confirmAddToCart = confirmAddToCart;
+
+/**
+ * Update preview panel (right sidebar)
+ */
+function updatePreviewPanel() {
+    if (!selectedNewspaper) return;
+
+    const adType = document.querySelector('input[name="adType"]:checked')?.value || 'box';
+
+    // Toggle preview sections
+    const boxPreview = document.getElementById('boxAdPreviewSection');
+    const classifiedPreview = document.getElementById('classifiedPreviewSection');
 
     if (adType === 'box') {
-        container.innerHTML = `
-            <div class="rate-item">
-                <span>B&W Rate:</span>
-                <strong>Rs. ${selectedNewspaper.bwRate}/sq cm</strong>
-            </div>
-            <div class="rate-item">
-                <span>Color Rate:</span>
-                <strong>Rs. ${selectedNewspaper.colorRate}/sq cm</strong>
-            </div>
-            <div class="rate-item">
-                <span>Commission:</span>
-                <strong>10%</strong>
-            </div>
-            <div class="rate-item">
-                <span>VAT:</span>
-                <strong>18%</strong>
-            </div>
-            <div class="rate-item small">
-                <span>Max Height:</span>
-                <strong>${CONFIG.MAX_HEIGHT} cm</strong>
-            </div>
-        `;
+        if (boxPreview) boxPreview.style.display = 'block';
+        if (classifiedPreview) classifiedPreview.style.display = 'none';
+        updateBoxAdPreview();
     } else {
-        container.innerHTML = `
-            <div class="rate-item">
-                <span>Base Price:</span>
-                <strong>Rs. ${selectedNewspaper.classifiedBase.toLocaleString()}</strong>
-            </div>
-            <div class="rate-item">
-                <span>Includes:</span>
-                <strong>First ${selectedNewspaper.classifiedFreeWords} words</strong>
-            </div>
-            <div class="rate-item">
-                <span>Extra Words:</span>
-                <strong>Rs. ${selectedNewspaper.classifiedExtraRate}/word</strong>
-            </div>
-            <div class="rate-item">
-                <span>Service Charge:</span>
-                <strong>Rs. ${CONFIG.CHARGES.classifiedServiceCharge}</strong>
-            </div>
-        `;
+        if (boxPreview) boxPreview.style.display = 'none';
+        if (classifiedPreview) classifiedPreview.style.display = 'block';
+        updateClassifiedPreview();
+    }
+}
+
+/**
+ * Update box ad preview in right panel
+ */
+function updateBoxAdPreview() {
+    const width = parseFloat(document.getElementById('adWidth')?.value) || 10;
+    const height = parseFloat(document.getElementById('adHeight')?.value) || 10;
+    const colorOption = document.getElementById('colorOption')?.value || 'bw';
+
+    // Calculate proportional size (max 40cm = 200px)
+    const maxPixels = 200;
+    const maxSize = 40;
+    const pixelWidth = (width / maxSize) * maxPixels;
+    const pixelHeight = (height / maxSize) * maxPixels;
+
+    const preview = document.getElementById('adBoxPreview');
+    if (preview) {
+        preview.style.width = pixelWidth + 'px';
+        preview.style.height = pixelHeight + 'px';
+
+        const dimensions = preview.querySelector('.ad-dimensions');
+        if (dimensions) {
+            dimensions.textContent = `${width} × ${height} cm`;
+        }
+
+        // Update color
+        if (colorOption === 'color') {
+            preview.style.background = 'linear-gradient(135deg, #fbbf24, #f59e0b)';
+        } else {
+            preview.style.background = 'linear-gradient(135deg, #e5e7eb, #9ca3af)';
+        }
+    }
+}
+
+/**
+ * Update classified preview in right panel
+ */
+function updateClassifiedPreview() {
+    const text = document.getElementById('classifiedText')?.value || '';
+    const words = text.trim().split(/\s+/).filter(w => w.length > 0).length;
+
+    const previewText = document.getElementById('classifiedPreviewText');
+    const previewWordCount = document.getElementById('previewWordCount');
+
+    if (previewText) {
+        previewText.textContent = text || 'Type your ad to see preview...';
+    }
+
+    if (previewWordCount) {
+        previewWordCount.textContent = words;
+    }
+
+    // Also update main word count
+    const wordCount = document.getElementById('wordCount');
+    if (wordCount) {
+        wordCount.textContent = words;
     }
 }
 
@@ -193,50 +429,39 @@ function initBookingForm() {
     });
 
     // Box ad inputs
-    ['adHeight', 'adColumns'].forEach(id => {
+    ['adWidth', 'adHeight'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.addEventListener('input', function() {
                 // Enforce max height
-                if (id === 'adHeight' && parseFloat(this.value) > CONFIG.MAX_HEIGHT) {
+                if (parseFloat(this.value) > CONFIG.MAX_HEIGHT) {
                     this.value = CONFIG.MAX_HEIGHT;
                 }
                 updatePrice();
                 checkFullPage();
-                updateNewspaperPreview();
+                updateBoxAdPreview();
             });
             el.addEventListener('change', function() {
                 updatePrice();
                 checkFullPage();
-                updateNewspaperPreview();
+                updateBoxAdPreview();
             });
         }
     });
 
     document.getElementById('colorOption')?.addEventListener('change', function() {
         updatePrice();
-        updateNewspaperPreview();
+        updateBoxAdPreview();
     });
 
     // Classified text counter
     const classifiedText = document.getElementById('classifiedText');
     if (classifiedText) {
         classifiedText.addEventListener('input', function() {
-            updateWordCount();
+            updateClassifiedPreview();
             updatePrice();
         });
     }
-
-    // Publication date validation
-    const pubDate = document.getElementById('pubDate');
-    if (pubDate) {
-        pubDate.addEventListener('change', function() {
-            validateSelectedDate();
-        });
-    }
-
-    // Add to cart button
-    document.getElementById('addToCartBtn')?.addEventListener('click', addToCart);
 
     // Continue button
     document.getElementById('continueBtn')?.addEventListener('click', () => goToStep(2));
@@ -266,65 +491,31 @@ function initBookingForm() {
  * Toggle ad type options
  */
 function toggleAdOptions() {
-    const adType = document.querySelector('input[name="adType"]:checked').value;
+    const adType = document.querySelector('input[name="adType"]:checked')?.value || 'box';
     const boxConfig = document.getElementById('boxAdConfig');
     const classifiedConfig = document.getElementById('classifiedConfig');
 
     if (adType === 'box') {
-        boxConfig.style.display = 'block';
-        classifiedConfig.style.display = 'none';
-        updateColumnOptions();
-        updateNewspaperPreview();
+        if (boxConfig) boxConfig.style.display = 'block';
+        if (classifiedConfig) classifiedConfig.style.display = 'none';
+        updateBoxAdPreview();
     } else {
-        boxConfig.style.display = 'none';
-        classifiedConfig.style.display = 'block';
-        updateWordCount();
+        if (boxConfig) boxConfig.style.display = 'none';
+        if (classifiedConfig) classifiedConfig.style.display = 'block';
+        updateClassifiedPreview();
     }
+
+    // Re-render newspapers to filter based on ad type
+    initAllNewspapers();
+    updatePreviewPanel();
 }
 
 /**
  * Update word count for classified ads
  */
 function updateWordCount() {
-    const text = document.getElementById('classifiedText')?.value || '';
-    const words = text.trim().split(/\s+/).filter(w => w.length > 0).length;
-
-    document.getElementById('wordCount').textContent = words;
-
-    if (selectedNewspaper) {
-        document.getElementById('freeWordsCount').textContent = selectedNewspaper.classifiedFreeWords;
-
-        const breakdown = document.getElementById('wordBreakdown');
-        const extraRow = document.getElementById('extraWordsRow');
-        const serviceRow = document.getElementById('serviceChargeRow');
-
-        if (words > 0) {
-            breakdown.style.display = 'block';
-            document.getElementById('baseWordCount').textContent = selectedNewspaper.classifiedFreeWords;
-            document.getElementById('basePrice').textContent = formatCurrency(selectedNewspaper.classifiedBase);
-
-            const extraWords = Math.max(0, words - selectedNewspaper.classifiedFreeWords);
-            if (extraWords > 0) {
-                extraRow.style.display = 'flex';
-                document.getElementById('extraWordCount').textContent = extraWords;
-                document.getElementById('extraWordRate').textContent = selectedNewspaper.classifiedExtraRate;
-                document.getElementById('extraPrice').textContent = formatCurrency(extraWords * selectedNewspaper.classifiedExtraRate);
-            } else {
-                extraRow.style.display = 'none';
-            }
-
-            // Show service charge
-            if (serviceRow) {
-                serviceRow.style.display = 'flex';
-                document.getElementById('serviceChargeAmount').textContent = formatCurrency(CONFIG.CHARGES.classifiedServiceCharge);
-            }
-
-            const total = calculateClassifiedPrice(selectedNewspaper, words);
-            document.getElementById('classifiedTotal').textContent = formatCurrency(total.total);
-        } else {
-            breakdown.style.display = 'none';
-        }
-    }
+    updateClassifiedPreview();
+    updatePrice();
 }
 
 /**
@@ -365,106 +556,62 @@ function validateSelectedDate() {
  * Check if full page ad and show alert
  */
 function checkFullPage() {
-    const columns = parseInt(document.getElementById('adColumns')?.value) || 1;
-    const height = parseFloat(document.getElementById('adHeight')?.value) || 0;
-    const language = selectedNewspaper?.language || 'english';
-    const width = getColumnWidth(language, columns);
+    const width = parseFloat(document.getElementById('adWidth')?.value) || 10;
+    const height = parseFloat(document.getElementById('adHeight')?.value) || 10;
     const alert = document.getElementById('fullPageAlert');
 
-    if (isFullPageAd(width, height)) {
-        alert.style.display = 'flex';
-    } else {
-        alert.style.display = 'none';
+    if (alert) {
+        if (isFullPageAd(width, height)) {
+            alert.style.display = 'flex';
+        } else {
+            alert.style.display = 'none';
+        }
     }
 }
 
-/**
- * Update newspaper preview with ad placement
- */
-function updateNewspaperPreview() {
-    const previewContainer = document.getElementById('newspaperPreview');
-    if (!previewContainer || !selectedNewspaper) return;
-
-    const adType = document.querySelector('input[name="adType"]:checked').value;
-    if (adType !== 'box') return;
-
-    const columns = parseInt(document.getElementById('adColumns')?.value) || 1;
-    const height = parseFloat(document.getElementById('adHeight')?.value) || 10;
-    const language = selectedNewspaper.language || 'english';
-    const width = getColumnWidth(language, columns);
-
-    // Newspaper dimensions
-    const paperWidth = CONFIG.NEWSPAPER_SIZE.width;
-    const paperHeight = CONFIG.NEWSPAPER_SIZE.height;
-
-    // Calculate scale factor for preview (max preview width: 200px)
-    const maxPreviewWidth = 200;
-    const scale = maxPreviewWidth / paperWidth;
-
-    // Calculate scaled dimensions
-    const scaledPaperWidth = paperWidth * scale;
-    const scaledPaperHeight = paperHeight * scale;
-    const scaledAdWidth = width * scale;
-    const scaledAdHeight = height * scale;
-
-    previewContainer.innerHTML = `
-        <div class="newspaper-outline" style="width: ${scaledPaperWidth}px; height: ${scaledPaperHeight}px;">
-            <div class="newspaper-header">
-                <span class="paper-title">${selectedNewspaper.name}</span>
-                <span class="paper-size">${paperWidth} x ${paperHeight} cm</span>
-            </div>
-            <div class="ad-placement" style="width: ${scaledAdWidth}px; height: ${scaledAdHeight}px;">
-                <span class="ad-label">Your Ad</span>
-                <span class="ad-size">${width.toFixed(1)} x ${height} cm</span>
-            </div>
-        </div>
-    `;
-}
 
 /**
  * Update price calculation
  */
 function updatePrice() {
-    if (!selectedNewspaper) return;
+    if (!selectedNewspaper) {
+        const priceDetails = document.getElementById('priceDetails');
+        if (priceDetails) {
+            priceDetails.innerHTML = '<div class="price-row"><span>Select newspaper to see pricing</span></div>';
+        }
+        return;
+    }
 
-    const adType = document.querySelector('input[name="adType"]:checked').value;
+    const adType = document.querySelector('input[name="adType"]:checked')?.value || 'box';
     let total = 0;
     let details = [];
 
     if (adType === 'box') {
-        const columns = parseInt(document.getElementById('adColumns')?.value) || 1;
-        const height = parseFloat(document.getElementById('adHeight')?.value) || 0;
+        const width = parseFloat(document.getElementById('adWidth')?.value) || 10;
+        const height = parseFloat(document.getElementById('adHeight')?.value) || 10;
         const colorOption = document.getElementById('colorOption')?.value || 'bw';
 
-        const calc = calculateBoxAdPrice(selectedNewspaper, height, columns, colorOption);
-        total = calc.total;
-
-        // Update preview info
-        document.getElementById('previewDimensions').textContent = `${calc.columnWidth.toFixed(1)} x ${height} cm`;
-        document.getElementById('previewArea').textContent = calc.area.toFixed(1);
-        document.getElementById('previewRate').textContent = formatCurrency(calc.rate);
-        document.getElementById('previewTotal').textContent = formatCurrency(calc.total);
-
-        // Update preview box size (scaled)
-        const previewBox = document.getElementById('adPreview');
-        if (previewBox) {
-            const maxPreviewSize = 150;
-            const maxDim = Math.max(calc.columnWidth, height);
-            const scale = maxDim > 0 ? Math.min(maxPreviewSize / maxDim, 10) : 10;
-            previewBox.style.width = `${calc.columnWidth * scale}px`;
-            previewBox.style.height = `${height * scale}px`;
-        }
+        const area = width * height;
+        const rate = colorOption === 'color' ? selectedNewspaper.colorRate : selectedNewspaper.bwRate;
+        const adTotal = area * rate;
+        const commission = adTotal * CONFIG.CHARGES.boxAdCommission;
+        const subtotal = adTotal + commission;
+        const vat = subtotal * CONFIG.CHARGES.vatRate;
+        total = subtotal + vat;
 
         details = [
             { label: 'Newspaper', value: selectedNewspaper.name },
-            { label: 'Size', value: `${columns} col x ${height} cm (H)` },
-            { label: 'Column Width', value: `${calc.columnWidth.toFixed(1)} cm (${selectedNewspaper.language})` },
-            { label: colorOption === 'color' ? 'Color Rate' : 'B&W Rate', value: `${formatCurrency(calc.rate)}/col-cm` },
-            { label: 'Calculation', value: `${columns} col x ${height} cm x ${formatCurrency(calc.rate)}` },
-            { label: 'Ad Total', value: formatCurrency(calc.adTotal) },
-            { label: 'Platform Commission (10%)', value: formatCurrency(calc.commission) },
-            { label: 'VAT (18%)', value: formatCurrency(calc.vat) }
+            { label: 'Size', value: `${width} x ${height} cm` },
+            { label: 'Area', value: `${area.toFixed(1)} sq cm` },
+            { label: colorOption === 'color' ? 'Color Rate' : 'B&W Rate', value: `Rs. ${rate}/sq cm` },
+            { label: 'Ad Cost', value: formatCurrency(adTotal) },
+            { label: 'Commission (10%)', value: formatCurrency(commission) },
+            { label: 'VAT (18%)', value: formatCurrency(vat) }
         ];
+
+        // Update preview
+        updateBoxAdPreview();
+        checkFullPage();
     } else {
         const text = document.getElementById('classifiedText')?.value || '';
         const words = text.trim().split(/\s+/).filter(w => w.length > 0).length;
@@ -488,83 +635,80 @@ function updatePrice() {
 
     // Update price display
     const priceDetails = document.getElementById('priceDetails');
-    priceDetails.innerHTML = details.map(d => `
-        <div class="price-row">
-            <span>${d.label}:</span>
-            <span>${d.value}</span>
-        </div>
-    `).join('');
+    if (priceDetails) {
+        priceDetails.innerHTML = details.map(d => `
+            <div class="price-row">
+                <span>${d.label}:</span>
+                <span>${d.value}</span>
+            </div>
+        `).join('');
+    }
 
-    document.getElementById('currentAdTotal').textContent = formatCurrency(total);
+    const totalElement = document.getElementById('currentAdTotal');
+    if (totalElement) {
+        totalElement.textContent = formatCurrency(total);
+    }
 
     // Store for cart
     window.currentAdPrice = total;
 }
 
 /**
- * Add current ad to cart
+ * Add current ad to cart with date
  */
-function addToCart() {
+function addToCartWithDate(pubDate) {
     if (!selectedNewspaper) {
         showNotification('Please select a newspaper', 'warning');
         return;
     }
 
-    const adType = document.querySelector('input[name="adType"]:checked').value;
-    const pubDate = document.getElementById('pubDate')?.value;
-
-    if (!pubDate) {
-        showNotification('Please select a publication date', 'warning');
-        return;
-    }
-
-    // Validate the date
-    const validation = validateBookingDate(pubDate, selectedNewspaper);
-    if (!validation.isValid) {
-        showNotification(validation.errors[0], 'error');
-        return;
-    }
+    const adType = document.querySelector('input[name="adType"]:checked')?.value || 'box';
 
     let cartItem = {
         id: Date.now(),
         newspaperId: selectedNewspaper.id,
         newspaperName: selectedNewspaper.name,
         newspaperLanguage: selectedNewspaper.language,
-        groupName: CONFIG.PUBLICATIONS[selectedGroup].name,
+        groupName: selectedNewspaper.groupName || 'Newspaper',
         adType: adType,
         pubDate: pubDate,
         price: window.currentAdPrice || 0
     };
 
     if (adType === 'box') {
-        const columns = parseInt(document.getElementById('adColumns')?.value) || 1;
-        const height = parseFloat(document.getElementById('adHeight')?.value) || 0;
+        const width = parseFloat(document.getElementById('adWidth')?.value) || 10;
+        const height = parseFloat(document.getElementById('adHeight')?.value) || 10;
         const colorOption = document.getElementById('colorOption')?.value || 'bw';
-        const columnWidth = getColumnWidth(selectedNewspaper.language, columns);
 
-        if (isFullPageAd(columnWidth, height)) {
+        if (isFullPageAd(width, height)) {
             showNotification('For full page ads, please contact us directly', 'warning');
             showContactForm();
             return;
         }
 
-        const calc = calculateBoxAdPrice(selectedNewspaper, height, columns, colorOption);
+        const area = width * height;
+        const rate = colorOption === 'color' ? selectedNewspaper.colorRate : selectedNewspaper.bwRate;
+        const adTotal = area * rate;
+        const commission = adTotal * CONFIG.CHARGES.boxAdCommission;
+        const subtotal = adTotal + commission;
+        const vat = subtotal * CONFIG.CHARGES.vatRate;
+        const total = subtotal + vat;
 
         cartItem.details = {
-            columns: columns,
-            columnWidth: columnWidth,
+            width: width,
             height: height,
-            area: calc.area,
+            area: area,
             colorOption: colorOption,
-            rate: calc.rate,
-            adTotal: calc.adTotal,
-            commission: calc.commission
+            rate: rate,
+            adTotal: adTotal,
+            commission: commission,
+            vat: vat
         };
-        cartItem.description = `Box Ad: ${columns} col x ${height}cm (${colorOption === 'color' ? 'Color' : 'B&W'})`;
+        cartItem.price = total;
+        cartItem.description = `Box Ad: ${width} x ${height}cm (${colorOption === 'color' ? 'Color' : 'B&W'})`;
     } else {
         const text = document.getElementById('classifiedText')?.value || '';
         const words = text.trim().split(/\s+/).filter(w => w.length > 0).length;
-        const category = document.getElementById('classifiedCategory')?.value || 'general';
 
         if (words === 0) {
             showNotification('Please enter your classified ad text', 'warning');
@@ -576,27 +720,20 @@ function addToCart() {
         cartItem.details = {
             text: text,
             wordCount: words,
-            category: category,
             adTotal: calc.adTotal,
             serviceCharge: calc.serviceCharge
         };
-        cartItem.description = `Classified: ${words} words (${CONFIG.CLASSIFIED_CATEGORIES[category]?.name || category})`;
+        cartItem.price = calc.total;
+        cartItem.description = `Classified: ${words} words`;
     }
 
-    // Check if same newspaper already in cart
-    const existingIndex = adCart.findIndex(item => item.newspaperId === cartItem.newspaperId && item.adType === cartItem.adType);
-    if (existingIndex >= 0) {
-        if (!confirm(`You already have a ${adType} ad for ${selectedNewspaper.name}. Replace it?`)) {
-            return;
-        }
-        adCart[existingIndex] = cartItem;
-    } else {
-        adCart.push(cartItem);
-    }
+    // Allow multiple entries of same newspaper with different dates
+    adCart.push(cartItem);
 
     updateCartDisplay();
     showNotification(`Added ${selectedNewspaper.name} to cart!`, 'success');
 }
+window.addToCartWithDate = addToCartWithDate;
 
 /**
  * Update cart display
@@ -623,8 +760,8 @@ function updateCartDisplay() {
         <div class="cart-item" data-id="${item.id}">
             <div class="cart-item-info">
                 <strong>${item.newspaperName}</strong>
+                <span class="cart-item-date">📅 ${formatDate(item.pubDate)}</span>
                 <span class="cart-item-desc">${item.description}</span>
-                <span class="cart-item-date">${formatDate(item.pubDate)}</span>
             </div>
             <div class="cart-item-price">${formatCurrency(item.price)}</div>
             <button type="button" class="cart-item-remove" onclick="removeFromCart(${item.id})" title="Remove">
@@ -947,7 +1084,8 @@ async function handleSubmit(e) {
             customer_address: document.getElementById('customerAddress')?.value,
             notes: document.getElementById('adNotes')?.value,
             payment_method: paymentMethod,
-            status: 'pending'
+            status: 'pending',
+            created_at: new Date().toISOString()
         };
 
         // Process payment if card
@@ -968,54 +1106,20 @@ async function handleSubmit(e) {
             formData.payment_status = 'pending';
         }
 
-        // Save to database (if available) or use local storage
+        // Save to Firebase if available
         let saveSuccess = false;
-
-        // Try to save to Supabase database
-        if (typeof supabase !== 'undefined' && supabase && typeof QuotationDB !== 'undefined' && typeof CustomerDB !== 'undefined') {
+        if (db) {
             try {
-                // Create or update customer
-                const customer = await CustomerDB.create({
-                    name: formData.customer_name,
-                    company: formData.customer_company,
-                    email: formData.customer_email,
-                    phone: formData.customer_phone,
-                    address: formData.customer_address
-                });
-
-                // Create quotation for each cart item
-                for (const item of adCart) {
-                    await QuotationDB.create({
-                        quotation_number: quotationNumber,
-                        customer_id: customer?.id,
-                        publication_group: item.groupName,
-                        newspaper_id: item.newspaperId,
-                        newspaper_name: item.newspaperName,
-                        ad_type: item.adType,
-                        ad_details: item.details,
-                        publication_date: item.pubDate,
-                        total_amount: item.price,
-                        status: formData.payment_status === 'completed' ? 'paid' : 'pending'
-                    });
-                }
-
-                // Create payment record
-                if (formData.payment_status === 'completed' && typeof PaymentDB !== 'undefined') {
-                    await PaymentDB.create({
-                        quotation_id: quotationNumber,
-                        amount: formData.total_amount,
-                        payment_method: paymentMethod,
-                        reference_number: formData.payment_reference,
-                        status: 'completed'
-                    });
-                }
+                const docRef = await db.collection('bookings').add(formData);
+                console.log('Booking saved to Firebase:', docRef.id);
+                formData.firebaseId = docRef.id;
                 saveSuccess = true;
             } catch (dbError) {
-                console.warn('Database save failed, using local storage:', dbError);
+                console.warn('Firebase save failed, using local storage:', dbError);
             }
         }
 
-        // Fallback: Save to local storage if database not available
+        // Fallback: Save to local storage if Firebase not available
         if (!saveSuccess) {
             const orders = JSON.parse(localStorage.getItem('adspot_orders') || '[]');
             const orderId = Date.now();
@@ -1121,7 +1225,15 @@ async function handleSubmit(e) {
         // Small delay for UX
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        // Show success
+        // If Pay Later (bank transfer), redirect to home
+        if (paymentMethod === 'bank') {
+            showNotification('Booking submitted! Check your email for payment details.', 'success');
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            window.location.href = 'index.html';
+            return;
+        }
+
+        // Otherwise show success modal for card payment
         showSuccessModal(quotationNumber, formData.customer_email, paymentMethod);
 
     } catch (error) {

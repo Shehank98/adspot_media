@@ -48,31 +48,35 @@
 /* Newspaper Grid */
 .newspaper-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+.newspaper-card-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .newspaper-card {
     position: relative;
     cursor: pointer;
-}
-
-.newspaper-card input {
-    position: absolute;
-    opacity: 0;
+    flex: 1;
 }
 
 .newspaper-card .card-content {
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    flex-direction: column;
+    gap: 0.5rem;
     padding: 1rem;
     border: 2px solid var(--gray-200);
     border-radius: var(--radius-lg);
     transition: all var(--transition-fast);
+    min-height: 90px;
 }
 
-.newspaper-card input:checked + .card-content {
+.newspaper-card.active .card-content,
+.newspaper-card:hover .card-content {
     border-color: var(--primary);
     background: var(--primary-pale);
 }
@@ -84,12 +88,28 @@
 .newspaper-card .paper-name {
     font-weight: 600;
     color: var(--gray-900);
-    flex: 1;
+    font-size: 0.9375rem;
 }
 
 .newspaper-card .paper-rate {
     font-size: 0.75rem;
     color: var(--gray-500);
+}
+
+.newspaper-card.unavailable .card-content {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.unavailable-badge {
+    font-size: 0.75rem;
+    color: var(--error);
+    font-weight: 500;
+}
+
+.add-paper-btn {
+    width: 100%;
+    justify-content: center;
 }
 
 /* Ad Config Section */
@@ -666,19 +686,7 @@
 /* ============================================
    FIX: Newspaper Card Layout
    ============================================ */
-.newspaper-card .card-content {
-    display: grid !important;
-    grid-template-columns: auto 1fr auto auto;
-    grid-template-rows: auto auto;
-    align-items: center;
-    gap: 0.5rem 0.75rem;
-    padding: 0.875rem 1rem;
-    min-height: 70px;
-}
-
 .newspaper-card .lang-badge {
-    grid-column: 1;
-    grid-row: 1 / 3;
     background: var(--gray-100);
     color: var(--gray-600);
     padding: 0.25rem 0.5rem;
@@ -686,30 +694,10 @@
     font-size: 0.6875rem;
     font-weight: 700;
     text-transform: uppercase;
-}
-
-.newspaper-card .paper-name {
-    grid-column: 2;
-    grid-row: 1;
-    font-weight: 600;
-    color: var(--gray-900);
-    font-size: 0.9375rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.newspaper-card .paper-rate {
-    grid-column: 2;
-    grid-row: 2;
-    font-size: 0.75rem;
-    color: var(--gray-500);
-    white-space: nowrap;
+    align-self: flex-start;
 }
 
 .newspaper-card .sunday-badge {
-    grid-column: 3;
-    grid-row: 1 / 3;
     background: var(--warning);
     color: white;
     padding: 0.25rem 0.5rem;
@@ -717,6 +705,8 @@
     font-size: 0.625rem;
     font-weight: 700;
     text-transform: uppercase;
+    align-self: flex-start;
+    margin-top: 0.25rem;
 }
 
 /* ============================================
@@ -818,6 +808,290 @@
     color: #b45309;
 }
 
+/* ============================================
+   NEW FEATURES: Sample Popups, Date Picker, Previews
+   ============================================ */
+
+/* Sample Popup for Ad Types */
+.ad-type-card {
+    position: relative;
+}
+
+.sample-popup {
+    position: absolute;
+    top: -140px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    padding: 1rem;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    z-index: 100;
+    display: flex;
+    gap: 0.5rem;
+    animation: fadeIn 0.3s ease;
+    width: max-content;
+}
+
+.sample-popup::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid white;
+}
+
+.sample-item {
+    width: 90px;
+    height: 110px;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.sample-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: 2px solid var(--gray-200);
+    border-radius: 6px;
+}
+
+.sample-placeholder {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, var(--gray-100), var(--gray-200));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.625rem;
+    color: var(--gray-500);
+    text-align: center;
+    padding: 0.5rem;
+    border: 2px solid var(--gray-200);
+    border-radius: 6px;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* Date Picker Modal */
+.date-picker-content {
+    max-width: 400px;
+    padding: 2rem;
+}
+
+.date-picker-content h3 {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+    color: var(--gray-900);
+}
+
+.helper-text {
+    color: var(--gray-600);
+    font-size: 0.875rem;
+    margin-bottom: 1.5rem;
+}
+
+.date-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    font-size: 1rem;
+    margin-bottom: 1rem;
+}
+
+.date-hint {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    margin-bottom: 1.5rem;
+}
+
+.date-picker-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+}
+
+/* Newspaper Mockup Preview */
+.preview-card {
+    background: white;
+    border-radius: var(--radius-xl);
+    padding: 1.25rem;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 1rem;
+}
+
+.preview-card h4 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.newspaper-mockup {
+    background: white;
+    border: 2px solid var(--gray-300);
+    border-radius: 8px;
+    padding: 1rem;
+    min-height: 250px;
+    box-shadow: var(--shadow-md);
+}
+
+.mockup-header {
+    font-family: var(--font-display);
+    font-weight: 700;
+    text-align: center;
+    font-size: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 3px solid var(--gray-900);
+    margin-bottom: 1rem;
+}
+
+.mockup-body {
+    position: relative;
+    min-height: 180px;
+}
+
+.mockup-line {
+    height: 6px;
+    background: var(--gray-200);
+    margin-bottom: 6px;
+    border-radius: 2px;
+}
+
+.mockup-line.short {
+    width: 60%;
+}
+
+.ad-box-preview {
+    background: linear-gradient(135deg, var(--primary-pale), var(--primary));
+    border: 2px dashed var(--primary);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 1rem 0;
+    transition: all 0.3s ease;
+}
+
+.ad-dimensions {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+    text-align: center;
+}
+
+/* Classified Preview */
+.classified-text-box {
+    background: #f9fafb;
+    border: 2px solid var(--gray-300);
+    border-radius: 8px;
+    padding: 1.5rem;
+    min-height: 200px;
+}
+
+.classified-header {
+    font-family: serif;
+    font-weight: 700;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-bottom: 2px solid var(--gray-900);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.classified-content {
+    font-family: Georgia, serif;
+    font-size: 0.875rem;
+    line-height: 1.8;
+    color: var(--gray-900);
+    min-height: 100px;
+    white-space: pre-wrap;
+}
+
+.word-count-display {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px dashed var(--gray-300);
+    font-size: 0.8125rem;
+    color: var(--gray-600);
+}
+
+/* Bank Transfer Info Styling */
+.bank-transfer-info {
+    background: #eff6ff;
+    border: 2px solid var(--primary);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.bank-transfer-info .info-icon {
+    width: 48px;
+    height: 48px;
+    background: var(--primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+}
+
+.bank-transfer-info .info-icon svg {
+    width: 28px;
+    height: 28px;
+    stroke: white;
+}
+
+.bank-transfer-info p {
+    font-size: 0.9375rem;
+    color: var(--gray-700);
+    margin-bottom: 0.75rem;
+}
+
+.bank-transfer-info p:last-child {
+    margin-bottom: 0;
+}
+
+/* User Info Display */
+.nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.user-name-display {
+    font-size: 0.875rem;
+    color: var(--gray-700);
+    font-weight: 500;
+    margin-right: 0.5rem;
+}
+
+#userInfo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Cart Item Date Display */
+.cart-item-date {
+    font-size: 0.875rem;
+    color: var(--primary);
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .publication-groups {
@@ -866,5 +1140,37 @@
     .form-actions .btn {
         width: 100%;
         justify-content: center;
+    }
+
+    .sample-popup {
+        top: auto;
+        bottom: -150px;
+        flex-direction: column;
+    }
+
+    .sample-popup::after {
+        top: -8px;
+        bottom: auto;
+        border-top: none;
+        border-bottom: 8px solid white;
+    }
+
+    .newspaper-mockup {
+        padding: 0.75rem;
+        min-height: 200px;
+    }
+
+    .ad-box-preview {
+        max-width: 100%;
+    }
+
+    .date-picker-content {
+        padding: 1.5rem;
+    }
+
+    .nav-actions {
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.5rem;
     }
 }

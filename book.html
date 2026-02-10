@@ -38,6 +38,11 @@
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/booking.css">
     <script src="https://js.stripe.com/v3/"></script>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 </head>
 <body class="booking-page">
     <!-- Navigation -->
@@ -47,12 +52,25 @@
                 <span class="logo-icon">◈</span>
                 <span class="logo-text">AdSpot</span>
             </a>
-            <a href="index.html" class="back-link">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M19 12H5M12 19l-7-7 7-7"/>
-                </svg>
-                Back to Home
-            </a>
+            <div class="nav-actions">
+                <button id="loginBtn" class="btn btn-ghost btn-sm" onclick="signInWithGoogle()" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    Sign in with Google
+                </button>
+                <div id="userInfo" style="display: none;">
+                    <span id="userName" class="user-name-display"></span>
+                    <button class="btn btn-ghost btn-sm" onclick="signOut()">Logout</button>
+                </div>
+                <a href="index.html" class="back-link">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                    Back to Home
+                </a>
+            </div>
         </div>
     </nav>
 
@@ -63,12 +81,12 @@
             <div class="booking-progress">
                 <div class="progress-step active" data-step="1">
                     <span class="step-num">1</span>
-                    <span class="step-label">Build Ad Package</span>
+                    <span class="step-label">Choose Papers & Configure Ad</span>
                 </div>
                 <div class="progress-line"></div>
                 <div class="progress-step" data-step="2">
                     <span class="step-num">2</span>
-                    <span class="step-label">Your Details</span>
+                    <span class="step-label">Enter Your Details</span>
                 </div>
                 <div class="progress-line"></div>
                 <div class="progress-step" data-step="3">
@@ -85,15 +103,15 @@
                         <!-- Step 1: Ad Selection with Cart -->
                         <div class="form-step active" data-step="1">
                             <div class="step-header">
-                                <h2>Build Your Ad Package</h2>
-                                <p>Select newspapers and configure your advertisements. You can add multiple papers!</p>
+                                <h2>Choose Papers & Configure Ad</h2>
+                                <p>Configure your ad and select newspapers. You can add multiple papers with different dates!</p>
                             </div>
 
                             <!-- Ad Type Selection -->
                             <div class="form-section">
                                 <label class="form-label">Ad Type</label>
                                 <div class="ad-type-select">
-                                    <label class="ad-type-card">
+                                    <label class="ad-type-card" onmouseenter="showSamplePopup('box')" onmouseleave="hideSamplePopup()">
                                         <input type="radio" name="adType" value="box" checked>
                                         <div class="card-content">
                                             <div class="type-icon">
@@ -105,8 +123,20 @@
                                             <span class="type-name">Box Ad</span>
                                             <span class="type-desc">Display ad with custom size</span>
                                         </div>
+                                        <!-- Sample Popup -->
+                                        <div class="sample-popup" id="boxAdSamples" style="display: none;">
+                                            <div class="sample-item">
+                                                <div class="sample-placeholder">Box Ad Sample 1</div>
+                                            </div>
+                                            <div class="sample-item">
+                                                <div class="sample-placeholder">Box Ad Sample 2</div>
+                                            </div>
+                                            <div class="sample-item">
+                                                <div class="sample-placeholder">Box Ad Sample 3</div>
+                                            </div>
+                                        </div>
                                     </label>
-                                    <label class="ad-type-card">
+                                    <label class="ad-type-card" onmouseenter="showSamplePopup('classified')" onmouseleave="hideSamplePopup()">
                                         <input type="radio" name="adType" value="classified">
                                         <div class="card-content">
                                             <div class="type-icon">
@@ -117,15 +147,19 @@
                                             <span class="type-name">Classified</span>
                                             <span class="type-desc">Text-based word pricing</span>
                                         </div>
+                                        <!-- Sample Popup -->
+                                        <div class="sample-popup" id="classifiedAdSamples" style="display: none;">
+                                            <div class="sample-item">
+                                                <div class="sample-placeholder">Classified Sample 1</div>
+                                            </div>
+                                            <div class="sample-item">
+                                                <div class="sample-placeholder">Classified Sample 2</div>
+                                            </div>
+                                            <div class="sample-item">
+                                                <div class="sample-placeholder">Classified Sample 3</div>
+                                            </div>
+                                        </div>
                                     </label>
-                                </div>
-                            </div>
-
-                            <!-- Publication Group Selection -->
-                            <div class="form-section">
-                                <label class="form-label">Publication Group</label>
-                                <div class="publication-groups" id="pubGroupSelect">
-                                    <!-- Populated by JavaScript -->
                                 </div>
                             </div>
 
@@ -140,17 +174,15 @@
                             <!-- Box Ad Configuration -->
                             <div id="boxAdConfig" class="ad-config-section">
                                 <div class="config-header">
-                                    <h3>Configure Box Ad</h3>
-                                    <p>Formula: Height (cm) x Column Width (cm) x Rate + 10% Commission</p>
+                                    <h3>Configure Box Ad Size</h3>
+                                    <p>Select ad dimensions and color option</p>
                                 </div>
 
                                 <div class="form-row three-col">
                                     <div class="form-group">
-                                        <label class="form-label">Columns</label>
-                                        <select id="adColumns" name="adColumns">
-                                            <option value="1">1 col (3.0 cm)</option>
-                                        </select>
-                                        <span class="input-hint">Width varies by language</span>
+                                        <label class="form-label">Width (cm)</label>
+                                        <input type="number" id="adWidth" name="adWidth" value="10" min="1" max="40" step="0.5">
+                                        <span class="input-hint">Max: 40cm</span>
                                     </div>
                                     <div class="form-group">
                                         <label class="form-label">Height (cm)</label>
@@ -178,98 +210,23 @@
                                         <button type="button" class="btn btn-primary btn-sm" onclick="showContactForm()">Contact Us</button>
                                     </div>
                                 </div>
-
-                                <!-- Ad Preview -->
-                                <div class="ad-preview-section">
-                                    <div class="ad-preview-basic">
-                                        <div class="preview-label">Ad Size Preview</div>
-                                        <div class="preview-box" id="adPreview">
-                                            <span id="previewDimensions">3.0 x 10 cm</span>
-                                        </div>
-                                        <div class="preview-info">
-                                            <div><span>Area:</span> <strong id="previewArea">30.0</strong> sq cm</div>
-                                            <div><span>Rate:</span> <strong id="previewRate">Rs. 0</strong>/sq cm</div>
-                                            <div><span>Total:</span> <strong id="previewTotal">Rs. 0</strong></div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Newspaper Preview (52cm x 38cm) -->
-                                    <div class="newspaper-preview-container">
-                                        <div class="preview-label">Newspaper Preview (52 x 38 cm)</div>
-                                        <div id="newspaperPreview" class="newspaper-preview">
-                                            <!-- Populated by JavaScript -->
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
 
                             <!-- Classified Ad Configuration -->
                             <div id="classifiedConfig" class="ad-config-section" style="display: none;">
                                 <div class="config-header">
                                     <h3>Configure Classified Ad</h3>
-                                    <p>Enter your ad text below</p>
-                                </div>
-
-                                <div class="form-group">
-                                    <label class="form-label">Category</label>
-                                    <select id="classifiedCategory" name="classifiedCategory">
-                                        <option value="jobs">Jobs / Vacancies</option>
-                                        <option value="property">Property / Real Estate</option>
-                                        <option value="vehicles">Vehicles</option>
-                                        <option value="matrimonial">Matrimonial</option>
-                                        <option value="education">Education</option>
-                                        <option value="services">Services</option>
-                                        <option value="general">General</option>
-                                    </select>
+                                    <p>Enter your ad text (word count varies by newspaper)</p>
                                 </div>
 
                                 <div class="form-group">
                                     <label class="form-label">Ad Text</label>
-                                    <textarea id="classifiedText" name="classifiedText" rows="5" placeholder="Enter your classified ad text here..."></textarea>
+                                    <textarea id="classifiedText" name="classifiedText" rows="6" placeholder="Enter your classified ad text here..."></textarea>
                                     <div class="word-counter">
                                         <span>Word Count: <strong id="wordCount">0</strong></span>
-                                        <span class="free-words-badge" id="freeWordsInfo">First <strong id="freeWordsCount">20</strong> words included</span>
-                                    </div>
-                                    <div class="word-breakdown" id="wordBreakdown" style="display: none;">
-                                        <div class="breakdown-row">
-                                            <span>Base Price (first <span id="baseWordCount">20</span> words):</span>
-                                            <strong id="basePrice">Rs. 0</strong>
-                                        </div>
-                                        <div class="breakdown-row extra" id="extraWordsRow" style="display: none;">
-                                            <span>Extra Words (<span id="extraWordCount">0</span> x Rs. <span id="extraWordRate">0</span>):</span>
-                                            <strong id="extraPrice">Rs. 0</strong>
-                                        </div>
-                                        <div class="breakdown-row" id="serviceChargeRow" style="display: none;">
-                                            <span>Service Charge:</span>
-                                            <strong id="serviceChargeAmount">Rs. 100.00</strong>
-                                        </div>
-                                        <div class="breakdown-total">
-                                            <span>Classified Total:</span>
-                                            <strong id="classifiedTotal">Rs. 0</strong>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Publication Date -->
-                            <div class="form-group">
-                                <label class="form-label">Publication Date</label>
-                                <input type="date" id="pubDate" name="pubDate" required>
-                                <div id="dateWarning" class="date-warning" style="display: none;"></div>
-                                <span class="input-hint">Ads must be booked at least 2 days in advance. Sunday papers must be booked by Friday.</span>
-                            </div>
-
-                            <!-- Add to Cart Button -->
-                            <button type="button" id="addToCartBtn" class="btn btn-primary btn-lg add-to-cart-btn">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="9" cy="21" r="1"/>
-                                    <circle cx="20" cy="21" r="1"/>
-                                    <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>
-                                </svg>
-                                Add Newspaper to Cart
-                            </button>
-
-                            <p class="cart-hint">You can add multiple newspapers to your cart</p>
 
                             <!-- Ad Cart -->
                             <div id="adCart" class="ad-cart" style="display: none;">
@@ -411,30 +368,15 @@
 
                             <!-- Bank Transfer Details -->
                             <div id="bankPayment" class="payment-form" style="display: none;">
-                                <div class="bank-details">
-                                    <h4>Bank Transfer Details</h4>
-                                    <div class="bank-info">
-                                        <div class="info-row">
-                                            <span>Bank:</span>
-                                            <strong>Sampath Bank PLC</strong>
-                                        </div>
-                                        <div class="info-row">
-                                            <span>Account Name:</span>
-                                            <strong>P S Kavishka</strong>
-                                        </div>
-                                        <div class="info-row">
-                                            <span>Account Number:</span>
-                                            <strong>1210 5770 0812</strong>
-                                        </div>
-                                        <div class="info-row">
-                                            <span>Branch:</span>
-                                            <strong>Karagampitiya</strong>
-                                        </div>
+                                <div class="bank-transfer-info">
+                                    <div class="info-icon">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                                            <polyline points="22 4 12 14.01 9 11.01"/>
+                                        </svg>
                                     </div>
-                                    <p class="bank-note">
-                                        Please use your quotation number as the payment reference.
-                                        We will process your ad once payment is confirmed.
-                                    </p>
+                                    <p>Your order will be submitted and we'll send payment instructions to your email.</p>
+                                    <p>Bank account details will be included in the email along with your quotation number.</p>
                                 </div>
                             </div>
 
@@ -456,24 +398,52 @@
 
                 <!-- Price Calculator Sidebar -->
                 <div class="price-sidebar">
-                    <div class="price-card">
-                        <h3>Current Ad Price</h3>
-                        <div class="price-details" id="priceDetails">
-                            <div class="price-row">
-                                <span>Select options to see pricing</span>
+                    <!-- Ad Preview Section -->
+                    <div class="preview-card" id="previewCard">
+                        <!-- Box Ad Preview -->
+                        <div id="boxAdPreviewSection" class="preview-section">
+                            <h4>Newspaper Preview</h4>
+                            <div class="newspaper-mockup">
+                                <div class="mockup-header">SAMPLE NEWSPAPER</div>
+                                <div class="mockup-body">
+                                    <div class="mockup-line"></div>
+                                    <div class="mockup-line"></div>
+                                    <div class="mockup-line short"></div>
+                                    <div class="ad-box-preview" id="adBoxPreview" style="width: 100px; height: 100px;">
+                                        <span class="ad-dimensions">10 × 10 cm</span>
+                                    </div>
+                                    <div class="mockup-line"></div>
+                                    <div class="mockup-line"></div>
+                                </div>
                             </div>
                         </div>
-                        <div class="price-total">
-                            <span>Ad Total</span>
-                            <span class="total-amount" id="currentAdTotal">Rs. 0.00</span>
+
+                        <!-- Classified Preview -->
+                        <div id="classifiedPreviewSection" class="preview-section" style="display: none;">
+                            <h4>Classified Ad Preview</h4>
+                            <div class="classified-text-box">
+                                <div class="classified-header">CLASSIFIEDS</div>
+                                <div class="classified-content" id="classifiedPreviewText">
+                                    Type your ad to see preview...
+                                </div>
+                                <div class="word-count-display">
+                                    Words: <strong id="previewWordCount">0</strong>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Quick Rates Reference -->
-                    <div class="rates-card" id="ratesCard">
-                        <h4>Rates</h4>
-                        <div id="quickRates">
-                            <p class="loading">Select a newspaper to see rates</p>
+                    <!-- Current Price Card -->
+                    <div class="price-card">
+                        <h3>Current Selection</h3>
+                        <div class="price-details" id="priceDetails">
+                            <div class="price-row">
+                                <span>Select newspaper to see pricing</span>
+                            </div>
+                        </div>
+                        <div class="price-total">
+                            <span>Total</span>
+                            <span class="total-amount" id="currentAdTotal">Rs. 0.00</span>
                         </div>
                     </div>
 
@@ -520,6 +490,21 @@
             </div>
             <p class="modal-note" id="paymentNote"></p>
             <a href="index.html" class="btn btn-primary">Back to Home</a>
+        </div>
+    </div>
+
+    <!-- Date Picker Modal -->
+    <div id="datePickerModal" class="modal" style="display: none;">
+        <div class="modal-content date-picker-content">
+            <h3>Select Publication Date</h3>
+            <p class="helper-text">Choose when you want this ad to appear</p>
+            <input type="date" id="selectedDate" class="date-input">
+            <div id="datePicker Warning" class="date-warning" style="display: none;"></div>
+            <p class="date-hint">Ads must be booked at least 2 days in advance</p>
+            <div class="date-picker-actions">
+                <button type="button" class="btn btn-ghost" onclick="closeDatePicker()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="confirmAddToCart()">Add to Cart</button>
+            </div>
         </div>
     </div>
 
