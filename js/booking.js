@@ -8,12 +8,15 @@
 let currentStep = 1;
 let selectedNewspaper = null;
 let selectedGroup = null;
+let selectedLanguage = 'sinhala';
+let selectedDayType = 'daily';
 let adCart = [];
 let stripe = null;
 let cardElement = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     initLanguageSelection();
+    initDayTypeSelection();
     initBookingForm();
     initStripe();
     setMinDate();
@@ -65,20 +68,44 @@ function initLanguageSelection() {
     // Add change listeners
     container.querySelectorAll('input[name="language"]').forEach(radio => {
         radio.addEventListener('change', function() {
-            updateNewspapersByLanguage(this.value);
+            selectedLanguage = this.value;
+            updateComparisonChart();
         });
     });
 
-    // Initialize with first language
-    updateNewspapersByLanguage('sinhala');
     console.log('Language selection initialized');
 }
 
 /**
- * Update newspaper options based on selected language
+ * Initialize Daily/Sunday Selection
  */
-function updateNewspapersByLanguage(languageId) {
-    const container = document.getElementById('newspaperSelect');
+function initDayTypeSelection() {
+    const container = document.getElementById('dayTypeSelect');
+    if (!container) {
+        console.error('dayTypeSelect container not found');
+        return;
+    }
+
+    // Add change listeners
+    container.querySelectorAll('input[name="dayType"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            selectedDayType = this.value;
+            updateComparisonChart();
+        });
+    });
+
+    // Initialize comparison chart
+    updateComparisonChart();
+    console.log('Day type selection initialized');
+}
+
+/**
+ * Update comparison chart based on selected language and day type
+ */
+function updateComparisonChart() {
+    const tableBody = document.getElementById('comparisonTableBody');
+
+    if (!tableBody) return;
 
     // Collect all newspapers from all publication groups
     let allNewspapers = [];
@@ -92,52 +119,70 @@ function updateNewspapersByLanguage(languageId) {
         });
     });
 
-    // Filter by selected language
-    const filteredNewspapers = allNewspapers.filter(paper => paper.language === languageId);
+    // Filter by selected language and day type
+    const isSundaySelected = selectedDayType === 'sunday';
+    const filteredNewspapers = allNewspapers.filter(paper =>
+        paper.language === selectedLanguage &&
+        paper.isSundayPaper === isSundaySelected
+    );
 
     if (filteredNewspapers.length === 0) {
-        container.innerHTML = '<p style="color: var(--gray-500); padding: 1rem;">No newspapers available for this language.</p>';
-        selectedNewspaper = null;
-        selectedGroup = null;
+        tableBody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--gray-500); padding: 2rem;">No newspapers available for this selection.</td></tr>';
         return;
     }
 
-    const langLabels = {
-        'english': 'EN',
-        'sinhala': 'SI',
-        'tamil': 'TA',
-        'all': 'ALL'
-    };
+    // Get current ad configuration
+    const adType = document.querySelector('input[name="adType"]:checked')?.value || 'box';
 
-    container.innerHTML = filteredNewspapers.map((paper, index) => `
-        <label class="newspaper-card">
-            <input type="radio" name="newspaper" value="${paper.id}" ${index === 0 ? 'checked' : ''}>
-            <div class="card-content">
-                <span class="lang-badge">${langLabels[paper.language] || 'EN'}</span>
-                <span class="paper-name">${paper.name}</span>
-                <span class="paper-rate">From Rs. ${paper.bwRate}/sq cm</span>
-                ${paper.isSundayPaper ? '<span class="sunday-badge">Sunday</span>' : ''}
-            </div>
-        </label>
-    `).join('');
+    // Calculate prices for each newspaper
+    const rows = filteredNewspapers.map(paper => {
+        let price = 0;
+        let rateText = '';
 
-    // Add change listeners
-    container.querySelectorAll('input[name="newspaper"]').forEach(radio => {
-        radio.addEventListener('change', function() {
-            selectedNewspaper = filteredNewspapers.find(p => p.id === this.value);
-            selectedGroup = selectedNewspaper.groupId;
-            updateColumnOptions();
-            updateQuickRates();
-            updatePrice();
-        });
+        if (adType === 'box') {
+            const columns = parseInt(document.getElementById('adColumns')?.value) || 1;
+            const height = parseFloat(document.getElementById('adHeight')?.value) || 10;
+            const colorOption = document.getElementById('colorOption')?.value || 'bw';
+
+            const calc = calculateBoxAdPrice(paper, height, columns, colorOption);
+            price = calc.total;
+            rateText = `Rs. ${calc.rate}/sq cm`;
+        } else {
+            const text = document.getElementById('classifiedText')?.value || '';
+            const words = text.trim().split(/\s+/).filter(w => w.length > 0).length || 20;
+
+            const calc = calculateClassifiedPrice(paper, words);
+            price = calc.total;
+            rateText = `Rs. ${paper.classifiedExtraRate}/word`;
+        }
+
+        return {
+            paper: paper,
+            rate: rateText,
+            price: price
+        };
     });
 
-    // Select first by default
-    selectedNewspaper = filteredNewspapers[0];
-    selectedGroup = selectedNewspaper.groupId;
-    updateColumnOptions();
-    updateQuickRates();
-    updatePrice();
+    // Sort by price (cheapest first)
+    rows.sort((a, b) => a.price - b.price);
+
+    // Generate table rows
+    tableBody.innerHTML = rows.map(row => `
+        <tr data-paper-id="${row.paper.id}">
+            <td>${row.paper.name}</td>
+            <td>${row.rate}</td>
+            <td>${formatCurrency(row.price)}</td>
+        </tr>
+    `).join('');
+
+    // Update newspaper preview sticker with first (cheapest) paper
+    if (rows.length > 0) {
+        selectedNewspaper = rows[0].paper;
+        selectedGroup = rows[0].paper.groupId;
+        updateNewspaperPreviewSticker();
+        updateColumnOptions();
+        updateQuickRates();
+    }
 }
 
 /**
@@ -237,19 +282,16 @@ function initBookingForm() {
                 }
                 updatePrice();
                 checkFullPage();
-                updateNewspaperPreview();
             });
             el.addEventListener('change', function() {
                 updatePrice();
                 checkFullPage();
-                updateNewspaperPreview();
             });
         }
     });
 
     document.getElementById('colorOption')?.addEventListener('change', function() {
         updatePrice();
-        updateNewspaperPreview();
     });
 
     // Classified text counter
@@ -308,12 +350,14 @@ function toggleAdOptions() {
         boxConfig.style.display = 'block';
         classifiedConfig.style.display = 'none';
         updateColumnOptions();
-        updateNewspaperPreview();
     } else {
         boxConfig.style.display = 'none';
         classifiedConfig.style.display = 'block';
         updateWordCount();
     }
+
+    // Update comparison chart for new ad type
+    updateComparisonChart();
 }
 
 /**
@@ -396,6 +440,70 @@ function validateSelectedDate() {
 }
 
 /**
+ * Update newspaper preview sticker
+ */
+function updateNewspaperPreviewSticker() {
+    const stickerPreview = document.getElementById('stickerPreview');
+    const stickerPrice = document.getElementById('stickerPrice');
+
+    if (!stickerPreview || !selectedNewspaper) return;
+
+    const adType = document.querySelector('input[name="adType"]:checked')?.value || 'box';
+
+    if (adType === 'box') {
+        const columns = parseInt(document.getElementById('adColumns')?.value) || 1;
+        const height = parseFloat(document.getElementById('adHeight')?.value) || 10;
+        const language = selectedNewspaper.language || 'english';
+        const width = getColumnWidth(language, columns);
+
+        // Newspaper dimensions
+        const paperWidth = CONFIG.NEWSPAPER_SIZE.width;
+        const paperHeight = CONFIG.NEWSPAPER_SIZE.height;
+
+        // Calculate scale factor for preview (max preview width: 180px)
+        const maxPreviewWidth = 180;
+        const scale = maxPreviewWidth / paperWidth;
+
+        // Calculate scaled dimensions
+        const scaledPaperWidth = paperWidth * scale;
+        const scaledPaperHeight = paperHeight * scale;
+        const scaledAdWidth = width * scale;
+        const scaledAdHeight = height * scale;
+
+        stickerPreview.innerHTML = `
+            <div class="newspaper-outline" style="width: ${scaledPaperWidth}px; height: ${scaledPaperHeight}px;">
+                <div class="newspaper-header">
+                    <span class="paper-title">${selectedNewspaper.name}</span>
+                    <span class="paper-size">${paperWidth} x ${paperHeight} cm</span>
+                </div>
+                <div class="ad-placement" style="width: ${scaledAdWidth}px; height: ${scaledAdHeight}px;">
+                    <span class="ad-label">Your Ad</span>
+                    <span class="ad-size">${width.toFixed(1)} x ${height} cm</span>
+                </div>
+            </div>
+        `;
+
+        // Update price
+        const calc = calculateBoxAdPrice(selectedNewspaper, height, columns, document.getElementById('colorOption')?.value || 'bw');
+        stickerPrice.textContent = formatCurrency(calc.total);
+    } else {
+        const text = document.getElementById('classifiedText')?.value || '';
+        const words = text.trim().split(/\s+/).filter(w => w.length > 0).length;
+
+        stickerPreview.innerHTML = `
+            <div style="padding: 1rem; text-align: center;">
+                <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.5rem;">Classified Ad</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">${words} words</div>
+                <div style="font-size: 0.75rem; color: var(--gray-500); margin-top: 0.5rem;">${selectedNewspaper.name}</div>
+            </div>
+        `;
+
+        const calc = calculateClassifiedPrice(selectedNewspaper, words);
+        stickerPrice.textContent = formatCurrency(calc.total);
+    }
+}
+
+/**
  * Check if full page ad and show alert
  */
 function checkFullPage() {
@@ -412,53 +520,15 @@ function checkFullPage() {
     }
 }
 
-/**
- * Update newspaper preview with ad placement
- */
-function updateNewspaperPreview() {
-    const previewContainer = document.getElementById('newspaperPreview');
-    if (!previewContainer || !selectedNewspaper) return;
-
-    const adType = document.querySelector('input[name="adType"]:checked').value;
-    if (adType !== 'box') return;
-
-    const columns = parseInt(document.getElementById('adColumns')?.value) || 1;
-    const height = parseFloat(document.getElementById('adHeight')?.value) || 10;
-    const language = selectedNewspaper.language || 'english';
-    const width = getColumnWidth(language, columns);
-
-    // Newspaper dimensions
-    const paperWidth = CONFIG.NEWSPAPER_SIZE.width;
-    const paperHeight = CONFIG.NEWSPAPER_SIZE.height;
-
-    // Calculate scale factor for preview (max preview width: 200px)
-    const maxPreviewWidth = 200;
-    const scale = maxPreviewWidth / paperWidth;
-
-    // Calculate scaled dimensions
-    const scaledPaperWidth = paperWidth * scale;
-    const scaledPaperHeight = paperHeight * scale;
-    const scaledAdWidth = width * scale;
-    const scaledAdHeight = height * scale;
-
-    previewContainer.innerHTML = `
-        <div class="newspaper-outline" style="width: ${scaledPaperWidth}px; height: ${scaledPaperHeight}px;">
-            <div class="newspaper-header">
-                <span class="paper-title">${selectedNewspaper.name}</span>
-                <span class="paper-size">${paperWidth} x ${paperHeight} cm</span>
-            </div>
-            <div class="ad-placement" style="width: ${scaledAdWidth}px; height: ${scaledAdHeight}px;">
-                <span class="ad-label">Your Ad</span>
-                <span class="ad-size">${width.toFixed(1)} x ${height} cm</span>
-            </div>
-        </div>
-    `;
-}
 
 /**
  * Update price calculation
  */
 function updatePrice() {
+    // Update comparison chart and sticker
+    updateComparisonChart();
+    updateNewspaperPreviewSticker();
+
     if (!selectedNewspaper) return;
 
     const adType = document.querySelector('input[name="adType"]:checked').value;
@@ -473,24 +543,8 @@ function updatePrice() {
         const calc = calculateBoxAdPrice(selectedNewspaper, height, columns, colorOption);
         total = calc.total;
 
-        // Update preview info
-        document.getElementById('previewDimensions').textContent = `${calc.columnWidth.toFixed(1)} x ${height} cm`;
-        document.getElementById('previewArea').textContent = calc.area.toFixed(1);
-        document.getElementById('previewRate').textContent = formatCurrency(calc.rate);
-        document.getElementById('previewTotal').textContent = formatCurrency(calc.total);
-
-        // Update preview box size (scaled)
-        const previewBox = document.getElementById('adPreview');
-        if (previewBox) {
-            const maxPreviewSize = 150;
-            const maxDim = Math.max(calc.columnWidth, height);
-            const scale = maxDim > 0 ? Math.min(maxPreviewSize / maxDim, 10) : 10;
-            previewBox.style.width = `${calc.columnWidth * scale}px`;
-            previewBox.style.height = `${height * scale}px`;
-        }
-
         details = [
-            { label: 'Newspaper', value: selectedNewspaper.name },
+            { label: 'Cheapest Option', value: selectedNewspaper.name },
             { label: 'Size', value: `${columns} col x ${height} cm (H)` },
             { label: 'Column Width', value: `${calc.columnWidth.toFixed(1)} cm (${selectedNewspaper.language})` },
             { label: colorOption === 'color' ? 'Color Rate' : 'B&W Rate', value: `${formatCurrency(calc.rate)}/col-cm` },
@@ -507,7 +561,7 @@ function updatePrice() {
         total = calc.total;
 
         details = [
-            { label: 'Newspaper', value: selectedNewspaper.name },
+            { label: 'Cheapest Option', value: selectedNewspaper.name },
             { label: 'Word Count', value: words },
             { label: `Base (${calc.freeWords} words)`, value: formatCurrency(calc.basePrice) }
         ];

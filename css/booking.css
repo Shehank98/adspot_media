@@ -819,6 +819,137 @@
 }
 
 /* ============================================
+   Floating Newspaper Preview Sticker
+   ============================================ */
+.newspaper-sticker {
+    position: fixed;
+    top: 100px;
+    left: 20px;
+    background: white;
+    border: 2px solid var(--primary);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    padding: 1rem;
+    z-index: 999;
+    max-width: 220px;
+}
+
+.sticker-preview {
+    margin-bottom: 1rem;
+}
+
+.sticker-price {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.75rem;
+    background: var(--primary-pale);
+    border-radius: var(--radius-md);
+}
+
+.sticker-price .price-label {
+    font-size: 0.75rem;
+    color: var(--gray-600);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+}
+
+.sticker-price .price-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+/* ============================================
+   Comparison Chart
+   ============================================ */
+.comparison-chart {
+    margin-top: 2rem;
+    background: white;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+}
+
+.comparison-chart h4 {
+    font-size: 1.125rem;
+    margin-bottom: 1rem;
+    color: var(--gray-900);
+}
+
+.comparison-table-wrapper {
+    overflow-x: auto;
+}
+
+.comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.comparison-table thead {
+    background: var(--gray-50);
+}
+
+.comparison-table th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--gray-700);
+    border-bottom: 2px solid var(--gray-200);
+}
+
+.comparison-table tbody tr {
+    border-bottom: 1px solid var(--gray-100);
+    transition: background 0.2s ease;
+}
+
+.comparison-table tbody tr:hover {
+    background: var(--gray-50);
+}
+
+.comparison-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.comparison-table td {
+    padding: 1rem;
+    font-size: 0.9375rem;
+}
+
+.comparison-table td:first-child {
+    font-weight: 600;
+    color: var(--gray-900);
+}
+
+.comparison-table td:nth-child(2) {
+    color: var(--gray-600);
+}
+
+.comparison-table td:last-child {
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 1rem;
+}
+
+.comparison-table .select-btn {
+    padding: 0.5rem 1rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 0.8125rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.comparison-table .select-btn:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+}
+
+/* ============================================
    FIX: Smaller Ad Type Buttons
    ============================================ */
 .ad-type-card .card-content {
@@ -942,5 +1073,19 @@
     /* Hide hover preview on mobile */
     .ad-type-card:hover .sample-preview {
         opacity: 0;
+    }
+
+    /* Hide sticker on mobile */
+    .newspaper-sticker {
+        display: none;
+    }
+
+    .comparison-table {
+        font-size: 0.8125rem;
+    }
+
+    .comparison-table th,
+    .comparison-table td {
+        padding: 0.5rem;
     }
 }

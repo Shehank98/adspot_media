@@ -78,6 +78,17 @@
             </div>
 
             <div class="booking-container">
+                <!-- Floating Newspaper Preview Sticker -->
+                <div class="newspaper-sticker" id="newspaperSticker">
+                    <div class="sticker-preview" id="stickerPreview">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                    <div class="sticker-price">
+                        <span class="price-label">Current Price</span>
+                        <span class="price-value" id="stickerPrice">Rs. 0.00</span>
+                    </div>
+                </div>
+
                 <!-- Booking Form -->
                 <div class="booking-form-wrapper">
                     <form id="bookingForm" class="booking-form">
@@ -137,11 +148,24 @@
                                 </div>
                             </div>
 
-                            <!-- Newspaper Selection -->
+                            <!-- Daily/Sunday Selection -->
                             <div class="form-section">
-                                <label class="form-label">Select Newspaper</label>
-                                <div class="newspaper-grid" id="newspaperSelect">
-                                    <!-- Populated by JavaScript -->
+                                <label class="form-label">Publication Day</label>
+                                <div class="publication-groups" id="dayTypeSelect">
+                                    <label class="pub-group-card">
+                                        <input type="radio" name="dayType" value="daily" checked>
+                                        <div class="card-content">
+                                            <span class="pub-name">Daily Papers</span>
+                                            <span class="pub-count">📅</span>
+                                        </div>
+                                    </label>
+                                    <label class="pub-group-card">
+                                        <input type="radio" name="dayType" value="sunday">
+                                        <div class="card-content">
+                                            <span class="pub-name">Sunday Papers</span>
+                                            <span class="pub-count">☀️</span>
+                                        </div>
+                                    </label>
                                 </div>
                             </div>
 
@@ -187,26 +211,22 @@
                                     </div>
                                 </div>
 
-                                <!-- Ad Preview -->
-                                <div class="ad-preview-section">
-                                    <div class="ad-preview-basic">
-                                        <div class="preview-label">Ad Size Preview</div>
-                                        <div class="preview-box" id="adPreview">
-                                            <span id="previewDimensions">3.0 x 10 cm</span>
-                                        </div>
-                                        <div class="preview-info">
-                                            <div><span>Area:</span> <strong id="previewArea">30.0</strong> sq cm</div>
-                                            <div><span>Rate:</span> <strong id="previewRate">Rs. 0</strong>/sq cm</div>
-                                            <div><span>Total:</span> <strong id="previewTotal">Rs. 0</strong></div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Newspaper Preview (52cm x 38cm) -->
-                                    <div class="newspaper-preview-container">
-                                        <div class="preview-label">Newspaper Preview (52 x 38 cm)</div>
-                                        <div id="newspaperPreview" class="newspaper-preview">
-                                            <!-- Populated by JavaScript -->
-                                        </div>
+                                <!-- Comparison Chart -->
+                                <div id="comparisonChart" class="comparison-chart">
+                                    <h4>Price Comparison</h4>
+                                    <div class="comparison-table-wrapper">
+                                        <table class="comparison-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Newspaper</th>
+                                                    <th>Rate</th>
+                                                    <th>Total Price</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="comparisonTableBody">
+                                                <!-- Populated by JavaScript -->
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             </div>
