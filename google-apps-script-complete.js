@@ -48,7 +48,7 @@ function doPost(e) {
     } else if (e.postData && e.postData.contents) {
       // Regular JSON POST
       data = JSON.parse(e.postData.contents);
-      action = data.action;
+      action = data.action || data.type;
     } else if (e.parameter && e.parameter.action) {
       // GET-style parameters
       action = e.parameter.action;
@@ -64,9 +64,13 @@ function doPost(e) {
         return sendAdminNotification(data);
       case 'sendQuotation':
         return sendQuotationEmail(data);
+      case 'booking_confirmation':
+        return sendBookingConfirmation(data);
       case 'sendInvoice':
+      case 'invoice_email':
         return sendInvoiceEmail(data);
       case 'sendPaymentConfirmation':
+      case 'payment_confirmation':
         return sendPaymentConfirmation(data);
       case 'sendContactForm':
         return sendContactFormEmail(data);
@@ -415,11 +419,231 @@ function sendQuotationEmail(data) {
 }
 
 /**
+ * Send booking confirmation email to customer
+ */
+function sendBookingConfirmation(data) {
+  const { customerEmail, customerName, quotationNumber, invoiceNumber, totalAmount, paymentMethod, items, customerPhone } = data;
+
+  const subject = `🎉 Booking Confirmed - ${quotationNumber} | AdSpot Media`;
+
+  // Build items HTML
+  const itemsHtml = items ? items.map((item, i) => {
+    const classifiedText = item.details?.text || item.adText || '';
+    const adTypeIcon = item.adType === 'classified' ? '📝 Classified' : '📦 Box Ad';
+    const adFileUrl = item.adFileUrl || '';
+
+    let textSection = '';
+    if (classifiedText) {
+      textSection = `
+        <div style="background: #fffbeb; border-radius: 8px; padding: 12px; margin-top: 12px; border-left: 4px solid #f59e0b;">
+          <strong style="color: #92400e; font-size: 12px;">AD TEXT:</strong>
+          <p style="color: #1f2937; margin: 6px 0 0 0; font-size: 14px; white-space: pre-wrap;">${classifiedText}</p>
+        </div>
+      `;
+    }
+
+    let fileSection = '';
+    if (adFileUrl) {
+      fileSection = `
+        <div style="background: #eff6ff; border-radius: 8px; padding: 12px; margin-top: 12px; border-left: 4px solid #3b82f6;">
+          <strong style="color: #1e40af; font-size: 12px;">📎 AD FILE:</strong>
+          <a href="${adFileUrl}" style="color: #2563eb; text-decoration: underline; margin-left: 8px;" target="_blank">View Your Ad Artwork</a>
+        </div>
+      `;
+    }
+
+    return `
+      <div style="background: ${i % 2 === 0 ? '#ffffff' : '#f9fafb'}; padding: 20px; border-bottom: 1px solid #e5e7eb;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="color: #1e40af; font-weight: 700; font-size: 16px;">${item.newspaperName || 'Newspaper'}</div>
+            <div style="color: #6b7280; font-size: 14px; margin-top: 4px;">
+              📅 ${item.pubDate || 'TBD'} • ${adTypeIcon}
+            </div>
+          </div>
+          <div style="background: #10b981; color: white; padding: 8px 16px; border-radius: 8px; font-weight: 700;">
+            Rs. ${(item.price || 0).toLocaleString()}
+          </div>
+        </div>
+        ${textSection}
+        ${fileSection}
+      </div>
+    `;
+  }).join('') : '';
+
+  // Bank details section for bank transfer
+  const bankDetailsHtml = paymentMethod === 'bank' ? `
+    <tr>
+      <td style="padding: 20px 40px;">
+        <div style="background: #fef3c7; border-radius: 16px; padding: 24px; border-left: 4px solid #f59e0b;">
+          <h3 style="color: #92400e; margin: 0 0 16px 0; font-size: 18px;">💳 Bank Transfer Details</h3>
+          <table cellpadding="0" cellspacing="0" style="width: 100%; font-size: 14px; color: #92400e;">
+            <tr>
+              <td style="padding: 6px 0;"><strong>Bank:</strong></td>
+              <td>${CONFIG.BANK_NAME}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0;"><strong>Account Name:</strong></td>
+              <td>${CONFIG.BANK_ACCOUNT_NAME}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0;"><strong>Account Number:</strong></td>
+              <td>${CONFIG.BANK_ACCOUNT_NUMBER}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0;"><strong>Branch:</strong></td>
+              <td>${CONFIG.BANK_BRANCH}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0;"><strong>Reference:</strong></td>
+              <td style="color: #1e40af; font-weight: 700;">${quotationNumber}</td>
+            </tr>
+          </table>
+          <div style="background: #fbbf24; color: #78350f; padding: 12px; border-radius: 8px; margin-top: 16px; font-size: 13px;">
+            <strong>⚠️ IMPORTANT:</strong> Please use <strong>${quotationNumber}</strong> as your payment reference
+          </div>
+        </div>
+      </td>
+    </tr>
+  ` : `
+    <tr>
+      <td style="padding: 20px 40px;">
+        <div style="background: #dcfce7; border-radius: 16px; padding: 24px; border-left: 4px solid #10b981; text-align: center;">
+          <div style="font-size: 48px; margin-bottom: 12px;">✅</div>
+          <h3 style="color: #166534; margin: 0 0 8px 0; font-size: 18px;">Payment Received</h3>
+          <p style="color: #15803d; margin: 0; font-size: 14px;">Your payment has been successfully processed!</p>
+        </div>
+      </td>
+    </tr>
+  `;
+
+  const htmlBody = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; background: #f5f7fa; }</style>
+    </head>
+    <body>
+      <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, #f5f7fa 0%, #e8eef3 100%); padding: 40px 20px;">
+        <tr>
+          <td align="center">
+            <table width="600" cellpadding="0" cellspacing="0" style="background: #ffffff; border-radius: 20px; box-shadow: 0 20px 50px rgba(30, 64, 175, 0.2); overflow: hidden;">
+
+              <!-- Header -->
+              <tr>
+                <td style="background: linear-gradient(135deg, #10b981 0%, #34d399 50%, #6ee7b7 100%); padding: 50px 40px; text-align: center;">
+                  <div style="background: rgba(255,255,255,0.1); border-radius: 16px; padding: 30px; border: 1px solid rgba(255,255,255,0.2);">
+                    <div style="font-size: 56px; margin-bottom: 12px;">🎉</div>
+                    <h1 style="color: #ffffff; margin: 0; font-size: 32px; font-weight: 800;">Booking Confirmed!</h1>
+                    <p style="color: rgba(255,255,255,0.9); margin: 12px 0 0 0; font-size: 18px;">${quotationNumber}</p>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Greeting -->
+              <tr>
+                <td style="padding: 40px 40px 20px 40px;">
+                  <div style="background: #dcfce7; border-radius: 16px; padding: 30px; border-left: 5px solid #10b981;">
+                    <h2 style="color: #1f2937; margin: 0 0 8px 0; font-size: 24px;">Dear ${customerName} 👋</h2>
+                    <p style="color: #6b7280; margin: 0; font-size: 15px; line-height: 1.6;">
+                      Thank you for booking with AdSpot Media! Your advertisement has been successfully placed and is being processed.
+                    </p>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Items -->
+              <tr>
+                <td style="padding: 20px 40px;">
+                  <div style="background: #f9fafb; border-radius: 16px; overflow: hidden; border: 1px solid #e5e7eb;">
+                    <div style="background: #1e40af; color: white; padding: 16px 20px; font-weight: 700; font-size: 16px;">
+                      📰 Your Ad Bookings
+                    </div>
+                    ${itemsHtml}
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Total -->
+              <tr>
+                <td style="padding: 20px 40px;">
+                  <div style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); border-radius: 16px; padding: 30px; text-align: center; box-shadow: 0 10px 30px rgba(30, 64, 175, 0.3);">
+                    <div style="color: rgba(255,255,255,0.9); font-size: 14px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Total Amount</div>
+                    <div style="color: #ffffff; font-size: 42px; font-weight: 900;">Rs. ${parseFloat(totalAmount || 0).toLocaleString()}</div>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Bank Details or Payment Confirmation -->
+              ${bankDetailsHtml}
+
+              <!-- What's Next -->
+              <tr>
+                <td style="padding: 20px 40px;">
+                  <div style="background: #eff6ff; border-radius: 16px; padding: 24px; border-left: 4px solid #3b82f6;">
+                    <h3 style="color: #1e40af; margin: 0 0 12px 0; font-size: 18px;">📋 What Happens Next?</h3>
+                    <ul style="color: #6b7280; margin: 0; padding-left: 20px; line-height: 1.8;">
+                      ${paymentMethod === 'bank' ? '<li>Complete your bank transfer using the details above</li>' : '<li>Your payment has been received</li>'}
+                      <li>We'll verify your payment within 24 hours</li>
+                      <li>Your invoice will be sent once payment is confirmed</li>
+                      <li>Your ads will be submitted to the newspapers for publication</li>
+                      <li>You'll receive confirmation from each newspaper</li>
+                    </ul>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- CTA -->
+              <tr>
+                <td style="padding: 20px 40px 40px 40px;">
+                  <div style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); border-radius: 16px; padding: 30px; text-align: center;">
+                    <p style="color: #ffffff; margin: 0 0 20px 0; font-size: 18px; font-weight: 600;">Need help? Contact us!</p>
+                    <a href="https://wa.me/94706421998" style="display: inline-block; padding: 14px 32px; background: #25D366; color: #ffffff; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px;">
+                      💬 WhatsApp Us
+                    </a>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Footer -->
+              <tr>
+                <td style="background: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
+                  <div style="color: #1e40af; font-size: 18px; font-weight: 700; margin-bottom: 8px;">${CONFIG.COMPANY_NAME}</div>
+                  <div style="color: #6b7280; font-size: 13px; line-height: 1.8;">
+                    📞 ${CONFIG.COMPANY_PHONE}<br>
+                    📧 ${CONFIG.ADMIN_EMAIL}<br>
+                    📍 ${CONFIG.COMPANY_ADDRESS}
+                  </div>
+                </td>
+              </tr>
+
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+
+  try {
+    MailApp.sendEmail({
+      to: customerEmail,
+      subject: subject,
+      htmlBody: htmlBody,
+      replyTo: CONFIG.ADMIN_EMAIL
+    });
+    return jsonResponse(true, 'Booking confirmation sent to ' + customerEmail);
+  } catch (error) {
+    return jsonResponse(false, 'Failed to send: ' + error.message);
+  }
+}
+
+/**
  * Send invoice email after payment confirmed - Simple clean design
  * Includes PDF attachment if provided
  */
 function sendInvoiceEmail(data) {
-  const { customer_email, customer_name, quotation_number, invoice_number, items, total_amount, pdfBase64 } = data;
+  const { customer_email, customer_name, quotation_number, invoice_number, items, total_amount, pdfBase64, pdfUrl } = data;
 
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -512,12 +736,31 @@ function sendInvoiceEmail(data) {
             </table>
 
             <!-- Amount Due -->
-            <div style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 16px 20px; margin-bottom: 30px;">
+            <div style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 16px 20px; margin-bottom: 20px;">
               <div style="font-size: 20px; font-weight: 700; color: #065f46;">
                 Rs. ${parseFloat(total_amount || 0).toLocaleString()} - PAID
               </div>
               <div style="color: #047857; font-size: 14px; margin-top: 4px;">Payment received - Thank you!</div>
             </div>
+
+            ${pdfUrl || pdfBase64 ? `
+            <!-- Download Invoice Button -->
+            <div style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); border-radius: 12px; padding: 24px; margin-bottom: 30px; text-align: center;">
+              <div style="color: rgba(255,255,255,0.9); font-size: 14px; margin-bottom: 12px;">📄 YOUR INVOICE IS READY</div>
+              ${pdfUrl ? `
+              <a href="${pdfUrl}" style="display: inline-block; background: #ffffff; color: #1e40af; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 700; font-size: 16px; margin-bottom: 8px;">
+                ⬇️ Download Invoice PDF
+              </a>
+              ` : `
+              <div style="background: rgba(255,255,255,0.2); border-radius: 8px; padding: 14px 32px; margin-bottom: 8px;">
+                <div style="color: #ffffff; font-weight: 700; font-size: 16px;">📎 Invoice PDF Attached</div>
+              </div>
+              `}
+              <div style="color: rgba(255,255,255,0.8); font-size: 13px; margin-top: 8px;">
+                ${pdfUrl ? 'Click the button above to download your invoice' : 'Check your email attachments to download the invoice PDF'}
+              </div>
+            </div>
+            ` : ''}
 
             <!-- Items Table -->
             <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px; font-size: 14px;">

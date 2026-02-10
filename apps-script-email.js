@@ -151,7 +151,25 @@ function sendInvoiceEmail(data) {
       <div style="padding: 30px; background: #f8fafc;">
         <h2 style="color: #1e293b;">Invoice Ready</h2>
         <p style="color: #64748b;">Dear ${data.customerName},</p>
-        <p style="color: #64748b;">Your invoice has been generated and is attached to this email.</p>
+        <p style="color: #64748b;">Your invoice has been generated and is ready to download.</p>
+
+        ${data.pdfUrl || data.pdfBase64 ? `
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 24px; margin: 20px 0; text-align: center;">
+          <div style="color: rgba(255,255,255,0.9); font-size: 14px; margin-bottom: 12px;">📄 YOUR INVOICE IS READY</div>
+          ${data.pdfUrl ? `
+          <a href="${data.pdfUrl}" style="display: inline-block; background: #ffffff; color: #667eea; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 700; font-size: 16px; margin-bottom: 8px;">
+            ⬇️ Download Invoice PDF
+          </a>
+          ` : `
+          <div style="background: rgba(255,255,255,0.2); border-radius: 8px; padding: 14px 32px; margin-bottom: 8px;">
+            <div style="color: #ffffff; font-weight: 700; font-size: 16px;">📎 Invoice PDF Attached</div>
+          </div>
+          `}
+          <div style="color: rgba(255,255,255,0.8); font-size: 13px; margin-top: 8px;">
+            ${data.pdfUrl ? 'Click the button above to download your invoice' : 'Check your email attachments to download the invoice PDF'}
+          </div>
+        </div>
+        ` : ''}
 
         <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h3 style="color: #667eea; margin-top: 0;">Invoice Summary</h3>
