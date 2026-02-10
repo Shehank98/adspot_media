@@ -148,8 +148,29 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-    <!-- Firebase Config -->
-    <script src="js/firebase-config.js"></script>
+    <script>
+        // Initialize Firebase directly (without loading full firebase-config.js)
+        const firebaseConfig = {
+            apiKey: "AIzaSyC-3O50ecypPkYwp6bOt8qfjegvBjDmQpQ",
+            authDomain: "adspot-b44ef.firebaseapp.com",
+            projectId: "adspot-b44ef",
+            storageBucket: "adspot-b44ef.firebasestorage.app",
+            messagingSenderId: "810904997217",
+            appId: "1:810904997217:web:3a85856521cac0177dc920"
+        };
+
+        // Initialize Firebase
+        try {
+            firebase.initializeApp(firebaseConfig);
+            console.log('✅ Firebase initialized');
+        } catch (error) {
+            console.error('❌ Firebase init error:', error);
+        }
+
+        // Initialize only Firestore (no auth or storage needed for this tool)
+        const db = firebase.firestore();
+        window.db = db;
+    </script>
 
     <script>
         // Newspaper data to populate
