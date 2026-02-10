@@ -7,7 +7,7 @@
  * Apps Script Configuration
  * Replace this URL with your deployed Google Apps Script web app URL
  */
-const APPS_SCRIPT_URL = 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxqC7dhbLgOB9PjLuMFHBwn2uyTVQyJnDdt92GwWLC-q-UlJ3mB0a7eWNvwOnyhDxHV/exec';
 
 /**
  * Save booking to Firestore
