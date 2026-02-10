@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Database Initializer - AdSpot Media</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+        }
+        h1 {
+            color: #1e293b;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #64748b;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .status {
+            background: #f1f5f9;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            min-height: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .log-item {
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+        }
+        .log-item.info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .log-item.success {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .log-item.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .log-item.warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-secondary {
+            background: #64748b;
+            margin-top: 10px;
+        }
+        .btn-secondary:hover {
+            box-shadow: 0 10px 25px rgba(100, 116, 139, 0.4);
+        }
+        .preview {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            font-size: 12px;
+        }
+        .preview h3 {
+            font-size: 14px;
+            color: #475569;
+            margin-bottom: 10px;
+        }
+        .preview-item {
+            background: white;
+            padding: 8px 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border-left: 3px solid #3b82f6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 Firebase Database Initializer</h1>
+        <p class="subtitle">One-click setup for AdSpot Media newspaper database</p>
+
+        <div class="status" id="statusLog">
+            <div class="log-item info">Ready to initialize database...</div>
+            <div class="log-item warning">⚠️ Make sure you've configured firebase-config.js first!</div>
+        </div>
+
+        <button class="btn" id="initBtn" onclick="initializeDatabase()">
+            🚀 Initialize Database
+        </button>
+
+        <button class="btn btn-secondary" onclick="showPreview()">
+            👁️ Preview Newspapers Data
+        </button>
+
+        <div class="preview" id="preview" style="display: none;"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <!-- Firebase Config -->
+    <script src="js/firebase-config.js"></script>
+
+    <script>
+        // Newspaper data to populate
+        const newspapersData = [
+            {
+                id: 'daily_news',
+                name: 'Daily News',
+                language: 'english',
+                frequency: 'Daily',
+                groupName: 'Lake House',
+                baseRate: 850,
+                colorCharge: 200,
+                active: true,
+                isSundayPaper: false
+            },
+            {
+                id: 'sunday_observer',
+                name: 'Sunday Observer',
+                language: 'english',
+                frequency: 'Sunday',
+                groupName: 'Lake House',
+                baseRate: 900,
+                colorCharge: 250,
+                active: true,
+                isSundayPaper: true
+            },
+            {
+                id: 'lankadeepa',
+                name: 'Lankadeepa',
+                language: 'sinhala',
+                frequency: 'Daily',
+                groupName: 'Wijeya Newspapers',
+                baseRate: 750,
+                colorCharge: 180,
+                active: true,
+                isSundayPaper: false
+            },
+            {
+                id: 'divaina',
+                name: 'Divaina',
+                language: 'sinhala',
+                frequency: 'Daily',
+                groupName: 'Upali Group',
+                baseRate: 780,
+                colorCharge: 190,
+                active: true,
+                isSundayPaper: false
+            },
+            {
+                id: 'dinamina',
+                name: 'Dinamina',
+                language: 'sinhala',
+                frequency: 'Daily',
+                groupName: 'Lake House',
+                baseRate: 820,
+                colorCharge: 200,
+                active: true,
+                isSundayPaper: false
+            },
+            {
+                id: 'silumina',
+                name: 'Silumina',
+                language: 'sinhala',
+                frequency: 'Sunday',
+                groupName: 'Lake House',
+                baseRate: 850,
+                colorCharge: 220,
+                active: true,
+                isSundayPaper: true
+            },
+            {
+                id: 'mawbima',
+                name: 'Mawbima',
+                language: 'sinhala',
+                frequency: 'Daily',
+                groupName: 'Mawbima Group',
+                baseRate: 700,
+                colorCharge: 170,
+                active: true,
+                isSundayPaper: false
+            },
+            {
+                id: 'thinakaran',
+                name: 'Thinakaran',
+                language: 'tamil',
+                frequency: 'Daily',
+                groupName: 'Express Newspapers',
+                baseRate: 700,
+                colorCharge: 170,
+                active: true,
+                isSundayPaper: false
+            },
+            {
+                id: 'virakesari',
+                name: 'Virakesari',
+                language: 'tamil',
+                frequency: 'Daily',
+                groupName: 'Express Newspapers',
+                baseRate: 720,
+                colorCharge: 175,
+                active: true,
+                isSundayPaper: false
+            }
+        ];
+
+        function log(message, type = 'info') {
+            const statusLog = document.getElementById('statusLog');
+            const logItem = document.createElement('div');
+            logItem.className = `log-item ${type}`;
+            logItem.textContent = message;
+            statusLog.appendChild(logItem);
+            statusLog.scrollTop = statusLog.scrollHeight;
+        }
+
+        function showPreview() {
+            const preview = document.getElementById('preview');
+            const isVisible = preview.style.display !== 'none';
+
+            if (isVisible) {
+                preview.style.display = 'none';
+                return;
+            }
+
+            preview.innerHTML = `
+                <h3>📰 ${newspapersData.length} Newspapers will be added:</h3>
+                ${newspapersData.map(paper => `
+                    <div class="preview-item">
+                        <strong>${paper.name}</strong> (${paper.language}) -
+                        ${paper.frequency} -
+                        Rate: LKR ${paper.baseRate} -
+                        Color: +LKR ${paper.colorCharge}
+                    </div>
+                `).join('')}
+            `;
+            preview.style.display = 'block';
+        }
+
+        async function initializeDatabase() {
+            const btn = document.getElementById('initBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Initializing...';
+
+            try {
+                // Check if Firebase is configured
+                if (typeof firebase === 'undefined') {
+                    throw new Error('Firebase SDK not loaded');
+                }
+
+                if (typeof db === 'undefined') {
+                    throw new Error('Firebase not configured. Please update firebase-config.js first!');
+                }
+
+                log('🔥 Connected to Firebase', 'success');
+                log(`📝 Adding ${newspapersData.length} newspapers...`, 'info');
+
+                let successCount = 0;
+                let errorCount = 0;
+
+                // Add each newspaper to Firestore
+                for (const newspaper of newspapersData) {
+                    try {
+                        await db.collection('newspapers').doc(newspaper.id).set({
+                            ...newspaper,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        log(`✅ Added: ${newspaper.name}`, 'success');
+                        successCount++;
+                    } catch (error) {
+                        log(`❌ Failed: ${newspaper.name} - ${error.message}`, 'error');
+                        errorCount++;
+                    }
+                }
+
+                log('', 'info');
+                log(`🎉 Database initialization complete!`, 'success');
+                log(`✅ Success: ${successCount} newspapers`, 'success');
+                if (errorCount > 0) {
+                    log(`❌ Failed: ${errorCount} newspapers`, 'error');
+                }
+                log('', 'info');
+                log('💡 You can now close this page and refresh your app', 'info');
+
+                btn.textContent = '✅ Initialization Complete';
+                btn.style.background = '#10b981';
+
+            } catch (error) {
+                log(`❌ Fatal Error: ${error.message}`, 'error');
+                log('', 'info');
+                log('🔍 Troubleshooting:', 'warning');
+                log('1. Check firebase-config.js is properly configured', 'warning');
+                log('2. Verify your Firebase project exists', 'warning');
+                log('3. Check browser console for detailed errors', 'warning');
+
+                btn.textContent = '❌ Initialization Failed';
+                btn.style.background = '#ef4444';
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
