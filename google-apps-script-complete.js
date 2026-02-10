@@ -112,6 +112,7 @@ function sendAdminNotification(data) {
     // Check if this is a classified ad with text
     const classifiedText = item.details?.text || item.adText || '';
     const adTypeDisplay = item.adType === 'classified' ? '📝 Classified' : '📦 Box Ad';
+    const adFileUrl = item.adFileUrl || '';
 
     let textSection = '';
     if (classifiedText) {
@@ -127,6 +128,21 @@ function sendAdminNotification(data) {
       `;
     }
 
+    // Add file attachment section if there's an ad file
+    let fileSection = '';
+    if (adFileUrl) {
+      fileSection = `
+        <tr style="background: #eff6ff;">
+          <td colspan="4" style="padding: 12px;">
+            <div style="background: #dbeafe; border-radius: 8px; padding: 12px; border-left: 4px solid #3b82f6;">
+              <strong style="color: #1e40af;">📎 Ad File:</strong>
+              <a href="${adFileUrl}" style="color: #2563eb; text-decoration: underline; margin-left: 8px;" target="_blank">Download Ad Artwork</a>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
     return `
       <tr style="border-bottom: 1px solid #e5e7eb;">
         <td style="padding: 12px;">${item.newspaperName || 'N/A'}</td>
@@ -135,6 +151,7 @@ function sendAdminNotification(data) {
         <td style="padding: 12px; text-align: right; font-weight: 600;">Rs. ${(item.price || 0).toLocaleString()}</td>
       </tr>
       ${textSection}
+      ${fileSection}
     `;
   }).join('') : '';
 

@@ -1647,7 +1647,7 @@ function showSuccessModal(quotationNumber, email, paymentMethod) {
 
             <div class="success-actions">
                 <a href="index.html" class="btn btn-primary">Return to Home</a>
-                <button class="btn btn-ghost" onclick="window.print()">Print Confirmation</button>
+                <button class="btn btn-ghost" onclick="printBookingConfirmation()">Print Confirmation</button>
             </div>
 
             <p class="contact-info">
@@ -1773,3 +1773,154 @@ function loadSampleImages() {
         loadImages(classifiedContainer, classifiedImages);
     }
 }
+
+/**
+ * Print booking confirmation only (not entire page)
+ */
+function printBookingConfirmation() {
+    // Get the success modal content
+    const modalContent = document.querySelector('#successModal .success-content');
+
+    if (!modalContent) {
+        window.print(); // Fallback to regular print if modal not found
+        return;
+    }
+
+    // Clone the content
+    const printContent = modalContent.cloneNode(true);
+
+    // Remove the action buttons from print
+    const actions = printContent.querySelector('.success-actions');
+    if (actions) actions.remove();
+
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Booking Confirmation</title>
+            <style>
+                body {
+                    font-family: 'Segoe UI', Arial, sans-serif;
+                    max-width: 800px;
+                    margin: 20px auto;
+                    padding: 20px;
+                    color: #1f2937;
+                }
+                .success-icon {
+                    text-align: center;
+                    font-size: 48px;
+                    margin-bottom: 20px;
+                }
+                .success-icon svg {
+                    width: 64px;
+                    height: 64px;
+                    stroke: #10b981;
+                }
+                h2 {
+                    text-align: center;
+                    color: #1e40af;
+                    margin-bottom: 10px;
+                }
+                .success-message {
+                    text-align: center;
+                    color: #6b7280;
+                    margin-bottom: 30px;
+                }
+                .confirmation-details {
+                    background: #f9fafb;
+                    border-radius: 8px;
+                    padding: 20px;
+                    margin-bottom: 20px;
+                }
+                .confirmation-row {
+                    display: flex;
+                    justify-content: space-between;
+                    padding: 10px 0;
+                    border-bottom: 1px solid #e5e7eb;
+                }
+                .confirmation-row:last-child {
+                    border-bottom: none;
+                }
+                .quotation-highlight {
+                    color: #1e40af;
+                    font-size: 18px;
+                }
+                .order-items {
+                    margin: 20px 0;
+                }
+                .order-items h4 {
+                    color: #1f2937;
+                    margin-bottom: 12px;
+                }
+                .confirmation-item {
+                    background: #f9fafb;
+                    padding: 12px;
+                    margin-bottom: 8px;
+                    border-radius: 6px;
+                    display: grid;
+                    grid-template-columns: 1fr 1fr 1fr auto;
+                    gap: 10px;
+                    align-items: center;
+                }
+                .confirmation-item strong {
+                    font-weight: 600;
+                }
+                .bank-details-box {
+                    background: #fffbeb;
+                    border: 2px solid #f59e0b;
+                    border-radius: 8px;
+                    padding: 20px;
+                    margin: 20px 0;
+                }
+                .bank-details-box h4 {
+                    color: #92400e;
+                    text-align: center;
+                    margin-bottom: 16px;
+                }
+                .bank-info {
+                    font-size: 14px;
+                }
+                .bank-row {
+                    display: flex;
+                    justify-content: space-between;
+                    padding: 6px 0;
+                }
+                .bank-note {
+                    font-size: 13px;
+                    color: #6b7280;
+                    margin-top: 12px;
+                    text-align: center;
+                }
+                .contact-info {
+                    text-align: center;
+                    font-size: 13px;
+                    color: #6b7280;
+                    margin-top: 30px;
+                    padding-top: 20px;
+                    border-top: 1px solid #e5e7eb;
+                }
+                @media print {
+                    body {
+                        margin: 0;
+                        padding: 15px;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            ${printContent.innerHTML}
+        </body>
+        </html>
+    `);
+
+    printWindow.document.close();
+
+    // Wait for content to load, then print
+    setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+    }, 250);
+}
+window.printBookingConfirmation = printBookingConfirmation;

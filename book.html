@@ -55,47 +55,52 @@
                     </svg>
                     Back to Home
                 </a>
-                <!-- Auth buttons -->
+                <!-- Login Button (shown when not logged in) -->
                 <button id="loginBtn" class="btn btn-ghost btn-auth" style="display: none;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="12" cy="7" r="4"></circle>
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
                     </svg>
                     Sign In
                 </button>
+
+                <!-- User Menu (shown when logged in) -->
                 <div id="userMenu" class="user-menu" style="display: none;">
                     <img id="userPhoto" class="user-avatar" src="" alt="">
                     <div class="user-dropdown">
-                        <div class="user-info">
-                            <span id="userName" class="user-name">User</span>
-                            <span id="userEmail" class="user-email">user@email.com</span>
-                        </div>
-                        <div class="dropdown-divider"></div>
-                        <a href="my-bookings.html" class="dropdown-item">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="3" width="7" height="7"></rect>
-                                <rect x="14" y="3" width="7" height="7"></rect>
-                                <rect x="14" y="14" width="7" height="7"></rect>
-                                <rect x="3" y="14" width="7" height="7"></rect>
+                        <button class="user-toggle" id="userToggle">
+                            <span id="userName"></span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                <path d="M6 9l6 6 6-6"/>
                             </svg>
-                            My Bookings
-                        </a>
-                        <a href="admin-bookings.html" id="adminLink" class="dropdown-item" style="display: none;">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-                                <path d="M2 17l10 5 10-5M2 12l10 5 10-5"></path>
-                            </svg>
-                            Admin Dashboard
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <button id="logoutBtn" class="dropdown-item">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                                <polyline points="16 17 21 12 16 7"></polyline>
-                                <line x1="21" y1="12" x2="9" y2="12"></line>
-                            </svg>
-                            Sign Out
                         </button>
+                        <div class="dropdown-menu" id="dropdownMenu">
+                            <div class="user-info-dropdown">
+                                <span id="userEmail" class="user-email-dropdown">user@email.com</span>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <a href="my-bookings.html" id="myBookingsLink" class="dropdown-item">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+                                </svg>
+                                My Bookings
+                            </a>
+                            <a href="admin-bookings.html" id="adminLink" class="dropdown-item" style="display: none;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="7" height="7"/>
+                                    <rect x="14" y="3" width="7" height="7"/>
+                                    <rect x="14" y="14" width="7" height="7"/>
+                                    <rect x="3" y="14" width="7" height="7"/>
+                                </svg>
+                                Admin Dashboard
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <button class="dropdown-item" id="logoutBtn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+                                </svg>
+                                Sign Out
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -502,28 +507,9 @@
                             <!-- Bank Transfer Details -->
                             <div id="bankPayment" class="payment-form" style="display: none;">
                                 <div class="bank-details">
-                                    <h4>Bank Transfer Details</h4>
-                                    <div class="bank-info">
-                                        <div class="info-row">
-                                            <span>Bank:</span>
-                                            <strong>Sampath Bank PLC</strong>
-                                        </div>
-                                        <div class="info-row">
-                                            <span>Account Name:</span>
-                                            <strong>P S Kavishka</strong>
-                                        </div>
-                                        <div class="info-row">
-                                            <span>Account Number:</span>
-                                            <strong>1210 5770 0812</strong>
-                                        </div>
-                                        <div class="info-row">
-                                            <span>Branch:</span>
-                                            <strong>Karagampitiya</strong>
-                                        </div>
-                                    </div>
                                     <p class="bank-note">
+                                        Bank transfer details will be provided in your confirmation email after you submit your booking.
                                         Please use your quotation number as the payment reference.
-                                        We will process your ad once payment is confirmed.
                                     </p>
                                 </div>
                             </div>
