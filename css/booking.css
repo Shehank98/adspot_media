@@ -1092,6 +1092,37 @@
     margin-bottom: 0.25rem;
 }
 
+/* File Input Styling */
+.file-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px dashed var(--gray-300);
+    border-radius: var(--radius-md);
+    background: var(--gray-50);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.file-input:hover {
+    border-color: var(--primary);
+    background: var(--primary-pale);
+}
+
+.file-input::-webkit-file-upload-button {
+    padding: 0.5rem 1rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-weight: 500;
+    margin-right: 1rem;
+}
+
+.file-input::-webkit-file-upload-button:hover {
+    background: var(--primary-dark);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .publication-groups {

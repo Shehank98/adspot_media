@@ -168,11 +168,31 @@ function selectNewspaper(newspaperId) {
     selectedNewspaper = getNewspaperById(newspaperId);
 
     if (selectedNewspaper) {
+        updateColumnOptions();
         updatePreviewPanel();
         updatePrice();
     }
 }
 window.selectNewspaper = selectNewspaper;
+
+/**
+ * Update column options based on newspaper language
+ */
+function updateColumnOptions() {
+    const columnSelect = document.getElementById('adColumns');
+    if (!columnSelect || !selectedNewspaper) return;
+
+    const language = selectedNewspaper.language || 'english';
+    const maxColumns = getMaxColumns(language);
+
+    let options = '';
+    for (let i = 1; i <= maxColumns; i++) {
+        const width = getColumnWidth(language, i);
+        options += `<option value="${i}">${i} col (${width} cm)</option>`;
+    }
+    columnSelect.innerHTML = options;
+    columnSelect.value = '1';
+}
 
 /**
  * Handle add paper button click
@@ -361,14 +381,18 @@ function updatePreviewPanel() {
  * Update box ad preview in right panel
  */
 function updateBoxAdPreview() {
-    const width = parseFloat(document.getElementById('adWidth')?.value) || 10;
+    if (!selectedNewspaper) return;
+
+    const columns = parseInt(document.getElementById('adColumns')?.value) || 1;
     const height = parseFloat(document.getElementById('adHeight')?.value) || 10;
     const colorOption = document.getElementById('colorOption')?.value || 'bw';
+    const language = selectedNewspaper.language || 'english';
+    const columnWidth = getColumnWidth(language, columns);
 
     // Calculate proportional size (max 40cm = 200px)
     const maxPixels = 200;
     const maxSize = 40;
-    const pixelWidth = (width / maxSize) * maxPixels;
+    const pixelWidth = (columnWidth / maxSize) * maxPixels;
     const pixelHeight = (height / maxSize) * maxPixels;
 
     const preview = document.getElementById('adBoxPreview');
@@ -378,7 +402,7 @@ function updateBoxAdPreview() {
 
         const dimensions = preview.querySelector('.ad-dimensions');
         if (dimensions) {
-            dimensions.textContent = `${width} × ${height} cm`;
+            dimensions.textContent = `${columnWidth.toFixed(1)} × ${height} cm`;
         }
 
         // Update color
@@ -429,25 +453,32 @@ function initBookingForm() {
     });
 
     // Box ad inputs
-    ['adWidth', 'adHeight'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-            el.addEventListener('input', function() {
-                // Enforce max height
-                if (parseFloat(this.value) > CONFIG.MAX_HEIGHT) {
-                    this.value = CONFIG.MAX_HEIGHT;
-                }
-                updatePrice();
-                checkFullPage();
-                updateBoxAdPreview();
-            });
-            el.addEventListener('change', function() {
-                updatePrice();
-                checkFullPage();
-                updateBoxAdPreview();
-            });
-        }
-    });
+    const heightInput = document.getElementById('adHeight');
+    if (heightInput) {
+        heightInput.addEventListener('input', function() {
+            // Enforce max height
+            if (parseFloat(this.value) > CONFIG.MAX_HEIGHT) {
+                this.value = CONFIG.MAX_HEIGHT;
+            }
+            updatePrice();
+            checkFullPage();
+            updateBoxAdPreview();
+        });
+        heightInput.addEventListener('change', function() {
+            updatePrice();
+            checkFullPage();
+            updateBoxAdPreview();
+        });
+    }
+
+    const columnsSelect = document.getElementById('adColumns');
+    if (columnsSelect) {
+        columnsSelect.addEventListener('change', function() {
+            updatePrice();
+            checkFullPage();
+            updateBoxAdPreview();
+        });
+    }
 
     document.getElementById('colorOption')?.addEventListener('change', function() {
         updatePrice();
@@ -556,12 +587,16 @@ function validateSelectedDate() {
  * Check if full page ad and show alert
  */
 function checkFullPage() {
-    const width = parseFloat(document.getElementById('adWidth')?.value) || 10;
+    if (!selectedNewspaper) return;
+
+    const columns = parseInt(document.getElementById('adColumns')?.value) || 1;
     const height = parseFloat(document.getElementById('adHeight')?.value) || 10;
+    const language = selectedNewspaper.language || 'english';
+    const columnWidth = getColumnWidth(language, columns);
     const alert = document.getElementById('fullPageAlert');
 
     if (alert) {
-        if (isFullPageAd(width, height)) {
+        if (isFullPageAd(columnWidth, height)) {
             alert.style.display = 'flex';
         } else {
             alert.style.display = 'none';
@@ -587,26 +622,24 @@ function updatePrice() {
     let details = [];
 
     if (adType === 'box') {
-        const width = parseFloat(document.getElementById('adWidth')?.value) || 10;
+        const columns = parseInt(document.getElementById('adColumns')?.value) || 1;
         const height = parseFloat(document.getElementById('adHeight')?.value) || 10;
         const colorOption = document.getElementById('colorOption')?.value || 'bw';
+        const language = selectedNewspaper.language || 'english';
+        const columnWidth = getColumnWidth(language, columns);
 
-        const area = width * height;
-        const rate = colorOption === 'color' ? selectedNewspaper.colorRate : selectedNewspaper.bwRate;
-        const adTotal = area * rate;
-        const commission = adTotal * CONFIG.CHARGES.boxAdCommission;
-        const subtotal = adTotal + commission;
-        const vat = subtotal * CONFIG.CHARGES.vatRate;
-        total = subtotal + vat;
+        const calc = calculateBoxAdPrice(selectedNewspaper, height, columns, colorOption);
+        total = calc.total;
 
         details = [
             { label: 'Newspaper', value: selectedNewspaper.name },
-            { label: 'Size', value: `${width} x ${height} cm` },
-            { label: 'Area', value: `${area.toFixed(1)} sq cm` },
-            { label: colorOption === 'color' ? 'Color Rate' : 'B&W Rate', value: `Rs. ${rate}/sq cm` },
-            { label: 'Ad Cost', value: formatCurrency(adTotal) },
-            { label: 'Commission (10%)', value: formatCurrency(commission) },
-            { label: 'VAT (18%)', value: formatCurrency(vat) }
+            { label: 'Size', value: `${columns} col x ${height} cm (H)` },
+            { label: 'Column Width', value: `${columnWidth.toFixed(1)} cm (${selectedNewspaper.language})` },
+            { label: colorOption === 'color' ? 'Color Rate' : 'B&W Rate', value: `Rs. ${calc.rate}/col-cm` },
+            { label: 'Calculation', value: `${columns} col x ${height} cm x Rs. ${calc.rate}` },
+            { label: 'Ad Cost', value: formatCurrency(calc.adTotal) },
+            { label: 'Commission (10%)', value: formatCurrency(calc.commission) },
+            { label: 'VAT (18%)', value: formatCurrency(calc.vat) }
         ];
 
         // Update preview
@@ -676,36 +709,47 @@ function addToCartWithDate(pubDate) {
     };
 
     if (adType === 'box') {
-        const width = parseFloat(document.getElementById('adWidth')?.value) || 10;
+        const columns = parseInt(document.getElementById('adColumns')?.value) || 1;
         const height = parseFloat(document.getElementById('adHeight')?.value) || 10;
         const colorOption = document.getElementById('colorOption')?.value || 'bw';
+        const language = selectedNewspaper.language || 'english';
+        const columnWidth = getColumnWidth(language, columns);
 
-        if (isFullPageAd(width, height)) {
+        if (isFullPageAd(columnWidth, height)) {
             showNotification('For full page ads, please contact us directly', 'warning');
             showContactForm();
             return;
         }
 
-        const area = width * height;
-        const rate = colorOption === 'color' ? selectedNewspaper.colorRate : selectedNewspaper.bwRate;
-        const adTotal = area * rate;
-        const commission = adTotal * CONFIG.CHARGES.boxAdCommission;
-        const subtotal = adTotal + commission;
-        const vat = subtotal * CONFIG.CHARGES.vatRate;
-        const total = subtotal + vat;
+        const calc = calculateBoxAdPrice(selectedNewspaper, height, columns, colorOption);
+
+        // Get uploaded file if any
+        const fileInput = document.getElementById('adFileUpload');
+        const adFile = fileInput?.files[0] || null;
 
         cartItem.details = {
-            width: width,
+            columns: columns,
+            columnWidth: columnWidth,
             height: height,
-            area: area,
+            area: calc.area,
             colorOption: colorOption,
-            rate: rate,
-            adTotal: adTotal,
-            commission: commission,
-            vat: vat
+            rate: calc.rate,
+            adTotal: calc.adTotal,
+            commission: calc.commission,
+            vat: calc.vat,
+            adFile: adFile ? {
+                name: adFile.name,
+                size: adFile.size,
+                type: adFile.type
+            } : null
         };
-        cartItem.price = total;
-        cartItem.description = `Box Ad: ${width} x ${height}cm (${colorOption === 'color' ? 'Color' : 'B&W'})`;
+        cartItem.price = calc.total;
+        cartItem.description = `Box Ad: ${columns} col x ${height}cm (${colorOption === 'color' ? 'Color' : 'B&W'})`;
+
+        // Store file object separately for later upload
+        if (adFile) {
+            cartItem.uploadFile = adFile;
+        }
     } else {
         const text = document.getElementById('classifiedText')?.value || '';
         const words = text.trim().split(/\s+/).filter(w => w.length > 0).length;
