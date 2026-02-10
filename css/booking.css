@@ -819,23 +819,28 @@
 }
 
 /* ============================================
-   Floating Newspaper Preview Sticker
+   Newspaper Preview Sticker (in Sidebar)
    ============================================ */
 .newspaper-sticker {
-    position: fixed;
-    top: 100px;
-    left: 20px;
     background: white;
+    border-radius: var(--radius-xl);
+    padding: 1.25rem;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 1rem;
     border: 2px solid var(--primary);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-xl);
-    padding: 1rem;
-    z-index: 999;
-    max-width: 220px;
+}
+
+.newspaper-sticker h4 {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    color: var(--gray-900);
+    text-align: center;
 }
 
 .sticker-preview {
     margin-bottom: 1rem;
+    display: flex;
+    justify-content: center;
 }
 
 .sticker-price {
@@ -1073,11 +1078,6 @@
     /* Hide hover preview on mobile */
     .ad-type-card:hover .sample-preview {
         opacity: 0;
-    }
-
-    /* Hide sticker on mobile */
-    .newspaper-sticker {
-        display: none;
     }
 
     .comparison-table {

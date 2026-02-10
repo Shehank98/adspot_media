@@ -78,17 +78,6 @@
             </div>
 
             <div class="booking-container">
-                <!-- Floating Newspaper Preview Sticker -->
-                <div class="newspaper-sticker" id="newspaperSticker">
-                    <div class="sticker-preview" id="stickerPreview">
-                        <!-- Populated by JavaScript -->
-                    </div>
-                    <div class="sticker-price">
-                        <span class="price-label">Current Price</span>
-                        <span class="price-value" id="stickerPrice">Rs. 0.00</span>
-                    </div>
-                </div>
-
                 <!-- Booking Form -->
                 <div class="booking-form-wrapper">
                     <form id="bookingForm" class="booking-form">
@@ -270,6 +259,7 @@
                                                 <th>Newspaper</th>
                                                 <th>Rate</th>
                                                 <th>Total Price</th>
+                                                <th>Action</th>
                                             </tr>
                                         </thead>
                                         <tbody id="comparisonTableBody">
@@ -484,6 +474,18 @@
 
                 <!-- Price Calculator Sidebar -->
                 <div class="price-sidebar">
+                    <!-- Newspaper Preview Sticker -->
+                    <div class="newspaper-sticker" id="newspaperSticker">
+                        <h4>Preview</h4>
+                        <div class="sticker-preview" id="stickerPreview">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                        <div class="sticker-price">
+                            <span class="price-label">Cheapest Price</span>
+                            <span class="price-value" id="stickerPrice">Rs. 0.00</span>
+                        </div>
+                    </div>
+
                     <div class="price-card">
                         <h3>Current Ad Price</h3>
                         <div class="price-details" id="priceDetails">

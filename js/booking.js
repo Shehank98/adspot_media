@@ -169,14 +169,27 @@ function updateComparisonChart() {
     // Sort by price (cheapest first)
     rows.sort((a, b) => a.price - b.price);
 
-    // Generate table rows
-    tableBody.innerHTML = rows.map(row => `
+    // Generate table rows with Add to Cart buttons
+    tableBody.innerHTML = rows.map((row, index) => `
         <tr data-paper-id="${row.paper.id}">
             <td>${row.paper.name}</td>
             <td>${row.rate}</td>
             <td>${formatCurrency(row.price)}</td>
+            <td>
+                <button type="button" class="select-btn" onclick="addToCartFromComparison(${index})">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; display: inline; margin-right: 4px;">
+                        <circle cx="9" cy="21" r="1"/>
+                        <circle cx="20" cy="21" r="1"/>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>
+                    </svg>
+                    Add to Cart
+                </button>
+            </td>
         </tr>
     `).join('');
+
+    // Store rows for later access
+    window.comparisonRows = rows;
 
     // Update newspaper preview sticker with first (cheapest) paper
     if (rows.length > 0) {
@@ -594,45 +607,74 @@ function updatePrice() {
 }
 
 /**
- * Add current ad to cart
+ * Add to cart from comparison table
  */
-function addToCart() {
-    if (!selectedNewspaper) {
-        showNotification('Please select a newspaper', 'warning');
+function addToCartFromComparison(rowIndex) {
+    if (!window.comparisonRows || !window.comparisonRows[rowIndex]) {
+        showNotification('Please configure your ad first', 'warning');
         return;
     }
 
-    const adType = document.querySelector('input[name="adType"]:checked').value;
-    const pubDate = document.getElementById('pubDate')?.value;
+    const row = window.comparisonRows[rowIndex];
+    const newspaper = row.paper;
 
-    if (!pubDate) {
-        showNotification('Please select a publication date', 'warning');
+    // Prompt for publication date
+    const dateInput = prompt('Enter publication date (YYYY-MM-DD):');
+
+    if (!dateInput) {
+        // User cancelled
         return;
     }
 
     // Validate the date
-    const validation = validateBookingDate(pubDate, selectedNewspaper);
+    const validation = validateBookingDate(dateInput, newspaper);
     if (!validation.isValid) {
         showNotification(validation.errors[0], 'error');
         return;
     }
 
+    // Add to cart with the selected newspaper
+    addToCartWithNewspaper(newspaper, dateInput);
+}
+window.addToCartFromComparison = addToCartFromComparison;
+
+/**
+ * Add a specific newspaper to cart with date
+ */
+function addToCartWithNewspaper(newspaper, pubDate) {
+    const adType = document.querySelector('input[name="adType"]:checked').value;
+
+    // Calculate price for this specific newspaper
+    let price = 0;
+    if (adType === 'box') {
+        const columns = parseInt(document.getElementById('adColumns')?.value) || 1;
+        const height = parseFloat(document.getElementById('adHeight')?.value) || 10;
+        const colorOption = document.getElementById('colorOption')?.value || 'bw';
+        const calc = calculateBoxAdPrice(newspaper, height, columns, colorOption);
+        price = calc.total;
+    } else {
+        const text = document.getElementById('classifiedText')?.value || '';
+        const words = text.trim().split(/\s+/).filter(w => w.length > 0).length || 20;
+        const calc = calculateClassifiedPrice(newspaper, words);
+        price = calc.total;
+    }
+
     let cartItem = {
         id: Date.now(),
-        newspaperId: selectedNewspaper.id,
-        newspaperName: selectedNewspaper.name,
-        newspaperLanguage: selectedNewspaper.language,
-        groupName: CONFIG.PUBLICATIONS[selectedGroup].name,
+        newspaperId: newspaper.id,
+        newspaperName: newspaper.name,
+        newspaperLanguage: newspaper.language,
+        groupName: newspaper.groupName,
         adType: adType,
         pubDate: pubDate,
-        price: window.currentAdPrice || 0
+        price: price
     };
 
     if (adType === 'box') {
         const columns = parseInt(document.getElementById('adColumns')?.value) || 1;
-        const height = parseFloat(document.getElementById('adHeight')?.value) || 0;
+        const height = parseFloat(document.getElementById('adHeight')?.value) || 10;
         const colorOption = document.getElementById('colorOption')?.value || 'bw';
-        const columnWidth = getColumnWidth(selectedNewspaper.language, columns);
+        const columnWidth = getColumnWidth(newspaper.language, columns);
 
         if (isFullPageAd(columnWidth, height)) {
             showNotification('For full page ads, please contact us directly', 'warning');
@@ -640,7 +682,7 @@ function addToCart() {
             return;
         }
 
-        const calc = calculateBoxAdPrice(selectedNewspaper, height, columns, colorOption);
+        const calc = calculateBoxAdPrice(newspaper, height, columns, colorOption);
 
         cartItem.details = {
             columns: columns,
@@ -650,7 +692,8 @@ function addToCart() {
             colorOption: colorOption,
             rate: calc.rate,
             adTotal: calc.adTotal,
-            commission: calc.commission
+            commission: calc.commission,
+            vat: calc.vat
         };
         cartItem.description = `Box Ad: ${columns} col x ${height}cm (${colorOption === 'color' ? 'Color' : 'B&W'})`;
     } else {
@@ -663,7 +706,7 @@ function addToCart() {
             return;
         }
 
-        const calc = calculateClassifiedPrice(selectedNewspaper, words);
+        const calc = calculateClassifiedPrice(newspaper, words);
 
         cartItem.details = {
             text: text,
@@ -678,7 +721,7 @@ function addToCart() {
     // Check if same newspaper already in cart
     const existingIndex = adCart.findIndex(item => item.newspaperId === cartItem.newspaperId && item.adType === cartItem.adType);
     if (existingIndex >= 0) {
-        if (!confirm(`You already have a ${adType} ad for ${selectedNewspaper.name}. Replace it?`)) {
+        if (!confirm(`You already have a ${adType} ad for ${newspaper.name}. Replace it?`)) {
             return;
         }
         adCart[existingIndex] = cartItem;
@@ -687,7 +730,32 @@ function addToCart() {
     }
 
     updateCartDisplay();
-    showNotification(`Added ${selectedNewspaper.name} to cart!`, 'success');
+    showNotification(`Added ${newspaper.name} to cart!`, 'success');
+}
+
+/**
+ * Add current ad to cart (using old form with date input)
+ */
+function addToCart() {
+    if (!selectedNewspaper) {
+        showNotification('Please select a newspaper', 'warning');
+        return;
+    }
+
+    const pubDate = document.getElementById('pubDate')?.value;
+    if (!pubDate) {
+        showNotification('Please select a publication date', 'warning');
+        return;
+    }
+
+    // Validate the date
+    const validation = validateBookingDate(pubDate, selectedNewspaper);
+    if (!validation.isValid) {
+        showNotification(validation.errors[0], 'error');
+        return;
+    }
+
+    addToCartWithNewspaper(selectedNewspaper, pubDate);
 }
 
 /**
