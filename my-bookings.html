@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Bookings | AdSpot Media</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/firebase-ui.css">
+
+    <style>
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 100px 20px 40px;
+        }
+
+        .dashboard-header {
+            margin-bottom: 40px;
+        }
+
+        .dashboard-header h1 {
+            font-size: 32px;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .dashboard-header p {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        .bookings-grid {
+            display: grid;
+            gap: 24px;
+        }
+
+        .booking-card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .booking-card:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .booking-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .booking-id {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .booking-status {
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-confirmed {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-completed {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .booking-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .detail-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .detail-value {
+            font-size: 15px;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .booking-items {
+            background: var(--gray-50);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .booking-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .booking-item:last-child {
+            border-bottom: none;
+        }
+
+        .item-info h4 {
+            font-size: 15px;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .item-info p {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .item-price {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .booking-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--text-primary);
+            border: 1px solid var(--gray-300);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-50);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+        }
+
+        .empty-state svg {
+            width: 120px;
+            height: 120px;
+            margin-bottom: 24px;
+            opacity: 0.3;
+        }
+
+        .empty-state h2 {
+            font-size: 24px;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .empty-state p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--gray-200);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <span class="logo-icon">◈</span>
+                <span class="logo-text">AdSpot</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html#services">Services</a></li>
+                <li><a href="index.html#publications">Publications</a></li>
+                <li><a href="index.html#contact">Contact</a></li>
+            </ul>
+            <div class="nav-actions">
+                <a href="book.html" class="btn btn-primary">Book Your Ad</a>
+                <button id="loginBtn" class="btn btn-ghost btn-auth" style="display: none;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    Sign In
+                </button>
+                <div id="userMenu" class="user-menu" style="display: none;">
+                    <img id="userPhoto" class="user-avatar" src="" alt="">
+                    <div class="user-dropdown">
+                        <div class="user-info">
+                            <span id="userName" class="user-name">User</span>
+                            <span id="userEmail" class="user-email">user@email.com</span>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <a href="my-bookings.html" class="dropdown-item active">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="7" height="7"></rect>
+                                <rect x="14" y="3" width="7" height="7"></rect>
+                                <rect x="14" y="14" width="7" height="7"></rect>
+                                <rect x="3" y="14" width="7" height="7"></rect>
+                            </svg>
+                            My Bookings
+                        </a>
+                        <a href="admin.html" id="adminLink" class="dropdown-item" style="display: none;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                                <path d="M2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                            </svg>
+                            Admin Dashboard
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <button id="logoutBtn" class="dropdown-item">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                            Sign Out
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>My Bookings</h1>
+            <p>View and manage your newspaper advertisement bookings</p>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="loading">
+            <div class="spinner"></div>
+            <p>Loading your bookings...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            <h2>No Bookings Yet</h2>
+            <p>You haven't placed any advertisement bookings yet.</p>
+            <a href="book.html" class="btn btn-primary">Book Your First Ad</a>
+        </div>
+
+        <!-- Bookings Grid -->
+        <div id="bookingsGrid" class="bookings-grid" style="display: none;"></div>
+    </main>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <!-- Firebase Config and Auth -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/auth.js"></script>
+
+    <script>
+        // Format currency
+        function formatCurrency(amount) {
+            return `LKR ${amount.toLocaleString('en-LK')}`;
+        }
+
+        // Format date
+        function formatDate(timestamp) {
+            if (!timestamp) return 'N/A';
+            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        // Load user bookings
+        async function loadBookings() {
+            const user = firebase.auth().currentUser;
+
+            if (!user) {
+                // Redirect to home if not logged in
+                window.location.href = 'index.html';
+                return;
+            }
+
+            const loadingState = document.getElementById('loadingState');
+            const emptyState = document.getElementById('emptyState');
+            const bookingsGrid = document.getElementById('bookingsGrid');
+
+            try {
+                // Query bookings for current user
+                const snapshot = await db.collection('bookings')
+                    .where('customerId', '==', user.uid)
+                    .orderBy('createdAt', 'desc')
+                    .get();
+
+                loadingState.style.display = 'none';
+
+                if (snapshot.empty) {
+                    emptyState.style.display = 'block';
+                    return;
+                }
+
+                bookingsGrid.style.display = 'grid';
+
+                // Render bookings
+                snapshot.forEach(doc => {
+                    const booking = doc.data();
+                    const bookingCard = createBookingCard(booking);
+                    bookingsGrid.appendChild(bookingCard);
+                });
+
+            } catch (error) {
+                console.error('Error loading bookings:', error);
+                loadingState.innerHTML = `
+                    <p style="color: #ef4444;">Failed to load bookings. Please try again.</p>
+                `;
+            }
+        }
+
+        // Create booking card HTML
+        function createBookingCard(booking) {
+            const card = document.createElement('div');
+            card.className = 'booking-card';
+
+            const statusClass = `status-${booking.status || 'pending'}`;
+            const statusText = (booking.status || 'pending').charAt(0).toUpperCase() + (booking.status || 'pending').slice(1);
+
+            card.innerHTML = `
+                <div class="booking-header">
+                    <div>
+                        <div class="booking-id">${booking.bookingId}</div>
+                        <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
+                            ${formatDate(booking.createdAt)}
+                        </p>
+                    </div>
+                    <span class="booking-status ${statusClass}">${statusText}</span>
+                </div>
+
+                <div class="booking-details">
+                    <div class="detail-item">
+                        <span class="detail-label">Quotation Number</span>
+                        <span class="detail-value">${booking.quotationNumber}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Invoice Number</span>
+                        <span class="detail-value">${booking.invoiceNumber || 'Pending'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Payment Status</span>
+                        <span class="detail-value">${booking.paymentStatus || 'Pending'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Total Amount</span>
+                        <span class="detail-value">${formatCurrency(booking.totalAmount)}</span>
+                    </div>
+                </div>
+
+                <div class="booking-items">
+                    ${booking.items.map(item => `
+                        <div class="booking-item">
+                            <div class="item-info">
+                                <h4>${item.newspaperName}</h4>
+                                <p>${item.adType === 'box' ? 'Box Ad' : 'Classified Ad'} • ${item.pubDate}</p>
+                            </div>
+                            <div class="item-price">${formatCurrency(item.price)}</div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div class="booking-actions">
+                    <button class="btn btn-primary" onclick="downloadInvoice('${booking.invoiceNumber}')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        Download Invoice
+                    </button>
+                    <a href="book.html" class="btn btn-secondary">Book Again</a>
+                </div>
+            `;
+
+            return card;
+        }
+
+        // Download invoice (will fetch from Google Drive link)
+        async function downloadInvoice(invoiceNumber) {
+            if (!invoiceNumber || invoiceNumber === 'Pending') {
+                alert('Invoice is being generated. Please check back later.');
+                return;
+            }
+
+            try {
+                // Fetch invoice from Firestore
+                const invoiceDoc = await db.collection('invoices').doc(invoiceNumber).get();
+
+                if (invoiceDoc.exists) {
+                    const invoice = invoiceDoc.data();
+                    if (invoice.pdfUrl) {
+                        // Open Google Drive PDF link in new tab
+                        window.open(invoice.pdfUrl, '_blank');
+                    } else {
+                        alert('Invoice PDF is being generated. Please try again in a few moments.');
+                    }
+                } else {
+                    alert('Invoice not found.');
+                }
+            } catch (error) {
+                console.error('Error downloading invoice:', error);
+                alert('Failed to download invoice. Please try again.');
+            }
+        }
+
+        // Wait for auth to load
+        firebase.auth().onAuthStateChanged(user => {
+            if (user) {
+                loadBookings();
+            } else {
+                // Redirect to home if not logged in
+                window.location.href = 'index.html';
+            }
+        });
+    </script>
+</body>
+</html>
