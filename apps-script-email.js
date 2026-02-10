@@ -23,6 +23,9 @@ function doPost(e) {
       case 'invoice_email':
         return sendInvoiceEmail(data);
 
+      case 'payment_confirmation':
+        return sendPaymentConfirmation(data);
+
       case 'file_upload_notification':
         return sendFileNotification(data);
 
@@ -84,6 +87,7 @@ function sendBookingConfirmation(data) {
               <strong style="color: #1e293b;">${item.newspaperName}</strong><br>
               <span style="color: #64748b;">${item.adType === 'box' ? 'Box Ad' : 'Classified Ad'} • ${item.pubDate}</span><br>
               <span style="color: #667eea; font-weight: bold;">LKR ${formatNumber(item.price)}</span>
+              ${item.adFileUrl ? `<br><a href="${item.adFileUrl}" style="color: #667eea; text-decoration: underline; font-size: 13px;">📎 View Ad File</a>` : ''}
             </div>
           `).join('')}
         </div>
@@ -91,15 +95,16 @@ function sendBookingConfirmation(data) {
         ${data.paymentMethod === 'bank' ? `
         <div style="background: #fef3c7; padding: 20px; border-radius: 8px; border-left: 4px solid #f59e0b;">
           <h3 style="color: #92400e; margin-top: 0;">Bank Transfer Details</h3>
-          <p style="color: #92400e; margin: 5px 0;"><strong>Bank:</strong> Commercial Bank</p>
-          <p style="color: #92400e; margin: 5px 0;"><strong>Account Name:</strong> AdSpot Media</p>
-          <p style="color: #92400e; margin: 5px 0;"><strong>Account Number:</strong> 8001234567</p>
-          <p style="color: #92400e; margin: 5px 0;"><strong>Branch:</strong> Colombo Fort</p>
-          <p style="color: #92400e; margin: 10px 0 0 0;"><em>Please send payment receipt to finance@adspotmedia.lk</em></p>
+          <p style="color: #92400e; margin: 5px 0;"><strong>Bank:</strong> Sampath Bank PLC</p>
+          <p style="color: #92400e; margin: 5px 0;"><strong>Account Name:</strong> P S Kavishka</p>
+          <p style="color: #92400e; margin: 5px 0;"><strong>Account Number:</strong> 1210 5770 0812</p>
+          <p style="color: #92400e; margin: 5px 0;"><strong>Branch:</strong> Karagampitiya</p>
+          <p style="color: #92400e; margin: 5px 0;"><strong>Reference:</strong> ${data.quotationNumber}</p>
+          <p style="color: #92400e; margin: 10px 0 0 0;"><em>Please use the quotation number as your payment reference</em></p>
         </div>
         ` : ''}
 
-        <p style="color: #64748b; margin-top: 30px;">If you have any questions, please contact us at finance@adspotmedia.lk or call +94 70 642 1998.</p>
+        <p style="color: #64748b; margin-top: 30px;">If you have any questions, please contact us at adspot77@gmail.com or call +94 70 642 1998.</p>
       </div>
 
       <div style="background: #1e293b; padding: 20px; text-align: center;">
@@ -108,18 +113,26 @@ function sendBookingConfirmation(data) {
     </div>
   `;
 
-  MailApp.sendEmail({
-    to: data.customerEmail,
-    replyTo: 'finance@adspotmedia.lk',
-    name: 'AdSpot Finance',
-    subject: subject,
-    htmlBody: htmlBody
-  });
+  try {
+    MailApp.sendEmail({
+      to: data.customerEmail,
+      replyTo: 'adspot77@gmail.com',
+      name: 'AdSpot Media',
+      subject: subject,
+      htmlBody: htmlBody
+    });
 
-  return ContentService.createTextOutput(JSON.stringify({
-    success: true,
-    message: 'Booking confirmation sent'
-  })).setMimeType(ContentService.MimeType.JSON);
+    Logger.log('Booking confirmation sent to: ' + data.customerEmail);
+    Logger.log('Quotation Number: ' + data.quotationNumber);
+
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: 'Booking confirmation sent'
+    })).setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    Logger.log('Failed to send booking confirmation: ' + error.toString());
+    throw error;
+  }
 }
 
 /**
@@ -178,11 +191,11 @@ function sendInvoiceEmail(data) {
         ` : `
         <div style="background: #fef3c7; padding: 20px; border-radius: 8px; border-left: 4px solid #f59e0b;">
           <p style="color: #92400e; margin: 0;"><strong>Payment Pending</strong></p>
-          <p style="color: #92400e; margin: 5px 0 0 0;">Please send payment to: finance@adspotmedia.lk</p>
+          <p style="color: #92400e; margin: 5px 0 0 0;">Please send payment to: adspot77@gmail.com</p>
         </div>
         `}
 
-        <p style="color: #64748b; margin-top: 30px;">For any billing inquiries, contact us at finance@adspotmedia.lk or call +94 70 642 1998.</p>
+        <p style="color: #64748b; margin-top: 30px;">For any billing inquiries, contact us at adspot77@gmail.com or call +94 70 642 1998.</p>
       </div>
 
       <div style="background: #1e293b; padding: 20px; text-align: center;">
@@ -194,25 +207,40 @@ function sendInvoiceEmail(data) {
   // Prepare email options
   const emailOptions = {
     to: data.customerEmail,
-    replyTo: 'finance@adspotmedia.lk',
+    replyTo: 'adspot77@gmail.com',
     name: 'AdSpot Finance',
     subject: subject,
     htmlBody: htmlBody
   };
 
-  // Attach PDF if URL provided
+  // Attach PDF if provided (supports URL or base64)
   if (data.pdfUrl) {
     try {
       const pdfBlob = UrlFetchApp.fetch(data.pdfUrl).getBlob();
       pdfBlob.setName(`Invoice_${data.invoiceNumber}.pdf`);
       emailOptions.attachments = [pdfBlob];
+      Logger.log('PDF attached from URL: ' + data.pdfUrl);
     } catch (error) {
-      Logger.log('Failed to attach PDF: ' + error.toString());
-      // Send email without attachment
+      Logger.log('Failed to attach PDF from URL: ' + error.toString());
+    }
+  } else if (data.pdfBase64) {
+    try {
+      const pdfData = Utilities.base64Decode(data.pdfBase64);
+      const pdfBlob = Utilities.newBlob(pdfData, 'application/pdf', `Invoice_${data.invoiceNumber}.pdf`);
+      emailOptions.attachments = [pdfBlob];
+      Logger.log('PDF attached from base64');
+    } catch (error) {
+      Logger.log('Failed to attach PDF from base64: ' + error.toString());
     }
   }
 
-  MailApp.sendEmail(emailOptions);
+  try {
+    MailApp.sendEmail(emailOptions);
+    Logger.log('Invoice email sent successfully to: ' + data.customerEmail);
+  } catch (error) {
+    Logger.log('Failed to send invoice email: ' + error.toString());
+    throw error;
+  }
 
   return ContentService.createTextOutput(JSON.stringify({
     success: true,
@@ -221,10 +249,89 @@ function sendInvoiceEmail(data) {
 }
 
 /**
+ * Send payment confirmation email to customer
+ */
+function sendPaymentConfirmation(data) {
+  const subject = `Payment Received - ${data.quotationNumber} | AdSpot Media`;
+
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%); padding: 30px; text-align: center;">
+        <h1 style="color: white; margin: 0;">✓ Payment Received</h1>
+        <p style="color: white; margin: 10px 0 0 0;">Thank you for your payment!</p>
+      </div>
+
+      <div style="padding: 30px; background: #f8fafc;">
+        <h2 style="color: #1e293b;">Payment Confirmed</h2>
+        <p style="color: #64748b;">Dear ${data.customerName},</p>
+        <p style="color: #64748b;">We have successfully received your payment. Your ads will be processed and published as scheduled.</p>
+
+        <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="color: #10b981; margin-top: 0;">Payment Details</h3>
+          <table style="width: 100%; color: #64748b;">
+            <tr>
+              <td style="padding: 8px 0;"><strong>Quotation Number:</strong></td>
+              <td>${data.quotationNumber}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0;"><strong>Amount Paid:</strong></td>
+              <td><strong style="color: #10b981;">LKR ${formatNumber(data.amount)}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0;"><strong>Payment Date:</strong></td>
+              <td>${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
+            </tr>
+            ${data.paymentReference ? `
+            <tr>
+              <td style="padding: 8px 0;"><strong>Reference:</strong></td>
+              <td>${data.paymentReference}</td>
+            </tr>
+            ` : ''}
+          </table>
+        </div>
+
+        <div style="background: #dcfce7; padding: 20px; border-radius: 8px; border-left: 4px solid #10b981; margin: 20px 0;">
+          <p style="color: #166534; margin: 0;"><strong>✓ Your advertisement is now confirmed</strong></p>
+          <p style="color: #166534; margin: 8px 0 0 0;">Your invoice and receipt will be sent separately.</p>
+        </div>
+
+        <p style="color: #64748b; margin-top: 30px;">If you have any questions, please contact us at adspot77@gmail.com or call +94 70 642 1998.</p>
+      </div>
+
+      <div style="background: #1e293b; padding: 20px; text-align: center;">
+        <p style="color: #94a3b8; margin: 0; font-size: 12px;">© ${new Date().getFullYear()} AdSpot Media. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+
+  try {
+    MailApp.sendEmail({
+      to: data.customerEmail,
+      replyTo: 'adspot77@gmail.com',
+      name: 'AdSpot Media',
+      subject: subject,
+      htmlBody: htmlBody
+    });
+
+    Logger.log('Payment confirmation sent to: ' + data.customerEmail);
+    Logger.log('Quotation Number: ' + data.quotationNumber);
+    Logger.log('Amount: ' + data.amount);
+
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: 'Payment confirmation sent'
+    })).setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    Logger.log('Failed to send payment confirmation: ' + error.toString());
+    throw error;
+  }
+}
+
+/**
  * Send file upload notification to admin
  */
 function sendFileNotification(data) {
-  const adminEmail = 'finance@adspotmedia.lk'; // Change to your admin email
+  const adminEmail = 'adspot77@gmail.com'; // Change to your admin email
   const subject = `New Ad File Uploaded - ${data.bookingId} | AdSpot Admin`;
 
   const htmlBody = `
