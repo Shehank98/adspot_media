@@ -1,0 +1,301 @@
+/**
+ * Firebase Database Operations for AdSpot Media
+ * Handles all Firestore database interactions
+ */
+
+/**
+ * Apps Script Configuration
+ * Replace this URL with your deployed Google Apps Script web app URL
+ */
+const APPS_SCRIPT_URL = 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+
+/**
+ * Save booking to Firestore
+ */
+async function saveBookingToFirebase(bookingData) {
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            throw new Error('User must be logged in to save booking');
+        }
+
+        const bookingRef = db.collection('bookings').doc();
+
+        const booking = {
+            bookingId: generateBookingId(),
+            quotationNumber: bookingData.quotationNumber,
+            invoiceNumber: bookingData.invoiceNumber,
+            customerId: user.uid,
+            customerName: bookingData.customerName,
+            customerEmail: bookingData.customerEmail,
+            customerPhone: bookingData.customerPhone,
+            customerCompany: bookingData.customerCompany || '',
+            customerAddress: bookingData.customerAddress || '',
+            items: bookingData.items,
+            totalAmount: bookingData.totalAmount,
+            paymentMethod: bookingData.paymentMethod,
+            paymentStatus: bookingData.paymentStatus || 'pending',
+            paymentReference: bookingData.paymentReference || '',
+            status: 'pending',
+            notes: bookingData.notes || '',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        await bookingRef.set(booking);
+
+        // Update user's bookings array
+        await db.collection('users').doc(user.uid).update({
+            bookings: firebase.firestore.FieldValue.arrayUnion(bookingRef.id)
+        });
+
+        console.log('✅ Booking saved to Firebase:', bookingRef.id);
+
+        // Send emails via Apps Script
+        await sendBookingEmails(booking);
+
+        return bookingRef.id;
+    } catch (error) {
+        console.error('❌ Error saving booking:', error);
+        throw error;
+    }
+}
+
+/**
+ * Save invoice to Firestore
+ */
+async function saveInvoiceToFirebase(invoiceData) {
+    try {
+        const invoiceRef = db.collection('invoices').doc(invoiceData.invoiceNumber);
+
+        const invoice = {
+            invoiceNumber: invoiceData.invoiceNumber,
+            quotationNumber: invoiceData.quotationNumber,
+            bookingId: invoiceData.bookingId,
+            customerId: invoiceData.customerId,
+            customerName: invoiceData.customerName,
+            customerEmail: invoiceData.customerEmail,
+            items: invoiceData.items,
+            subtotal: invoiceData.subtotal,
+            commission: invoiceData.commission,
+            vat: invoiceData.vat,
+            total: invoiceData.total,
+            pdfUrl: invoiceData.pdfUrl || '',
+            sentAt: firebase.firestore.FieldValue.serverTimestamp(),
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        await invoiceRef.set(invoice);
+        console.log('✅ Invoice saved to Firebase:', invoiceData.invoiceNumber);
+
+        return invoiceData.invoiceNumber;
+    } catch (error) {
+        console.error('❌ Error saving invoice:', error);
+        throw error;
+    }
+}
+
+/**
+ * Upload ad file to Firebase Storage
+ */
+async function uploadAdFileToFirebase(file, bookingId) {
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) throw new Error('User must be logged in');
+
+        const fileName = `${bookingId}/${Date.now()}_${file.name}`;
+        const storageRef = storage.ref(`ad-files/${fileName}`);
+
+        const snapshot = await storageRef.put(file);
+        const downloadURL = await snapshot.ref.getDownloadURL();
+
+        console.log('✅ File uploaded to Firebase Storage:', downloadURL);
+        return downloadURL;
+    } catch (error) {
+        console.error('❌ Error uploading file:', error);
+        throw error;
+    }
+}
+
+/**
+ * Get user's bookings
+ */
+async function getUserBookings() {
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) throw new Error('User must be logged in');
+
+        const snapshot = await db.collection('bookings')
+            .where('customerId', '==', user.uid)
+            .orderBy('createdAt', 'desc')
+            .get();
+
+        const bookings = [];
+        snapshot.forEach(doc => {
+            bookings.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+
+        return bookings;
+    } catch (error) {
+        console.error('❌ Error fetching bookings:', error);
+        throw error;
+    }
+}
+
+/**
+ * Load newspapers from Firestore
+ */
+async function loadNewspapersFromFirebase() {
+    try {
+        const snapshot = await db.collection('newspapers')
+            .where('active', '==', true)
+            .orderBy('language')
+            .orderBy('name')
+            .get();
+
+        const newspapers = {};
+
+        snapshot.forEach(doc => {
+            const paper = doc.data();
+            const groupId = paper.groupId;
+
+            if (!newspapers[groupId]) {
+                newspapers[groupId] = {
+                    name: paper.groupName,
+                    newspapers: []
+                };
+            }
+
+            newspapers[groupId].newspapers.push({
+                ...paper,
+                id: doc.id
+            });
+        });
+
+        // Update CONFIG.PUBLICATIONS
+        if (typeof CONFIG !== 'undefined') {
+            CONFIG.PUBLICATIONS = newspapers;
+        }
+
+        console.log('✅ Newspapers loaded from Firebase:', Object.keys(newspapers).length, 'groups');
+        return newspapers;
+    } catch (error) {
+        console.error('❌ Error loading newspapers:', error);
+        // Return empty object if Firebase isn't set up yet
+        return {};
+    }
+}
+
+/**
+ * Load newspaper logos for carousel
+ */
+async function loadNewspaperLogos() {
+    try {
+        const snapshot = await db.collection('newspapers')
+            .where('active', '==', true)
+            .orderBy('name')
+            .get();
+
+        const logos = [];
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            logos.push({
+                name: data.name,
+                logo: data.logoUrl || null,
+                language: data.language
+            });
+        });
+
+        console.log('✅ Newspaper logos loaded:', logos.length);
+        return logos;
+    } catch (error) {
+        console.error('❌ Error loading logos:', error);
+        // Return default logos if Firebase isn't set up
+        return getDefaultNewspaperLogos();
+    }
+}
+
+/**
+ * Get default newspaper logos (fallback)
+ */
+function getDefaultNewspaperLogos() {
+    return [
+        { name: 'Daily News', language: 'english' },
+        { name: 'Sunday Observer', language: 'english' },
+        { name: 'Dinamina', language: 'sinhala' },
+        { name: 'Silumina', language: 'sinhala' },
+        { name: 'Lankadeepa', language: 'sinhala' },
+        { name: 'Divaina', language: 'sinhala' },
+        { name: 'Mawbima', language: 'sinhala' },
+        { name: 'Thinakaran', language: 'tamil' },
+        { name: 'Virakesari', language: 'tamil' }
+    ];
+}
+
+/**
+ * Send booking confirmation emails via Apps Script
+ */
+async function sendBookingEmails(bookingData) {
+    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
+        console.warn('⚠️ Apps Script URL not configured. Skipping email sending.');
+        return;
+    }
+
+    try {
+        const response = await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors', // Apps Script requires no-cors
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                type: 'booking_confirmation',
+                quotationNumber: bookingData.quotationNumber,
+                invoiceNumber: bookingData.invoiceNumber,
+                customerName: bookingData.customerName,
+                customerEmail: bookingData.customerEmail,
+                customerPhone: bookingData.customerPhone,
+                totalAmount: bookingData.totalAmount,
+                paymentMethod: bookingData.paymentMethod,
+                items: bookingData.items.map(item => ({
+                    newspaperName: item.newspaperName,
+                    adType: item.adType,
+                    pubDate: item.pubDate,
+                    price: item.price,
+                    description: item.description
+                }))
+            })
+        });
+
+        console.log('✅ Email request sent to Apps Script');
+    } catch (error) {
+        console.error('❌ Error sending emails:', error);
+        // Don't throw error - email failure shouldn't block booking
+    }
+}
+
+/**
+ * Generate unique booking ID
+ */
+function generateBookingId() {
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    return `BOOK-${year}${month}${day}-${random}`;
+}
+
+// Export functions for global access
+window.saveBookingToFirebase = saveBookingToFirebase;
+window.saveInvoiceToFirebase = saveInvoiceToFirebase;
+window.uploadAdFileToFirebase = uploadAdFileToFirebase;
+window.getUserBookings = getUserBookings;
+window.loadNewspapersFromFirebase = loadNewspapersFromFirebase;
+window.loadNewspaperLogos = loadNewspaperLogos;
+window.sendBookingEmails = sendBookingEmails;
+
+console.log('✅ Firebase database operations loaded');

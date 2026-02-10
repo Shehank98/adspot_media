@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initMobileMenu();
     initAnimations();
     initContactForm();
+    initNewspaperCarousel();
 });
 
 /**
@@ -266,3 +267,80 @@ function showNotification(message, type = 'info') {
 
 // Export for use in other files
 window.showNotification = showNotification;
+
+/**
+ * Newspaper Carousel
+ * Auto-scrolling carousel showing newspaper logos
+ */
+async function initNewspaperCarousel() {
+    const carouselTrack = document.getElementById('newspaperCarousel');
+    if (!carouselTrack) return;
+
+    try {
+        // Try to load logos from Firebase
+        let logos = [];
+
+        if (typeof loadNewspaperLogos === 'function') {
+            console.log('Loading newspaper logos from Firebase...');
+            logos = await loadNewspaperLogos();
+        } else {
+            console.log('Firebase not configured, using default logos');
+            logos = getDefaultLogos();
+        }
+
+        // If no logos loaded, use defaults
+        if (logos.length === 0) {
+            logos = getDefaultLogos();
+        }
+
+        // Duplicate logos for seamless infinite scroll
+        const duplicatedLogos = [...logos, ...logos];
+
+        // Populate carousel
+        duplicatedLogos.forEach(paper => {
+            const logoItem = document.createElement('div');
+            logoItem.className = 'newspaper-logo-item';
+
+            if (paper.logo) {
+                // If logo URL exists, show image
+                logoItem.innerHTML = `<img src="${paper.logo}" alt="${paper.name}" loading="lazy">`;
+            } else {
+                // If no logo, show text placeholder
+                logoItem.innerHTML = `<div class="logo-placeholder">${paper.name}</div>`;
+            }
+
+            carouselTrack.appendChild(logoItem);
+        });
+
+        console.log('✅ Newspaper carousel initialized with', logos.length, 'newspapers');
+    } catch (error) {
+        console.error('❌ Error initializing carousel:', error);
+        // Fallback to defaults on error
+        const logos = getDefaultLogos();
+        const duplicatedLogos = [...logos, ...logos];
+
+        duplicatedLogos.forEach(paper => {
+            const logoItem = document.createElement('div');
+            logoItem.className = 'newspaper-logo-item';
+            logoItem.innerHTML = `<div class="logo-placeholder">${paper.name}</div>`;
+            carouselTrack.appendChild(logoItem);
+        });
+    }
+}
+
+/**
+ * Get default newspaper logos (fallback)
+ */
+function getDefaultLogos() {
+    return [
+        { name: 'Daily News', language: 'english' },
+        { name: 'Sunday Observer', language: 'english' },
+        { name: 'Dinamina', language: 'sinhala' },
+        { name: 'Silumina', language: 'sinhala' },
+        { name: 'Lankadeepa', language: 'sinhala' },
+        { name: 'Divaina', language: 'sinhala' },
+        { name: 'Mawbima', language: 'sinhala' },
+        { name: 'Thinakaran', language: 'tamil' },
+        { name: 'Virakesari', language: 'tamil' }
+    ];
+}

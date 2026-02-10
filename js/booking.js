@@ -13,7 +13,10 @@ let adCart = [];
 let stripe = null;
 let cardElement = null;
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+    // Load newspapers from Firebase first
+    await initNewspapersFromFirebase();
+
     initLanguageSelection();
     initBookingForm();
     initStripe();
@@ -32,6 +35,30 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
+
+/**
+ * Initialize Newspapers from Firebase
+ * Load newspaper data from Firebase and update CONFIG
+ */
+async function initNewspapersFromFirebase() {
+    if (typeof loadNewspapersFromFirebase === 'function') {
+        try {
+            console.log('Loading newspapers from Firebase...');
+            const newspapers = await loadNewspapersFromFirebase();
+
+            // If newspapers loaded successfully, they're already set in CONFIG.PUBLICATIONS
+            if (Object.keys(newspapers).length > 0) {
+                console.log('✅ Newspapers loaded from Firebase:', Object.keys(newspapers).length, 'groups');
+            } else {
+                console.log('No newspapers loaded from Firebase, using default config');
+            }
+        } catch (error) {
+            console.warn('Failed to load newspapers from Firebase, using default config:', error);
+        }
+    } else {
+        console.log('Firebase not configured, using default newspaper config');
+    }
+}
 
 /**
  * Initialize Language Selection
@@ -1304,8 +1331,87 @@ async function handleSubmit(e) {
         // Save to database (if available) or use local storage
         let saveSuccess = false;
 
-        // Try to save to Supabase database
-        if (typeof supabase !== 'undefined' && supabase && typeof QuotationDB !== 'undefined' && typeof CustomerDB !== 'undefined') {
+        // Try to save to Firebase first
+        if (typeof saveBookingToFirebase === 'function') {
+            try {
+                console.log('Saving booking to Firebase...');
+
+                // Upload ad files to Firebase Storage if they exist
+                const fileInput = document.getElementById('adFile');
+                let adFileUrl = '';
+
+                if (fileInput && fileInput.files && fileInput.files.length > 0) {
+                    const file = fileInput.files[0];
+                    console.log('Uploading ad file to Firebase Storage...');
+
+                    if (typeof uploadAdFileToFirebase === 'function') {
+                        try {
+                            adFileUrl = await uploadAdFileToFirebase(file, quotationNumber);
+                            console.log('Ad file uploaded:', adFileUrl);
+                        } catch (uploadError) {
+                            console.warn('File upload failed, continuing without file:', uploadError);
+                        }
+                    }
+                }
+
+                // Prepare booking data for Firebase
+                const bookingData = {
+                    quotationNumber: quotationNumber,
+                    invoiceNumber: invoiceNumber,
+                    customerName: formData.customer_name,
+                    customerEmail: formData.customer_email,
+                    customerPhone: formData.customer_phone,
+                    customerCompany: formData.customer_company || '',
+                    customerAddress: formData.customer_address || '',
+                    items: adCart.map(item => ({
+                        newspaperId: item.newspaperId,
+                        newspaperName: item.newspaperName,
+                        groupName: item.groupName || '',
+                        adType: item.adType,
+                        pubDate: item.pubDate,
+                        price: item.price,
+                        details: item.details || {},
+                        description: item.description || '',
+                        adFileUrl: adFileUrl
+                    })),
+                    totalAmount: formData.total_amount,
+                    paymentMethod: paymentMethod,
+                    paymentStatus: formData.payment_status,
+                    paymentReference: formData.payment_reference || '',
+                    notes: formData.notes || ''
+                };
+
+                // Save to Firebase (also triggers email via Apps Script)
+                const bookingId = await saveBookingToFirebase(bookingData);
+                console.log('✅ Booking saved to Firebase:', bookingId);
+
+                // Save invoice to Firebase
+                if (typeof saveInvoiceToFirebase === 'function') {
+                    const invoiceData = {
+                        invoiceNumber: invoiceNumber,
+                        quotationNumber: quotationNumber,
+                        bookingId: bookingId,
+                        customerId: firebase?.auth()?.currentUser?.uid || 'guest',
+                        customerName: formData.customer_name,
+                        customerEmail: formData.customer_email,
+                        items: bookingData.items,
+                        subtotal: formData.total_amount * 0.826, // Reverse calculate (total / 1.21)
+                        commission: formData.total_amount * 0.083, // 10% of subtotal
+                        vat: formData.total_amount * 0.149, // 18% of subtotal
+                        total: formData.total_amount
+                    };
+                    await saveInvoiceToFirebase(invoiceData);
+                    console.log('✅ Invoice saved to Firebase');
+                }
+
+                saveSuccess = true;
+            } catch (firebaseError) {
+                console.warn('Firebase save failed, trying fallback:', firebaseError);
+            }
+        }
+
+        // Fallback: Try to save to Supabase database if Firebase failed
+        if (!saveSuccess && typeof supabase !== 'undefined' && supabase && typeof QuotationDB !== 'undefined' && typeof CustomerDB !== 'undefined') {
             try {
                 // Create or update customer
                 const customer = await CustomerDB.create({
