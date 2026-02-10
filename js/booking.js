@@ -13,7 +13,7 @@ let stripe = null;
 let cardElement = null;
 
 document.addEventListener('DOMContentLoaded', function() {
-    initPublicationGroups();
+    initLanguageSelection();
     initBookingForm();
     initStripe();
     setMinDate();
@@ -31,44 +31,66 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /**
- * Initialize Publication Groups
+ * Initialize Language Selection
  */
-function initPublicationGroups() {
-    const container = document.getElementById('pubGroupSelect');
+function initLanguageSelection() {
+    const container = document.getElementById('languageSelect');
     if (!container) return;
 
-    container.innerHTML = Object.entries(CONFIG.PUBLICATIONS).map(([groupId, group], index) => `
+    const languages = [
+        { id: 'sinhala', name: 'Sinhala', icon: 'සිං' },
+        { id: 'tamil', name: 'Tamil', icon: 'த' },
+        { id: 'english', name: 'English', icon: 'EN' }
+    ];
+
+    container.innerHTML = languages.map((lang, index) => `
         <label class="pub-group-card">
-            <input type="radio" name="pubGroup" value="${groupId}" ${index === 0 ? 'checked' : ''}>
+            <input type="radio" name="language" value="${lang.id}" ${index === 0 ? 'checked' : ''}>
             <div class="card-content">
-                <span class="pub-name">${group.name}</span>
-                <span class="pub-count">${group.newspapers.length} papers</span>
+                <span class="pub-name">${lang.name}</span>
+                <span class="pub-count">${lang.icon}</span>
             </div>
         </label>
     `).join('');
 
     // Add change listeners
-    container.querySelectorAll('input[name="pubGroup"]').forEach(radio => {
+    container.querySelectorAll('input[name="language"]').forEach(radio => {
         radio.addEventListener('change', function() {
-            updateNewspaperOptions(this.value);
+            updateNewspapersByLanguage(this.value);
         });
     });
 
-    // Initialize with first group
-    const firstGroup = Object.keys(CONFIG.PUBLICATIONS)[0];
-    updateNewspaperOptions(firstGroup);
+    // Initialize with first language
+    updateNewspapersByLanguage('sinhala');
 }
 
 /**
- * Update newspaper options based on selected group
+ * Update newspaper options based on selected language
  */
-function updateNewspaperOptions(groupId) {
+function updateNewspapersByLanguage(languageId) {
     const container = document.getElementById('newspaperSelect');
-    const group = CONFIG.PUBLICATIONS[groupId];
 
-    if (!group) return;
+    // Collect all newspapers from all publication groups
+    let allNewspapers = [];
+    Object.entries(CONFIG.PUBLICATIONS).forEach(([groupId, group]) => {
+        group.newspapers.forEach(paper => {
+            allNewspapers.push({
+                ...paper,
+                groupId: groupId,
+                groupName: group.name
+            });
+        });
+    });
 
-    selectedGroup = groupId;
+    // Filter by selected language
+    const filteredNewspapers = allNewspapers.filter(paper => paper.language === languageId);
+
+    if (filteredNewspapers.length === 0) {
+        container.innerHTML = '<p style="color: var(--gray-500); padding: 1rem;">No newspapers available for this language.</p>';
+        selectedNewspaper = null;
+        selectedGroup = null;
+        return;
+    }
 
     const langLabels = {
         'english': 'EN',
@@ -77,7 +99,7 @@ function updateNewspaperOptions(groupId) {
         'all': 'ALL'
     };
 
-    container.innerHTML = group.newspapers.map((paper, index) => `
+    container.innerHTML = filteredNewspapers.map((paper, index) => `
         <label class="newspaper-card">
             <input type="radio" name="newspaper" value="${paper.id}" ${index === 0 ? 'checked' : ''}>
             <div class="card-content">
@@ -92,7 +114,8 @@ function updateNewspaperOptions(groupId) {
     // Add change listeners
     container.querySelectorAll('input[name="newspaper"]').forEach(radio => {
         radio.addEventListener('change', function() {
-            selectedNewspaper = group.newspapers.find(p => p.id === this.value);
+            selectedNewspaper = filteredNewspapers.find(p => p.id === this.value);
+            selectedGroup = selectedNewspaper.groupId;
             updateColumnOptions();
             updateQuickRates();
             updatePrice();
@@ -100,7 +123,8 @@ function updateNewspaperOptions(groupId) {
     });
 
     // Select first by default
-    selectedNewspaper = group.newspapers[0];
+    selectedNewspaper = filteredNewspapers[0];
+    selectedGroup = selectedNewspaper.groupId;
     updateColumnOptions();
     updateQuickRates();
     updatePrice();

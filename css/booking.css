@@ -2,10 +2,10 @@
    AdSpot Booking Page - Additional Styles
    ============================================ */
 
-/* Publication Group Cards */
+/* Language Selection / Publication Group Cards */
 .publication-groups {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 0.75rem;
 }
 
@@ -818,6 +818,77 @@
     color: #b45309;
 }
 
+/* ============================================
+   FIX: Smaller Ad Type Buttons
+   ============================================ */
+.ad-type-card .card-content {
+    padding: 1rem 1.25rem !important;
+}
+
+.ad-type-card .type-icon {
+    width: 40px !important;
+    height: 40px !important;
+    margin-bottom: 0.75rem !important;
+}
+
+.ad-type-card .type-icon svg {
+    width: 20px !important;
+    height: 20px !important;
+}
+
+.ad-type-card .type-name {
+    font-size: 0.9375rem;
+}
+
+.ad-type-card .type-desc {
+    font-size: 0.75rem;
+}
+
+/* ============================================
+   Hover Effect: Sample Paper Images
+   ============================================ */
+.ad-type-card {
+    position: relative;
+}
+
+.ad-type-card .sample-preview {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 1000;
+    background: white;
+    border: 2px solid var(--primary);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    padding: 0.5rem;
+    min-width: 250px;
+}
+
+.ad-type-card:hover .sample-preview {
+    opacity: 1;
+}
+
+.ad-type-card .sample-preview img {
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius-md);
+    display: block;
+}
+
+.ad-type-card .sample-preview .preview-label {
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--primary);
+    margin-top: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .publication-groups {
@@ -866,5 +937,10 @@
     .form-actions .btn {
         width: 100%;
         justify-content: center;
+    }
+
+    /* Hide hover preview on mobile */
+    .ad-type-card:hover .sample-preview {
+        opacity: 0;
     }
 }
