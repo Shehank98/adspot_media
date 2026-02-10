@@ -35,7 +35,16 @@ document.addEventListener('DOMContentLoaded', function() {
  */
 function initLanguageSelection() {
     const container = document.getElementById('languageSelect');
-    if (!container) return;
+    if (!container) {
+        console.error('languageSelect container not found');
+        return;
+    }
+
+    // Check if CONFIG is loaded
+    if (typeof CONFIG === 'undefined' || !CONFIG.PUBLICATIONS) {
+        console.error('CONFIG not loaded');
+        return;
+    }
 
     const languages = [
         { id: 'sinhala', name: 'Sinhala', icon: 'සිං' },
@@ -62,6 +71,7 @@ function initLanguageSelection() {
 
     // Initialize with first language
     updateNewspapersByLanguage('sinhala');
+    console.log('Language selection initialized');
 }
 
 /**

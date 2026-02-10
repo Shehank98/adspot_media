@@ -235,7 +235,7 @@ const CONFIG = {
                 {
                     id: 'daily-ft',
                     name: 'Daily FT',
-                    language: 'English',
+                    language: 'english',
                     bwRate: 420,
                     colorRate: 500,
                     classifiedBase: 0,
