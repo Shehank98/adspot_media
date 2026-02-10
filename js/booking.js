@@ -21,6 +21,9 @@ document.addEventListener('DOMContentLoaded', function() {
     initStripe();
     setMinDate();
 
+    // Initialize column options with default language
+    updateColumnOptions();
+
     // Check URL params for ad type
     const urlParams = new URLSearchParams(window.location.search);
     const adType = urlParams.get('type');
@@ -190,15 +193,16 @@ function updateComparisonChart() {
  */
 function updateColumnOptions() {
     const columnSelect = document.getElementById('adColumns');
-    if (!columnSelect || !selectedNewspaper) return;
+    if (!columnSelect) return;
 
-    const language = selectedNewspaper.language || 'english';
+    // Use selected newspaper language or fallback to selected language
+    const language = selectedNewspaper?.language || selectedLanguage || 'sinhala';
     const maxColumns = getMaxColumns(language);
 
     let options = '';
     for (let i = 1; i <= maxColumns; i++) {
         const width = getColumnWidth(language, i);
-        options += `<option value="${i}">${i} col (${width} cm)</option>`;
+        options += `<option value="${i}">${i} col (${width.toFixed(1)} cm)</option>`;
     }
     columnSelect.innerHTML = options;
     columnSelect.value = '1';
