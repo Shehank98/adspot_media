@@ -1376,9 +1376,11 @@
     }
 
     .price-sidebar {
-        position: static;
+        position: sticky;
+        top: 80px;
         width: 100%;
         margin-top: 2rem;
+        z-index: 10;
     }
 
     .sample-popup {
@@ -1398,6 +1400,7 @@
     }
 
     .price-sidebar {
+        position: static;
         order: 2;
         margin-top: 2rem;
     }

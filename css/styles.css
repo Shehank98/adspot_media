@@ -2414,9 +2414,11 @@ html, body {
     .booking-container {
         grid-template-columns: 1fr;
     }
-    
+
     .price-sidebar {
-        position: static;
+        /* Keep sticky positioning for better UX when scrolling through newspaper selections */
+        position: sticky;
+        top: 80px;
         order: -1;
     }
     
