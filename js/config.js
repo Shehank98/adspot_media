@@ -32,17 +32,17 @@ const CONFIG = {
 
     // Newspaper Physical Dimensions (for preview)
     NEWSPAPER_SIZE: {
-        width: 38, // cm
+        width: 33, // cm
         height: 52  // cm
     },
 
     // Maximum ad height for all papers
-    MAX_HEIGHT: 40, // cm
+    MAX_HEIGHT: 50, // cm
 
     // Booking Rules
     BOOKING_RULES: {
         minDaysInAdvance: 2,  // Ads must be booked at least 2 days in advance
-        sundayDeadline: 'friday' // Sunday papers must be booked on or before Friday
+        sundayDeadline: 'thursday' // Sunday papers must be booked on or before Thursday
     },
 
     // Service Charges and Commissions
@@ -433,7 +433,7 @@ const CONFIG = {
 
     // Full page dimensions (triggers contact form)
     FULL_PAGE_WIDTH: 32, // cm - if width >= this, it's full page
-    FULL_PAGE_THRESHOLD: 416, // sq cm - area threshold for full page
+    FULL_PAGE_THRESHOLD: 1450, // sq cm - area threshold for full page
 
     // Quotation Number Prefix
     QUOTATION_PREFIX: 'ADM',
