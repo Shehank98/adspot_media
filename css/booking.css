@@ -1340,6 +1340,35 @@
 }
 
 @media (max-width: 768px) {
+    /* Mobile: Ensure form appears before sidebar */
+    .booking-container {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .booking-form-wrapper {
+        order: 1;
+    }
+
+    .price-sidebar {
+        order: 2;
+        margin-top: 2rem;
+    }
+
+    /* Move help card to bottom on mobile */
+    .price-sidebar .price-card {
+        order: 1;
+    }
+
+    .price-sidebar .rates-card {
+        order: 2;
+    }
+
+    .price-sidebar .help-card {
+        order: 3;
+        margin-top: 1.5rem;
+    }
+
     .language-select {
         flex-direction: column;
     }
@@ -1473,6 +1502,27 @@
 }
 
 @media (max-width: 480px) {
+    /* Mobile: Ensure proper stacking and spacing */
+    .booking-progress {
+        padding: 1rem;
+    }
+
+    .progress-step {
+        padding: 0.5rem;
+    }
+
+    .step-header h2 {
+        font-size: 1.5rem;
+    }
+
+    .step-header p {
+        font-size: 0.875rem;
+    }
+
+    .form-section {
+        padding: 1rem;
+    }
+
     .comparison-header h4 {
         font-size: 1rem;
     }
@@ -1501,5 +1551,33 @@
 
     .popup-header {
         font-size: 0.875rem;
+    }
+
+    /* Mobile: Help card styling */
+    .help-card {
+        position: relative;
+        bottom: 0;
+        margin-bottom: 2rem;
+    }
+
+    .help-link {
+        font-size: 0.9375rem;
+        padding: 0.75rem 1rem;
+    }
+
+    /* Mobile: Price sidebar styling */
+    .price-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .price-card h3 {
+        font-size: 1.125rem;
+    }
+
+    .rates-card h4,
+    .help-card h4 {
+        font-size: 1rem;
     }
 }

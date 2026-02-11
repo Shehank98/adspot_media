@@ -332,18 +332,18 @@ async function sendInvoiceEmail(bookingData, invoiceData) {
             },
             body: JSON.stringify({
                 type: 'invoice_email',
-                invoiceNumber: invoiceData.invoiceNumber,
-                quotationNumber: invoiceData.quotationNumber,
-                customerName: bookingData.customerName,
-                customerEmail: bookingData.customerEmail,
-                customerPhone: bookingData.customerPhone || '',
-                customerCompany: bookingData.customerCompany || '',
-                totalAmount: invoiceData.total,
+                invoice_number: invoiceData.invoiceNumber,
+                quotation_number: invoiceData.quotationNumber,
+                customer_name: bookingData.customerName,
+                customer_email: bookingData.customerEmail,
+                customer_phone: bookingData.customerPhone || '',
+                customer_company: bookingData.customerCompany || '',
+                total_amount: invoiceData.total,
                 subtotal: invoiceData.subtotal,
                 commission: invoiceData.commission,
                 vat: invoiceData.vat,
                 pdfUrl: invoiceData.pdfUrl || '',
-                paymentStatus: bookingData.paymentStatus,
+                payment_status: bookingData.paymentStatus,
                 items: bookingData.items.map(item => ({
                     newspaperName: item.newspaperName,
                     adType: item.adType,
@@ -378,11 +378,11 @@ async function sendPaymentConfirmationEmail(bookingData, amount) {
             },
             body: JSON.stringify({
                 type: 'payment_confirmation',
-                quotationNumber: bookingData.quotationNumber,
-                customerName: bookingData.customerName,
-                customerEmail: bookingData.customerEmail,
+                quotation_number: bookingData.quotationNumber,
+                customer_name: bookingData.customerName,
+                customer_email: bookingData.customerEmail,
                 amount: amount || bookingData.totalAmount,
-                paymentReference: bookingData.paymentReference || bookingData.quotationNumber
+                payment_reference: bookingData.paymentReference || bookingData.quotationNumber
             })
         });
 
