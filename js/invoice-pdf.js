@@ -108,8 +108,8 @@ async function generateInvoicePDF(invoiceData, bookingData) {
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(...dark);
         doc.text('DESCRIPTION', 22, y);
-        doc.text('RATE', 110, y);
-        doc.text('PUBLISH DATE', 135, y);
+        doc.text('RATE', 100, y);
+        doc.text('PUBLISH DATE', 145, y);
         doc.text('AMOUNT', 190, y, { align: 'right' });
 
         y += 8;
@@ -150,13 +150,13 @@ async function generateInvoicePDF(invoiceData, bookingData) {
             doc.setTextColor(...gray);
             if (item.adType === 'box') {
                 const details = item.details || {};
-                doc.text(formatCurrency(details.rate || 0) + '/col-cm', 110, y);
+                doc.text(formatCurrency(details.rate || 0) + '/col-cm', 100, y);
             } else {
-                doc.text('Per word', 110, y);
+                doc.text('Per word', 100, y);
             }
 
             // Publish Date
-            doc.text(new Date(item.pubDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }), 135, y);
+            doc.text(new Date(item.pubDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }), 145, y);
 
             // Amount
             doc.setTextColor(...dark);

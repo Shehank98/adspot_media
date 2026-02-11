@@ -910,7 +910,8 @@ function addToCart() {
             colorOption: colorOption,
             rate: calc.rate,
             adTotal: calc.adTotal,
-            commission: calc.commission
+            commission: calc.commission,
+            vat: calc.vat
         };
         cartItem.description = `Box Ad: ${columns} col x ${height}cm (${colorOption === 'color' ? 'Color' : 'B&W'})`;
     } else {
