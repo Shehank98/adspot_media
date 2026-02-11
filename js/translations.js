@@ -131,7 +131,74 @@ const translations = {
         'footer.services': 'Services',
         'footer.company': 'Company',
         'footer.about.link': 'About Us',
-        'footer.copyright': '© 2026 AdSpot Media Services. All rights reserved.'
+        'footer.copyright': '© 2026 AdSpot Media Services. All rights reserved.',
+
+        // Booking Page
+        'booking.backHome': 'Back to Home',
+        'booking.step1': 'Select Publication',
+        'booking.step2': 'Ad Details',
+        'booking.step3': 'Payment',
+        'booking.step4': 'Confirmation',
+
+        // Step 1 - Select Publication
+        'booking.step1.title': 'Choose Publication',
+        'booking.step1.subtitle': 'Select the newspaper where you want to advertise',
+        'booking.adType.box': 'Box Advertisement',
+        'booking.adType.box.desc': 'Display ads with custom size',
+        'booking.adType.classified': 'Classified Ad',
+        'booking.adType.classified.desc': 'Text-based ads, charged per word',
+        'booking.adType.tender': 'Tender Notice',
+        'booking.adType.tender.desc': 'Official tender & legal notices',
+
+        // Step 2 - Ad Details
+        'booking.step2.title': 'Ad Specifications',
+        'booking.step2.subtitle': 'Configure your advertisement details',
+        'booking.date': 'Publication Date',
+        'booking.color': 'Color Option',
+        'booking.color.bw': 'Black & White',
+        'booking.color.spot': 'Spot Color',
+        'booking.color.full': 'Full Color',
+        'booking.width': 'Width (cm)',
+        'booking.height': 'Height (cm)',
+        'booking.adText': 'Your Ad Text',
+        'booking.wordCount': 'Words',
+        'booking.attachFile': 'Attach Ad File (Optional)',
+
+        // Step 3 - Customer Info & Payment
+        'booking.step3.title': 'Payment & Checkout',
+        'booking.step3.subtitle': 'Complete your order',
+        'booking.customerInfo': 'Customer Information',
+        'booking.fullName': 'Full Name',
+        'booking.email': 'Email Address',
+        'booking.phone': 'Phone Number',
+        'booking.address': 'Address',
+        'booking.paymentMethod': 'Payment Method',
+        'booking.paymentMethod.card': 'Credit/Debit Card',
+        'booking.paymentMethod.bank': 'Bank Transfer',
+
+        // Step 4 - Success
+        'booking.success.title': 'Booking Successful!',
+        'booking.success.message': 'Your ad booking has been confirmed',
+        'booking.quotation': 'Quotation Number',
+        'booking.backToHome': 'Back to Home',
+        'booking.viewBookings': 'View My Bookings',
+
+        // Buttons
+        'booking.btn.next': 'Next',
+        'booking.btn.previous': 'Previous',
+        'booking.btn.submit': 'Submit Booking',
+        'booking.btn.pay': 'Proceed to Payment',
+
+        // Price Summary
+        'booking.price.summary': 'Price Summary',
+        'booking.price.base': 'Base Price',
+        'booking.price.total': 'Total Amount',
+        'booking.price.note': 'All prices in LKR',
+
+        // Help
+        'booking.help.title': 'Need Help?',
+        'booking.help.desc': 'Contact us if you have any questions',
+        'booking.help.contact': 'Contact Support'
     },
 
     si: {
@@ -261,7 +328,74 @@ const translations = {
         'footer.services': '', // Fill in: Services
         'footer.company': '', // Fill in: Company
         'footer.about.link': '', // Fill in: About Us
-        'footer.copyright': '' // Fill in: © 2026 AdSpot Media Services...
+        'footer.copyright': '', // Fill in: © 2026 AdSpot Media Services...
+
+        // Booking Page
+        'booking.backHome': '', // Fill in: Back to Home
+        'booking.step1': '', // Fill in: Select Publication
+        'booking.step2': '', // Fill in: Ad Details
+        'booking.step3': '', // Fill in: Payment
+        'booking.step4': '', // Fill in: Confirmation
+
+        // Step 1 - Select Publication
+        'booking.step1.title': '', // Fill in: Choose Publication
+        'booking.step1.subtitle': '', // Fill in: Select the newspaper...
+        'booking.adType.box': '', // Fill in: Box Advertisement
+        'booking.adType.box.desc': '', // Fill in: Display ads with custom size
+        'booking.adType.classified': '', // Fill in: Classified Ad
+        'booking.adType.classified.desc': '', // Fill in: Text-based ads...
+        'booking.adType.tender': '', // Fill in: Tender Notice
+        'booking.adType.tender.desc': '', // Fill in: Official tender...
+
+        // Step 2 - Ad Details
+        'booking.step2.title': '', // Fill in: Ad Specifications
+        'booking.step2.subtitle': '', // Fill in: Configure your advertisement
+        'booking.date': '', // Fill in: Publication Date
+        'booking.color': '', // Fill in: Color Option
+        'booking.color.bw': '', // Fill in: Black & White
+        'booking.color.spot': '', // Fill in: Spot Color
+        'booking.color.full': '', // Fill in: Full Color
+        'booking.width': '', // Fill in: Width (cm)
+        'booking.height': '', // Fill in: Height (cm)
+        'booking.adText': '', // Fill in: Your Ad Text
+        'booking.wordCount': '', // Fill in: Words
+        'booking.attachFile': '', // Fill in: Attach Ad File
+
+        // Step 3 - Customer Info & Payment
+        'booking.step3.title': '', // Fill in: Payment & Checkout
+        'booking.step3.subtitle': '', // Fill in: Complete your order
+        'booking.customerInfo': '', // Fill in: Customer Information
+        'booking.fullName': '', // Fill in: Full Name
+        'booking.email': '', // Fill in: Email Address
+        'booking.phone': '', // Fill in: Phone Number
+        'booking.address': '', // Fill in: Address
+        'booking.paymentMethod': '', // Fill in: Payment Method
+        'booking.paymentMethod.card': '', // Fill in: Credit/Debit Card
+        'booking.paymentMethod.bank': '', // Fill in: Bank Transfer
+
+        // Step 4 - Success
+        'booking.success.title': '', // Fill in: Booking Successful!
+        'booking.success.message': '', // Fill in: Your ad booking has been confirmed
+        'booking.quotation': '', // Fill in: Quotation Number
+        'booking.backToHome': '', // Fill in: Back to Home
+        'booking.viewBookings': '', // Fill in: View My Bookings
+
+        // Buttons
+        'booking.btn.next': '', // Fill in: Next
+        'booking.btn.previous': '', // Fill in: Previous
+        'booking.btn.submit': '', // Fill in: Submit Booking
+        'booking.btn.pay': '', // Fill in: Proceed to Payment
+
+        // Price Summary
+        'booking.price.summary': '', // Fill in: Price Summary
+        'booking.price.base': '', // Fill in: Base Price
+        'booking.price.total': '', // Fill in: Total Amount
+        'booking.price.note': '', // Fill in: All prices in LKR
+
+        // Help
+        'booking.help.title': '', // Fill in: Need Help?
+        'booking.help.desc': '', // Fill in: Contact us...
+        'booking.help.contact': '' // Fill in: Contact Support
     }
 };
 
