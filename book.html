@@ -659,6 +659,69 @@
         </div>
     </div>
 
+    <!-- Login Warning Modal -->
+    <div id="loginWarningModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="40" height="40">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                    </svg>
+                </div>
+                <h2 style="margin: 0 0 0.5rem 0; color: var(--gray-900);">Continue Without Login?</h2>
+                <p style="color: var(--gray-600); margin: 0; line-height: 1.6;">
+                    You're about to place your order as a guest. Please note:
+                </p>
+            </div>
+
+            <div style="background: var(--gray-50); padding: 1.25rem; border-radius: var(--radius-lg); margin-bottom: 1.5rem;">
+                <div style="display: flex; gap: 0.75rem; margin-bottom: 0.75rem;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" width="24" height="24" style="flex-shrink: 0;">
+                        <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <div>
+                        <strong style="color: var(--gray-900); display: block; margin-bottom: 0.25rem;">Without logging in:</strong>
+                        <ul style="margin: 0; padding-left: 1.25rem; color: var(--gray-600); line-height: 1.6;">
+                            <li>You won't be able to track your booking history</li>
+                            <li>You can't view past invoices or orders</li>
+                            <li>No dashboard access to manage your ads</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 0.75rem;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" width="24" height="24" style="flex-shrink: 0;">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div>
+                        <strong style="color: var(--gray-900); display: block; margin-bottom: 0.25rem;">With login:</strong>
+                        <ul style="margin: 0; padding-left: 1.25rem; color: var(--gray-600); line-height: 1.6;">
+                            <li>Access all your bookings anytime</li>
+                            <li>Download invoices whenever needed</li>
+                            <li>Faster checkout for future orders</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <button type="button" class="btn btn-ghost" onclick="closeLoginWarning()" style="width: 100%;">
+                    Continue as Guest
+                </button>
+                <button type="button" class="btn btn-primary" onclick="loginFromWarning()" style="width: 100%;">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" style="margin-right: 0.5rem;">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                    </svg>
+                    Login / Sign Up
+                </button>
+            </div>
+
+            <p style="text-align: center; color: var(--gray-500); font-size: 0.875rem; margin: 1rem 0 0 0;">
+                You'll receive booking confirmation via email regardless
+            </p>
+        </div>
+    </div>
+
     <!-- jsPDF for PDF generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 

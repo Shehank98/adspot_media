@@ -1022,6 +1022,16 @@ function goToStep(step) {
         return;
     }
 
+    // Check if user is logged in before going to payment step
+    if (step === 3 && currentStep === 2) {
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            // Show login warning modal
+            showLoginWarning();
+            return;
+        }
+    }
+
     // Update step display
     document.querySelectorAll('.form-step').forEach(el => {
         el.classList.remove('active');
@@ -1924,3 +1934,79 @@ function printBookingConfirmation() {
     }, 250);
 }
 window.printBookingConfirmation = printBookingConfirmation;
+
+/**
+ * Show login warning modal before payment
+ */
+function showLoginWarning() {
+    const modal = document.getElementById('loginWarningModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        // Store that we want to go to step 3 after login/continue
+        sessionStorage.setItem('pendingStepNavigation', '3');
+    }
+}
+
+/**
+ * Close login warning and continue as guest
+ */
+function closeLoginWarning() {
+    const modal = document.getElementById('loginWarningModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    // Continue to step 3 as guest
+    proceedToStep3AsGuest();
+}
+
+/**
+ * Proceed to step 3 without login
+ */
+function proceedToStep3AsGuest() {
+    // Set a flag that user chose to continue as guest
+    sessionStorage.setItem('continueAsGuest', 'true');
+
+    // Actually go to step 3
+    currentStep = 3;
+
+    // Update step display
+    document.querySelectorAll('.form-step').forEach(el => {
+        el.classList.remove('active');
+    });
+    document.querySelector(`.form-step[data-step="3"]`).classList.add('active');
+
+    // Update progress
+    document.querySelectorAll('.progress-step').forEach(el => {
+        const stepNum = parseInt(el.dataset.step);
+        el.classList.remove('active', 'completed');
+        if (stepNum === 3) {
+            el.classList.add('active');
+        } else if (stepNum < 3) {
+            el.classList.add('completed');
+        }
+    });
+
+    updateOrderSummary();
+    document.querySelector('.booking-form-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/**
+ * Handle login button from warning modal
+ */
+function loginFromWarning() {
+    const modal = document.getElementById('loginWarningModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+
+    // Trigger login button click
+    const loginBtn = document.getElementById('loginBtn');
+    if (loginBtn) {
+        loginBtn.click();
+    }
+}
+
+// Make functions globally available
+window.showLoginWarning = showLoginWarning;
+window.closeLoginWarning = closeLoginWarning;
+window.loginFromWarning = loginFromWarning;

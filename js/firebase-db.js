@@ -15,9 +15,7 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxqC7dhbLgOB9Pj
 async function saveBookingToFirebase(bookingData) {
     try {
         const user = firebase.auth().currentUser;
-        if (!user) {
-            throw new Error('User must be logged in to save booking');
-        }
+        const isAnonymous = !user;
 
         const bookingRef = db.collection('bookings').doc();
 
@@ -25,7 +23,8 @@ async function saveBookingToFirebase(bookingData) {
             bookingId: generateBookingId(),
             quotationNumber: bookingData.quotationNumber,
             invoiceNumber: bookingData.invoiceNumber,
-            customerId: user.uid,
+            customerId: user ? user.uid : 'anonymous',
+            isAnonymousBooking: isAnonymous,
             customerName: bookingData.customerName,
             customerEmail: bookingData.customerEmail,
             customerPhone: bookingData.customerPhone,
@@ -44,12 +43,19 @@ async function saveBookingToFirebase(bookingData) {
 
         await bookingRef.set(booking);
 
-        // Update user's bookings array
-        await db.collection('users').doc(user.uid).update({
-            bookings: firebase.firestore.FieldValue.arrayUnion(bookingRef.id)
-        });
+        // Update user's bookings array (only if logged in)
+        if (user) {
+            try {
+                await db.collection('users').doc(user.uid).update({
+                    bookings: firebase.firestore.FieldValue.arrayUnion(bookingRef.id)
+                });
+            } catch (updateError) {
+                console.warn('Could not update user bookings array:', updateError);
+                // Continue anyway - booking is saved
+            }
+        }
 
-        console.log('✅ Booking saved to Firebase:', bookingRef.id);
+        console.log(isAnonymous ? '✅ Anonymous booking saved to Firebase:' : '✅ Booking saved to Firebase:', bookingRef.id);
 
         // Send emails via Apps Script
         await sendBookingEmails(booking);
