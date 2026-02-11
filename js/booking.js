@@ -1566,7 +1566,8 @@ async function handleSubmit(e) {
                         pubDate: item.pubDate,
                         price: item.price,
                         description: item.description,
-                        details: item.details // Includes classified text
+                        details: item.details, // Includes classified text
+                        adFileUrl: item.adFileUrl || '' // Include file attachment URL
                     }))
                 };
 

@@ -294,25 +294,8 @@ async function sendBookingEmails(bookingData) {
         });
         console.log('✅ Customer confirmation email sent');
 
-        // 2. Send notification to ADMIN
-        const adminEmailResponse = await fetch(APPS_SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                action: 'sendAdminNotification',
-                quotation_number: bookingData.quotationNumber,
-                customer_name: bookingData.customerName,
-                customer_email: bookingData.customerEmail,
-                customer_phone: bookingData.customerPhone,
-                total_amount: bookingData.totalAmount,
-                payment_method: bookingData.paymentMethod,
-                items: items
-            })
-        });
-        console.log('✅ Admin notification email sent');
+        // REMOVED: Admin notification now sent via EmailService in booking.js to prevent duplicate emails
+        // The EmailService.notifyAdmin() call in booking.js handles admin notifications
 
     } catch (error) {
         console.error('❌ Error sending emails:', error);
