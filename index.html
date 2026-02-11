@@ -48,23 +48,13 @@
                 <span class="logo-text">AdSpot</span>
             </a>
             <ul class="nav-links">
-                <li><a href="#services" data-translate="nav.services">Services</a></li>
-                <li><a href="#publications" data-translate="nav.publications">Publications</a></li>
-                <li><a href="#how-it-works" data-translate="nav.howItWorks">How It Works</a></li>
-                <li><a href="#contact" data-translate="nav.contact">Contact</a></li>
+                <li><a href="#services">Services</a></li>
+                <li><a href="#publications">Publications</a></li>
+                <li><a href="#how-it-works">How It Works</a></li>
+                <li><a href="#contact">Contact</a></li>
             </ul>
             <div class="nav-actions">
-                <!-- Language Toggle -->
-                <div class="language-toggle">
-                    <button id="langToggle" class="lang-btn" onclick="toggleLanguage()">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
-                            <path d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"/>
-                        </svg>
-                        <span id="currentLang">EN</span>
-                    </button>
-                </div>
-
-                <a href="book.html" class="btn btn-primary" data-translate="nav.bookAd">Book Your Ad</a>
+                <a href="book.html" class="btn btn-primary">Book Your Ad</a>
 
                 <!-- Login Button (shown when not logged in) -->
                 <button id="loginBtn" class="btn btn-ghost btn-auth" style="display: none;">
@@ -128,24 +118,24 @@
         <div class="hero-content">
             <div class="hero-badge">
                 <span class="badge-dot"></span>
-                <span data-translate="hero.badge">Sri Lanka's Trusted Ad Partner</span>
+                <span>Sri Lanka's Trusted Ad Partner</span>
             </div>
             <h1 class="hero-title">
-                <span data-translate="hero.title">Your Message,</span><br>
-                <span class="highlight" data-translate="hero.titleHighlight">Every Newspaper</span>
+                <span>Your Message,</span><br>
+                <span class="highlight">Every Newspaper</span>
             </h1>
-            <p class="hero-subtitle" data-translate="hero.subtitle">
+            <p class="hero-subtitle">
                 Book newspaper advertisements across Sri Lanka's leading publications.
                 Simple booking, instant quotations, professional service.
             </p>
             <div class="hero-cta">
                 <a href="book.html" class="btn btn-large btn-primary">
-                    <span data-translate="hero.cta">Start Booking</span>
+                    <span>Start Booking</span>
                     <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M5 12h14M12 5l7 7-7 7"/>
                     </svg>
                 </a>
-                <a href="#how-it-works" class="btn btn-large btn-ghost" data-translate="hero.cta2">
+                <a href="#how-it-works" class="btn btn-large btn-ghost">
                     See How It Works
                 </a>
             </div>
@@ -455,76 +445,5 @@
     <script src="js/config.js"></script>
     <script src="js/supabase.js"></script>
     <script src="js/app.js"></script>
-
-    <!-- Language Translation System -->
-    <script>
-        // Translation Dictionary
-        const translations = {
-            en: {
-                'nav.services': 'Services',
-                'nav.publications': 'Publications',
-                'nav.howItWorks': 'How It Works',
-                'nav.contact': 'Contact',
-                'nav.bookAd': 'Book Your Ad',
-                'hero.badge': "Sri Lanka's Trusted Ad Partner",
-                'hero.title': 'Your Message,',
-                'hero.titleHighlight': 'Every Newspaper',
-                'hero.subtitle': "Book newspaper advertisements across Sri Lanka's leading publications. Simple booking, instant quotations, professional service.",
-                'hero.cta': 'Start Booking',
-                'hero.cta2': 'See How It Works'
-            },
-            si: {
-                'nav.services': 'සේවාවන්',
-                'nav.publications': 'ප්‍රකාශන',
-                'nav.howItWorks': 'එය ක්‍රියා කරන ආකාරය',
-                'nav.contact': 'සම්බන්ධ වන්න',
-                'nav.bookAd': 'ඔබේ දැන්වීම වෙන් කරන්න',
-                'hero.badge': 'ශ්‍රී ලංකාවේ විශ්වාසදායක ප්‍රචාරණ හවුල්කරු',
-                'hero.title': 'ඔබේ පණිවිඩය,',
-                'hero.titleHighlight': 'සෑම පුවත්පතකම',
-                'hero.subtitle': 'ශ්‍රී ලංකාවේ ප්‍රමුඛ ප්‍රකාශන හරහා පුවත්පත් දැන්වීම් වෙන් කරන්න. සරල වෙන් කිරීම, ක්ෂණික මිල කැඳවීම්, වෘත්තීය සේවාව.',
-                'hero.cta': 'වෙන් කිරීම ආරම්භ කරන්න',
-                'hero.cta2': 'එය ක්‍රියා කරන ආකාරය බලන්න'
-            }
-        };
-
-        // Get current language from localStorage or default to 'en'
-        let currentLanguage = localStorage.getItem('language') || 'en';
-
-        // Toggle language function
-        function toggleLanguage() {
-            currentLanguage = currentLanguage === 'en' ? 'si' : 'en';
-            localStorage.setItem('language', currentLanguage);
-            updateLanguage();
-        }
-
-        // Update all translated elements
-        function updateLanguage() {
-            const langCode = currentLanguage;
-            const langDisplay = currentLanguage === 'en' ? 'EN' : 'සිං';
-
-            // Update toggle button
-            document.getElementById('currentLang').textContent = langDisplay;
-
-            // Update all elements with data-translate attribute
-            document.querySelectorAll('[data-translate]').forEach(element => {
-                const key = element.getAttribute('data-translate');
-                if (translations[langCode] && translations[langCode][key]) {
-                    element.textContent = translations[langCode][key];
-                }
-            });
-
-            // Update HTML lang attribute
-            document.documentElement.lang = langCode;
-        }
-
-        // Initialize language on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            updateLanguage();
-        });
-
-        // Make toggle function globally available
-        window.toggleLanguage = toggleLanguage;
-    </script>
 </body>
 </html>
