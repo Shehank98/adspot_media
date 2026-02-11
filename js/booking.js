@@ -124,13 +124,33 @@ function updateClassifiedNewspaperGrid(newspapers) {
     const container = document.getElementById('classifiedNewspaperSelect');
     if (!container) return;
 
+    // Filter out newspapers that don't support classified ads (classifiedBase = 0 or empty)
+    const classifiedNewspapers = newspapers.filter(paper => {
+        const classifiedBase = parseFloat(paper.classifiedBase) || 0;
+        return classifiedBase > 0;
+    });
+
+    // If no newspapers support classified ads for this language, show message
+    if (classifiedNewspapers.length === 0) {
+        container.innerHTML = `
+            <div style="padding: 2rem; text-align: center; color: var(--gray-500);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48" style="margin: 0 auto 1rem; opacity: 0.5;">
+                    <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <p style="margin: 0; font-size: 1rem;">No newspapers offer classified ads in this language</p>
+                <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem;">Please select a different language or use Box Ads</p>
+            </div>
+        `;
+        return;
+    }
+
     const langLabels = {
         'english': 'EN',
         'sinhala': 'SI',
         'tamil': 'TA'
     };
 
-    container.innerHTML = newspapers.map((paper, index) => `
+    container.innerHTML = classifiedNewspapers.map((paper, index) => `
         <label class="newspaper-card">
             <input type="radio" name="classifiedNewspaper" value="${paper.id}" ${index === 0 ? 'checked' : ''}>
             <div class="card-content">
@@ -145,7 +165,7 @@ function updateClassifiedNewspaperGrid(newspapers) {
     // Add change listeners
     container.querySelectorAll('input[name="classifiedNewspaper"]').forEach(radio => {
         radio.addEventListener('change', function() {
-            selectedNewspaper = newspapers.find(p => p.id === this.value);
+            selectedNewspaper = classifiedNewspapers.find(p => p.id === this.value);
             selectedGroup = selectedNewspaper.groupId;
             updateQuickRates();
             updateWordCount();
