@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Favicon Generator - AdSpot Media</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1a56db;
+            margin-bottom: 10px;
+        }
+        .preview {
+            display: flex;
+            gap: 20px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        .preview-item {
+            text-align: center;
+        }
+        .preview-box {
+            background: #f1f5f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        canvas {
+            border: 2px solid #e2e8f0;
+            border-radius: 4px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #1a56db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            text-decoration: none;
+        }
+        .btn:hover {
+            background: #1444b8;
+        }
+        .success {
+            background: #dcfce7;
+            color: #166534;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: none;
+        }
+        .instructions {
+            background: #dbeafe;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #1a56db;
+        }
+        .instructions ol {
+            line-height: 1.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 AdSpot Favicon Generator</h1>
+        <p>Generate all the favicon files you need for your website!</p>
+
+        <div class="preview">
+            <div class="preview-item">
+                <div class="preview-box">
+                    <canvas id="favicon32" width="32" height="32"></canvas>
+                </div>
+                <strong>32x32 PNG</strong>
+                <br>
+                <button class="btn" onclick="downloadFavicon(32)">Download</button>
+            </div>
+
+            <div class="preview-item">
+                <div class="preview-box">
+                    <canvas id="favicon180" width="180" height="180"></canvas>
+                </div>
+                <strong>180x180 PNG</strong>
+                <br>
+                <button class="btn" onclick="downloadFavicon(180)">Download</button>
+            </div>
+        </div>
+
+        <div class="success" id="success">
+            ✅ Favicon downloaded! Save it to your <code>images/</code> folder.
+        </div>
+
+        <div class="instructions">
+            <h3>📝 How to Use:</h3>
+            <ol>
+                <li><strong>Download both favicons:</strong> Click the download buttons above</li>
+                <li><strong>Rename the files:</strong>
+                    <ul>
+                        <li>32x32 → Save as <code>favicon.png</code></li>
+                        <li>180x180 → Save as <code>apple-touch-icon.png</code></li>
+                    </ul>
+                </li>
+                <li><strong>Move to images folder:</strong> Place both files in <code>/images/</code> directory</li>
+                <li><strong>Clear browser cache:</strong> Refresh your site with Ctrl+Shift+R (or Cmd+Shift+R on Mac)</li>
+            </ol>
+        </div>
+
+        <div class="instructions" style="background: #fef3c7; margin-top: 20px;">
+            <h3>💡 Want to Use Your Own Logo?</h3>
+            <p>If you have your own logo image:</p>
+            <ol>
+                <li>Go to <strong><a href="https://favicon.io" target="_blank" style="color: #1a56db;">favicon.io</a></strong></li>
+                <li>Upload your logo image</li>
+                <li>Download the generated favicons</li>
+                <li>Copy <code>favicon.png</code> and <code>apple-touch-icon.png</code> to your <code>/images/</code> folder</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // Draw favicon on canvas
+        function drawFavicon(size) {
+            const canvas = document.getElementById(`favicon${size}`);
+            const ctx = canvas.getContext('2d');
+
+            // Background
+            ctx.fillStyle = '#1a56db';
+            ctx.fillRect(0, 0, size, size);
+
+            // Diamond shape
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = size * 0.02;
+
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const diamondSize = size * 0.3;
+
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - diamondSize);
+            ctx.lineTo(centerX + diamondSize * 0.8, centerY);
+            ctx.lineTo(centerX, centerY + diamondSize);
+            ctx.lineTo(centerX - diamondSize * 0.8, centerY);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Letter A
+            ctx.font = `bold ${size * 0.4}px Arial, sans-serif`;
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('A', centerX, centerY + diamondSize * 0.9);
+        }
+
+        // Download favicon
+        function downloadFavicon(size) {
+            const canvas = document.getElementById(`favicon${size}`);
+            const link = document.createElement('a');
+            const filename = size === 32 ? 'favicon.png' : 'apple-touch-icon.png';
+
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+
+            document.getElementById('success').style.display = 'block';
+            setTimeout(() => {
+                document.getElementById('success').style.display = 'none';
+            }, 3000);
+        }
+
+        // Draw favicons on load
+        window.onload = function() {
+            drawFavicon(32);
+            drawFavicon(180);
+        };
+    </script>
+</body>
+</html>
