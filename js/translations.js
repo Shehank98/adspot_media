@@ -203,56 +203,56 @@ const translations = {
 
     si: {
         // Navigation
-        'nav.services': '', // Fill in: Services in Sinhala
-        'nav.publications': '', // Fill in: Publications in Sinhala
+        'nav.services': 'සේවාවන්', // Fill in: Services in Sinhala
+        'nav.publications': 'පුවත්පත්', // Fill in: Publications in Sinhala
         'nav.howItWorks': '', // Fill in: How It Works in Sinhala
-        'nav.contact': '', // Fill in: Contact in Sinhala
-        'nav.bookAd': '', // Fill in: Book Your Ad in Sinhala
+        'nav.contact': 'අමතන්න', // Fill in: Contact in Sinhala
+        'nav.bookAd': 'දැන්වීම පළකිරීමට', // Fill in: Book Your Ad in Sinhala
 
         // Hero Section
-        'hero.badge': '', // Fill in: Sri Lanka's Trusted Ad Partner
-        'hero.title1': '', // Fill in: Your Message,
-        'hero.title2': '', // Fill in: Every Newspaper
-        'hero.subtitle': '', // Fill in: Book newspaper advertisements...
-        'hero.cta1': '', // Fill in: Start Booking
-        'hero.cta2': '', // Fill in: See How It Works
-        'hero.stat1': '', // Fill in: Newspapers
-        'hero.stat2': '', // Fill in: Ads Placed
-        'hero.stat3': '', // Fill in: Turnaround
+        'hero.badge': 'ශ්‍රී ලංකාවේ විශ්වාසනීය දැන්වීම් ආයතනය', // Fill in: Sri Lanka's Trusted Ad Partner
+        'hero.title1': 'ඔබේ දැන්වීම', // Fill in: Your Message,
+        'hero.title2': 'සෑම පුවත්පතකම', // Fill in: Every Newspaper
+        'hero.subtitle': 'ශ්‍රී ලංකාවේ ප්‍රමුඛ පුවත්පත් අතර දැන්වීම් පළකරන්න. සරල වෙන්කිරීම, ක්ෂණික මිල ගණන්, වෘත්තීය සේවය.', // Fill in: Book newspaper advertisements...
+        'hero.cta1': 'දැන්වීම පළකිරීමට', // Fill in: Start Booking
+        'hero.cta2': 'ක්‍රියාවන ආකාරය', // Fill in: See How It Works
+        'hero.stat1': 'පුවත්පත්', // Fill in: Newspapers
+        'hero.stat2': 'දැන්වීම්', // Fill in: Ads Placed
+        'hero.stat3': 'සේවය', // Fill in: Turnaround
 
         // Services Section
-        'services.tag': '', // Fill in: Our Services
-        'services.title': '', // Fill in: Advertising Solutions
-        'services.subtitle': '', // Fill in: Choose the perfect format
+        'services.tag': 'අපගේ සේවාවන්', // Fill in: Our Services
+        'services.title': 'දැන්වීම් විසඳුම්', // Fill in: Advertising Solutions
+        'services.subtitle': 'ඔබේ පණිවිඩයට සුදුසු ආකෘතිය තෝරන්න', // Fill in: Choose the perfect format
 
-        'services.box.title': '', // Fill in: Box Advertisements
-        'services.box.desc': '', // Fill in: Premium display ads...
-        'services.box.feat1': '', // Fill in: Custom dimensions
-        'services.box.feat2': '', // Fill in: Full color or B&W
-        'services.box.feat3': '', // Fill in: Prime positioning
-        'services.box.link': '', // Fill in: Book Box Ad
+        'services.box.title': 'Box දැන්වීම්', // Fill in: Box Advertisements
+        'services.box.desc': 'අභිරුචි ප්‍රමාණ සහිත ප්‍රදර්ශන දැන්වීම්. වෙළඳ නාම ප්‍රකාශන, නිෂ්පාදන ආරම්භක සහ විශේෂ දීමනා සඳහා සුදුසුය.', // Fill in: Premium display ads...
+        'services.box.feat1': 'සුදුසු ප්‍රමාණය', // Fill in: Custom dimensions
+        'services.box.feat2': 'වර්ණ හෝ කලු සුදු', // Fill in: Full color or B&W
+        'services.box.feat3': 'විශේශිත ස්ථාන', // Fill in: Prime positioning
+        'services.box.link': 'Box දැන්වීම වෙන්කරන්න', // Fill in: Book Box Ad
 
-        'services.classified.badge': '', // Fill in: Most Popular
-        'services.classified.title': '', // Fill in: Classified Ads
-        'services.classified.desc': '', // Fill in: Cost-effective...
-        'services.classified.feat1': '', // Fill in: Per-word pricing
-        'services.classified.feat2': '', // Fill in: Category targeting
-        'services.classified.feat3': '', // Fill in: Budget-friendly
-        'services.classified.link': '', // Fill in: Book Classified
+        'services.classified.badge': 'ජනප්‍රියතම', // Fill in: Most Popular
+        'services.classified.title': 'ලුහුඩු දැන්වීම්', // Fill in: Classified Ads
+        'services.classified.desc': 'අඩු වියදම් පෙළ-මූලික දැන්වීම්. රැකියා, ඉඩම් සහ පුද්ගලික ප්‍රකාශන සඳහා සුදුසුය.', // Fill in: Cost-effective...
+        'services.classified.feat1': 'වචන ගණන අනුව මිල', // Fill in: Per-word pricing
+        'services.classified.feat2': 'කාණ්ඩ ඉලක්ක කිරීම', // Fill in: Category targeting
+        'services.classified.feat3': 'අයවැය හිතකාමී', // Fill in: Budget-friendly
+        'services.classified.link': 'ලුහුඩු දැන්වීම් වෙන්කරන්න', // Fill in: Book Classified
 
-        'services.tender.title': '', // Fill in: Tender Notices
-        'services.tender.desc': '', // Fill in: Official tender...
-        'services.tender.feat1': '', // Fill in: Legal compliance
-        'services.tender.feat2': '', // Fill in: Multiple papers
-        'services.tender.feat3': '', // Fill in: Certified copies
-        'services.tender.link': '', // Fill in: Book Tender Notice
+        'services.tender.title': 'Tender දැන්වීම්', // Fill in: Tender Notices
+        'services.tender.desc': 'ටෙන්ඩර් සහ නීතිමය දැන්වීම්.', // Fill in: Official tender...
+        'services.tender.feat1': 'නීතිමය අනුකූලතාව', // Fill in: Legal compliance
+        'services.tender.feat2': 'පුවත්පත් කිහිපයක', // Fill in: Multiple papers
+        'services.tender.feat3': 'සහතික පිටපත්', // Fill in: Certified copies
+        'services.tender.link': 'ටෙන්ඩර් දැන්වීම වෙන්කරන්න', // Fill in: Book Tender Notice
 
         // Publications Section
-        'pubs.tag': '', // Fill in: Our Network
-        'pubs.title': '', // Fill in: Leading Publications
-        'pubs.subtitle': '', // Fill in: Access Sri Lanka's most-read
+        'pubs.tag': 'Our Network', // Fill in: Our Network
+        'pubs.title': 'ප්‍රමුඛ පුවත්පත්', // Fill in: Leading Publications
+        'pubs.subtitle': 'ශ්‍රී ලංකාවේ වැඩිම කියවෙන පුවත්පත් වෙත ප්‍රවේශය', // Fill in: Access Sri Lanka's most-read
         'pubs.note': '', // Fill in: + Many more regional...
-        'pubs.carousel': '', // Fill in: Auto-scrolling • Hover to pause
+        'pubs.carousel': 'Auto-scrolling • Hover to pause', // Fill in: Auto-scrolling • Hover to pause
 
         // How It Works
         'howitworks.tag': '', // Fill in: Simple Process
