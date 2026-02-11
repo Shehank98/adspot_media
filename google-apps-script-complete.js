@@ -249,7 +249,8 @@ function sendAdminNotification(data) {
     MailApp.sendEmail({
       to: CONFIG.ADMIN_EMAIL,
       subject: subject,
-      htmlBody: htmlBody
+      htmlBody: htmlBody,
+      name: 'AdSpot System'
     });
     return jsonResponse(true, 'Admin notification sent');
   } catch (error) {
@@ -410,7 +411,8 @@ function sendQuotationEmail(data) {
       to: customer_email,
       subject: subject,
       htmlBody: htmlBody,
-      replyTo: CONFIG.ADMIN_EMAIL
+      replyTo: CONFIG.ADMIN_EMAIL,
+      name: 'AdSpot Media'
     });
     return jsonResponse(true, 'Quotation email sent to ' + customer_email);
   } catch (error) {
@@ -630,7 +632,8 @@ function sendBookingConfirmation(data) {
       to: customerEmail,
       subject: subject,
       htmlBody: htmlBody,
-      replyTo: CONFIG.ADMIN_EMAIL
+      replyTo: CONFIG.ADMIN_EMAIL,
+      name: 'AdSpot Media'
     });
     return jsonResponse(true, 'Booking confirmation sent to ' + customerEmail);
   } catch (error) {
@@ -814,7 +817,8 @@ function sendInvoiceEmail(data) {
       to: customer_email,
       subject: subject,
       htmlBody: htmlBody,
-      replyTo: CONFIG.ADMIN_EMAIL
+      replyTo: CONFIG.ADMIN_EMAIL,
+      name: 'AdSpot Finance'
     };
 
     // Add PDF attachment if available
@@ -885,7 +889,8 @@ function sendPaymentConfirmation(data) {
       to: customer_email,
       subject: subject,
       htmlBody: htmlBody,
-      replyTo: CONFIG.ADMIN_EMAIL
+      replyTo: CONFIG.ADMIN_EMAIL,
+      name: 'AdSpot Finance'
     });
     return jsonResponse(true, 'Payment confirmation sent');
   } catch (error) {
@@ -951,7 +956,8 @@ function sendContactFormEmail(data) {
       to: CONFIG.ADMIN_EMAIL,
       subject: emailSubject,
       htmlBody: htmlBody,
-      replyTo: email
+      replyTo: email,
+      name: 'AdSpot System'
     });
     return jsonResponse(true, 'Contact form sent to admin');
   } catch (error) {
