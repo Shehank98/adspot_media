@@ -145,19 +145,35 @@ async function generateInvoicePDF(invoiceData, bookingData) {
         doc.text(formatCurrency(invoiceData.subtotal), 180, yPos, { align: 'right' });
         yPos += 6;
 
-        // Commission
-        doc.setTextColor(...secondaryColor);
-        doc.text('Platform Commission (10%):', 110, yPos);
-        doc.setTextColor(...textColor);
-        doc.text(formatCurrency(invoiceData.commission), 180, yPos, { align: 'right' });
-        yPos += 6;
+        // Show commission/VAT for box ads OR service charge for classified ads
+        if (invoiceData.hasBoxAds && invoiceData.commission > 0) {
+            // Box ads: Show commission
+            doc.setTextColor(...secondaryColor);
+            doc.text('Platform Commission (10%):', 110, yPos);
+            doc.setTextColor(...textColor);
+            doc.text(formatCurrency(invoiceData.commission), 180, yPos, { align: 'right' });
+            yPos += 6;
+        }
 
-        // VAT
-        doc.setTextColor(...secondaryColor);
-        doc.text('VAT (18%):', 110, yPos);
-        doc.setTextColor(...textColor);
-        doc.text(formatCurrency(invoiceData.vat), 180, yPos, { align: 'right' });
-        yPos += 8;
+        if (invoiceData.hasBoxAds && invoiceData.vat > 0) {
+            // Box ads: Show VAT
+            doc.setTextColor(...secondaryColor);
+            doc.text('VAT (18%):', 110, yPos);
+            doc.setTextColor(...textColor);
+            doc.text(formatCurrency(invoiceData.vat), 180, yPos, { align: 'right' });
+            yPos += 6;
+        }
+
+        if (invoiceData.hasClassifiedAds && invoiceData.serviceCharge > 0) {
+            // Classified ads: Show service charge
+            doc.setTextColor(...secondaryColor);
+            doc.text('Service Charge:', 110, yPos);
+            doc.setTextColor(...textColor);
+            doc.text(formatCurrency(invoiceData.serviceCharge), 180, yPos, { align: 'right' });
+            yPos += 6;
+        }
+
+        yPos += 2; // Extra spacing before total
 
         // Total
         doc.setLineWidth(0.5);

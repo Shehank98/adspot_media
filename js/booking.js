@@ -1460,6 +1460,26 @@ async function handleSubmit(e) {
 
                 // Save invoice to Firebase
                 if (typeof saveInvoiceToFirebase === 'function') {
+                    // Calculate proper invoice breakdown based on ad types in cart
+                    let subtotal = 0;
+                    let commission = 0;
+                    let vat = 0;
+                    let serviceCharge = 0;
+
+                    adCart.forEach(item => {
+                        if (item.adType === 'box') {
+                            // Box ad: Base + 10% commission + 18% VAT
+                            const calc = item.details; // Already calculated
+                            subtotal += calc.adTotal || 0;
+                            commission += calc.commission || 0;
+                            vat += calc.vat || 0;
+                        } else if (item.adType === 'classified') {
+                            // Classified ad: Base + Rs. 100 service charge (no commission, no VAT)
+                            subtotal += item.details.adTotal || 0;
+                            serviceCharge += item.details.serviceCharge || 0;
+                        }
+                    });
+
                     const invoiceData = {
                         invoiceNumber: invoiceNumber,
                         quotationNumber: quotationNumber,
@@ -1468,10 +1488,13 @@ async function handleSubmit(e) {
                         customerName: formData.customer_name,
                         customerEmail: formData.customer_email,
                         items: bookingData.items,
-                        subtotal: formData.total_amount * 0.826, // Reverse calculate (total / 1.21)
-                        commission: formData.total_amount * 0.083, // 10% of subtotal
-                        vat: formData.total_amount * 0.149, // 18% of subtotal
-                        total: formData.total_amount
+                        subtotal: subtotal,
+                        commission: commission, // Only for box ads
+                        vat: vat, // Only for box ads
+                        serviceCharge: serviceCharge, // Only for classified ads
+                        total: formData.total_amount,
+                        hasBoxAds: adCart.some(item => item.adType === 'box'),
+                        hasClassifiedAds: adCart.some(item => item.adType === 'classified')
                     };
                     await saveInvoiceToFirebase(invoiceData);
                     console.log('✅ Invoice saved to Firebase');
