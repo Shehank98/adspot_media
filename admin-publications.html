@@ -270,6 +270,26 @@
                     <input type="text" id="pubName" required>
                 </div>
 
+                <!-- Logo Upload -->
+                <div class="form-group">
+                    <label>Newspaper Logo</label>
+                    <input type="file" id="pubLogo" accept="image/*" style="display: none;" onchange="handleLogoPreview(event)">
+                    <input type="hidden" id="pubLogoUrl">
+
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <button type="button" class="btn" onclick="document.getElementById('pubLogo').click()" style="background: var(--primary); color: white;">
+                            📤 Upload Logo
+                        </button>
+                        <div id="logoPreview" style="display: none; position: relative;">
+                            <img id="logoPreviewImg" src="" alt="Logo preview" style="max-width: 150px; max-height: 60px; border-radius: 4px; border: 1px solid #e5e7eb;">
+                            <button type="button" onclick="removeLogoPreview()" style="position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 14px; line-height: 1;">×</button>
+                        </div>
+                    </div>
+                    <small style="color: #6b7280; font-size: 0.875rem; display: block; margin-top: 0.5rem;">
+                        Recommended: PNG with transparent background, 200-300px width
+                    </small>
+                </div>
+
                 <div class="form-row">
                     <div class="form-group">
                         <label>Language *</label>
@@ -338,6 +358,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 
     <script src="js/firebase-config.js"></script>
     <script src="js/auth.js"></script>
@@ -444,6 +465,15 @@
                 document.getElementById('pubIsSunday').checked = pub.isSundayPaper || false;
                 document.getElementById('pubActive').checked = pub.active !== false;
 
+                // Load existing logo if available
+                if (pub.logoUrl) {
+                    document.getElementById('pubLogoUrl').value = pub.logoUrl;
+                    document.getElementById('logoPreviewImg').src = pub.logoUrl;
+                    document.getElementById('logoPreview').style.display = 'block';
+                } else {
+                    removeLogoPreview();
+                }
+
                 document.getElementById('publicationModal').classList.add('active');
             } catch (error) {
                 console.error('Error loading publication:', error);
@@ -451,25 +481,98 @@
             }
         }
 
+        // Handle logo preview
+        function handleLogoPreview(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                event.target.value = '';
+                return;
+            }
+
+            // Validate file size (max 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                alert('Logo file size must be less than 2MB');
+                event.target.value = '';
+                return;
+            }
+
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('logoPreviewImg').src = e.target.result;
+                document.getElementById('logoPreview').style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Remove logo preview
+        function removeLogoPreview() {
+            document.getElementById('pubLogo').value = '';
+            document.getElementById('pubLogoUrl').value = '';
+            document.getElementById('logoPreview').style.display = 'none';
+            document.getElementById('logoPreviewImg').src = '';
+        }
+
+        // Upload logo to Firebase Storage
+        async function uploadLogoToStorage(file, newspaperName) {
+            try {
+                const storage = firebase.storage();
+                const fileName = `${newspaperName.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.${file.name.split('.').pop()}`;
+                const storageRef = storage.ref(`newspaper-logos/${fileName}`);
+
+                // Upload file
+                const uploadTask = await storageRef.put(file);
+
+                // Get download URL
+                const downloadURL = await uploadTask.ref.getDownloadURL();
+                console.log('✅ Logo uploaded:', downloadURL);
+
+                return downloadURL;
+            } catch (error) {
+                console.error('❌ Error uploading logo:', error);
+                throw error;
+            }
+        }
+
         // Save publication
         async function savePublication(event) {
             event.preventDefault();
 
-            const data = {
-                name: document.getElementById('pubName').value,
-                language: document.getElementById('pubLanguage').value,
-                groupName: document.getElementById('pubGroupName').value || '',
-                bwRate: parseFloat(document.getElementById('pubBwRate').value),
-                colorRate: parseFloat(document.getElementById('pubColorRate').value),
-                classifiedBase: parseFloat(document.getElementById('pubClassifiedBase').value) || 0,
-                classifiedFreeWords: parseInt(document.getElementById('pubClassifiedFreeWords').value) || 0,
-                classifiedExtraRate: parseFloat(document.getElementById('pubClassifiedExtraRate').value) || 0,
-                isSundayPaper: document.getElementById('pubIsSunday').checked,
-                active: document.getElementById('pubActive').checked,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
+            const submitBtn = event.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
 
             try {
+                const data = {
+                    name: document.getElementById('pubName').value,
+                    language: document.getElementById('pubLanguage').value,
+                    groupName: document.getElementById('pubGroupName').value || '',
+                    bwRate: parseFloat(document.getElementById('pubBwRate').value),
+                    colorRate: parseFloat(document.getElementById('pubColorRate').value),
+                    classifiedBase: parseFloat(document.getElementById('pubClassifiedBase').value) || 0,
+                    classifiedFreeWords: parseInt(document.getElementById('pubClassifiedFreeWords').value) || 0,
+                    classifiedExtraRate: parseFloat(document.getElementById('pubClassifiedExtraRate').value) || 0,
+                    isSundayPaper: document.getElementById('pubIsSunday').checked,
+                    active: document.getElementById('pubActive').checked,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                // Handle logo upload if new file selected
+                const logoFile = document.getElementById('pubLogo').files[0];
+                if (logoFile) {
+                    submitBtn.textContent = 'Uploading logo...';
+                    const logoUrl = await uploadLogoToStorage(logoFile, data.name);
+                    data.logoUrl = logoUrl;
+                } else if (document.getElementById('pubLogoUrl').value) {
+                    // Keep existing logo URL
+                    data.logoUrl = document.getElementById('pubLogoUrl').value;
+                }
+
                 if (currentEditId) {
                     // Update existing
                     await db.collection('newspapers').doc(currentEditId).update(data);
@@ -487,6 +590,9 @@
             } catch (error) {
                 console.error('Error saving publication:', error);
                 alert('Failed to save: ' + error.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
             }
         }
 
