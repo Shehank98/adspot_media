@@ -269,6 +269,27 @@ function showNotification(message, type = 'info') {
 window.showNotification = showNotification;
 
 /**
+ * FAQ Toggle Function
+ */
+function toggleFAQ(button) {
+    const faqItem = button.closest('.faq-item');
+    const allFaqItems = document.querySelectorAll('.faq-item');
+
+    // Close all other FAQs
+    allFaqItems.forEach(item => {
+        if (item !== faqItem) {
+            item.classList.remove('active');
+        }
+    });
+
+    // Toggle current FAQ
+    faqItem.classList.toggle('active');
+}
+
+// Export for use in HTML onclick
+window.toggleFAQ = toggleFAQ;
+
+/**
  * Newspaper Carousel
  * Auto-scrolling carousel showing newspaper logos
  */
