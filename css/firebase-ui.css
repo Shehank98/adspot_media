@@ -192,6 +192,9 @@
     background: linear-gradient(135deg, var(--gray-50) 0%, white 100%);
     padding: 2rem 0;
     border-radius: var(--radius-xl);
+    /* Ensure no horizontal scroll */
+    max-width: 100%;
+    position: relative;
 }
 
 .carousel-track {

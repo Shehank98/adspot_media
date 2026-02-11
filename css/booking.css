@@ -1503,12 +1503,36 @@
 
 @media (max-width: 480px) {
     /* Mobile: Ensure proper stacking and spacing */
+
+    /* Prevent horizontal scroll */
+    .booking-main {
+        padding: 90px 0 var(--space-2xl);
+    }
+
+    .container {
+        padding: 0 var(--space-md);
+    }
+
     .booking-progress {
         padding: 1rem;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE and Edge */
+    }
+
+    .booking-progress::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
     }
 
     .progress-step {
         padding: 0.5rem;
+        min-width: 80px;
+        flex-shrink: 0;
+    }
+
+    .progress-line {
+        flex-shrink: 0;
     }
 
     .step-header h2 {
@@ -1579,5 +1603,55 @@
     .rates-card h4,
     .help-card h4 {
         font-size: 1rem;
+    }
+
+    /* Form inputs - prevent iOS zoom on focus */
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="number"],
+    input[type="date"],
+    input[type="password"],
+    textarea,
+    select {
+        font-size: 16px !important; /* Prevents iOS zoom on focus */
+    }
+
+    /* Ensure all buttons are touch-friendly */
+    .btn,
+    .language-btn,
+    .ad-type-card-compact,
+    .newspaper-card,
+    .pub-group-card {
+        min-height: 44px;
+    }
+
+    /* Form labels - better spacing on small screens */
+    .form-label {
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Step headers - more compact */
+    .step-header h2 {
+        font-size: 1.375rem;
+        line-height: 1.3;
+    }
+
+    .step-header p {
+        font-size: 0.875rem;
+    }
+
+    /* Price card - ensure readable */
+    .price-card h3 {
+        font-size: 1rem;
+    }
+
+    .price-details {
+        font-size: 0.875rem;
+    }
+
+    .total-amount {
+        font-size: 1.125rem;
     }
 }
