@@ -35,7 +35,7 @@
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600&family=Gemunu+Libre:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/firebase-ui.css">
 </head>
@@ -48,13 +48,22 @@
                 <span class="logo-text">AdSpot</span>
             </a>
             <ul class="nav-links">
-                <li><a href="#services">Services</a></li>
-                <li><a href="#publications">Publications</a></li>
-                <li><a href="#how-it-works">How It Works</a></li>
-                <li><a href="#contact">Contact</a></li>
+                <li><a href="#services" data-translate="nav.services">Services</a></li>
+                <li><a href="#publications" data-translate="nav.publications">Publications</a></li>
+                <li><a href="#how-it-works" data-translate="nav.howItWorks">How It Works</a></li>
+                <li><a href="#contact" data-translate="nav.contact">Contact</a></li>
             </ul>
             <div class="nav-actions">
-                <a href="book.html" class="btn btn-primary">Book Your Ad</a>
+                <!-- Language Toggle -->
+                <button id="langToggle" class="lang-toggle-btn" onclick="toggleLanguage()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+                    </svg>
+                    <span id="currentLang">English</span>
+                </button>
+
+                <a href="book.html" class="btn btn-primary" data-translate="nav.bookAd">Book Your Ad</a>
 
                 <!-- Login Button (shown when not logged in) -->
                 <button id="loginBtn" class="btn btn-ghost btn-auth" style="display: none;">
@@ -118,13 +127,13 @@
         <div class="hero-content">
             <div class="hero-badge">
                 <span class="badge-dot"></span>
-                <span>Sri Lanka's Trusted Ad Partner</span>
+                <span data-translate="hero.badge">Sri Lanka's Trusted Ad Partner</span>
             </div>
             <h1 class="hero-title">
-                <span>Your Message,</span><br>
-                <span class="highlight">Every Newspaper</span>
+                <span data-translate="hero.title1">Your Message,</span><br>
+                <span class="highlight" data-translate="hero.title2">Every Newspaper</span>
             </h1>
-            <p class="hero-subtitle">
+            <p class="hero-subtitle" data-translate="hero.subtitle">
                 Book newspaper advertisements across Sri Lanka's leading publications.
                 Simple booking, instant quotations, professional service.
             </p>
@@ -585,6 +594,7 @@
     <script src="js/firebase-db.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/config.js"></script>
+    <script src="js/translations.js"></script>
     <script src="js/supabase.js"></script>
     <script src="js/app.js"></script>
 </body>

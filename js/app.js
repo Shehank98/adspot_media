@@ -290,6 +290,67 @@ function toggleFAQ(button) {
 window.toggleFAQ = toggleFAQ;
 
 /**
+ * Language Translation System
+ */
+let currentLanguage = localStorage.getItem('adspot_language') || 'en';
+
+function toggleLanguage() {
+    currentLanguage = currentLanguage === 'en' ? 'si' : 'en';
+    localStorage.setItem('adspot_language', currentLanguage);
+    updateLanguage();
+}
+
+function updateLanguage() {
+    const langCode = currentLanguage;
+
+    // Update toggle button
+    const langBtn = document.getElementById('currentLang');
+    if (langBtn) {
+        langBtn.textContent = langCode === 'en' ? 'English' : 'සිංහල';
+    }
+
+    // Add/remove language class on body for font switching
+    document.body.classList.remove('lang-en', 'lang-si');
+    document.body.classList.add(`lang-${langCode}`);
+
+    // Update HTML lang attribute
+    document.documentElement.lang = langCode;
+
+    // Update all elements with data-translate attribute
+    if (typeof translations !== 'undefined') {
+        document.querySelectorAll('[data-translate]').forEach(element => {
+            const key = element.getAttribute('data-translate');
+            const translation = translations[langCode][key];
+
+            // Only update if translation exists and is not empty
+            if (translation && translation.trim() !== '') {
+                // Handle different element types
+                if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+                    element.placeholder = translation;
+                } else {
+                    element.textContent = translation;
+                }
+            }
+        });
+
+        console.log(`✅ Language updated to: ${langCode === 'en' ? 'English' : 'Sinhala'}`);
+    } else {
+        console.warn('⚠️ Translations not loaded yet');
+    }
+}
+
+// Initialize language on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Wait a bit for translations.js to load
+    setTimeout(() => {
+        updateLanguage();
+    }, 100);
+});
+
+// Export for use in HTML onclick
+window.toggleLanguage = toggleLanguage;
+
+/**
  * Newspaper Carousel
  * Auto-scrolling carousel showing newspaper logos
  */

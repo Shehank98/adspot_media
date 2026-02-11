@@ -3349,3 +3349,80 @@ select:focus {
         font-size: 0.8125rem;
     }
 }
+
+/* ============================================
+   Language Toggle & Sinhala Font
+   ============================================ */
+.lang-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    background: var(--white);
+    border: 2px solid var(--primary);
+    border-radius: var(--radius-lg);
+    color: var(--primary);
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    margin-right: 1rem;
+}
+
+.lang-toggle-btn:hover {
+    background: var(--primary);
+    color: var(--white);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(26, 86, 219, 0.25);
+}
+
+.lang-toggle-btn svg {
+    flex-shrink: 0;
+}
+
+/* Sinhala Font - Gemunu Libre */
+body.lang-si {
+    font-family: 'Gemunu Libre', 'DM Sans', sans-serif;
+}
+
+body.lang-si h1,
+body.lang-si h2,
+body.lang-si h3,
+body.lang-si h4,
+body.lang-si h5,
+body.lang-si h6 {
+    font-family: 'Gemunu Libre', 'Sora', sans-serif;
+    font-weight: 700;
+}
+
+body.lang-si .btn,
+body.lang-si button {
+    font-family: 'Gemunu Libre', sans-serif;
+    font-weight: 600;
+}
+
+/* Adjust font size for better Sinhala readability */
+body.lang-si {
+    font-size: 17px;
+}
+
+body.lang-si .hero-title {
+    font-size: clamp(2.75rem, 5vw, 4.25rem);
+}
+
+body.lang-si .section-title {
+    font-size: clamp(2rem, 3vw, 2.75rem);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .lang-toggle-btn {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8125rem;
+        margin-right: 0.5rem;
+    }
+
+    body.lang-si {
+        font-size: 16px;
+    }
+}
