@@ -1378,12 +1378,51 @@ async function handleSubmit(e) {
                     const file = fileInput.files[0];
                     console.log('Uploading ad file to Firebase Storage...');
 
+                    // Show progress bar
+                    const progressContainer = document.getElementById('uploadProgressContainer');
+                    const progressFill = document.getElementById('uploadProgressFill');
+                    const progressPercent = document.getElementById('uploadProgressPercent');
+                    const progressStatus = document.getElementById('uploadProgressStatus');
+
+                    if (progressContainer) {
+                        progressContainer.style.display = 'block';
+                        progressStatus.textContent = 'Uploading artwork...';
+                    }
+
                     if (typeof uploadAdFileToFirebase === 'function') {
                         try {
-                            adFileUrl = await uploadAdFileToFirebase(file, quotationNumber);
+                            adFileUrl = await uploadAdFileToFirebase(file, quotationNumber, (progress) => {
+                                // Update progress bar
+                                if (progressFill && progressPercent) {
+                                    progressFill.style.width = `${progress}%`;
+                                    progressPercent.textContent = `${Math.round(progress)}%`;
+                                }
+                            });
+
                             console.log('Ad file uploaded:', adFileUrl);
+
+                            // Show success status
+                            if (progressStatus) {
+                                progressStatus.textContent = '✓ Upload complete!';
+                            }
+
+                            // Hide progress bar after 1 second
+                            setTimeout(() => {
+                                if (progressContainer) {
+                                    progressContainer.style.display = 'none';
+                                }
+                            }, 1000);
+
                         } catch (uploadError) {
                             console.warn('File upload failed, continuing without file:', uploadError);
+                            if (progressStatus) {
+                                progressStatus.textContent = '✗ Upload failed';
+                            }
+                            setTimeout(() => {
+                                if (progressContainer) {
+                                    progressContainer.style.display = 'none';
+                                }
+                            }, 2000);
                         }
                     }
                 }

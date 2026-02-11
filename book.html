@@ -290,6 +290,17 @@
                                             <span>Click to upload or drag & drop</span>
                                             <small>PNG, JPG, PDF up to 10MB</small>
                                         </div>
+                                        <!-- Upload Progress Bar -->
+                                        <div class="upload-progress-container" id="uploadProgressContainer" style="display: none;">
+                                            <div class="upload-progress-bar">
+                                                <div class="upload-progress-fill" id="uploadProgressFill" style="width: 0%"></div>
+                                            </div>
+                                            <div class="upload-progress-text">
+                                                <span id="uploadProgressPercent">0%</span>
+                                                <span id="uploadProgressStatus">Uploading...</span>
+                                            </div>
+                                        </div>
+                                        <!-- Upload Preview -->
                                         <div class="upload-preview" id="uploadPreview" style="display: none;">
                                             <img id="previewImage" src="" alt="Preview" style="display: none;">
                                             <div class="file-info">

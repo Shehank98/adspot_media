@@ -104,23 +104,70 @@ async function saveInvoiceToFirebase(invoiceData) {
 /**
  * Upload ad file to Firebase Storage
  */
-async function uploadAdFileToFirebase(file, bookingId) {
-    try {
-        const user = firebase.auth().currentUser;
-        if (!user) throw new Error('User must be logged in');
+/**
+ * Upload ad file to Firebase Storage with progress tracking
+ * @param {File} file - The file to upload
+ * @param {string} bookingId - The booking/quotation ID
+ * @param {function} onProgress - Callback for upload progress (percentage)
+ * @returns {Promise<string>} - Download URL of uploaded file
+ */
+async function uploadAdFileToFirebase(file, bookingId, onProgress) {
+    return new Promise((resolve, reject) => {
+        try {
+            const user = firebase.auth().currentUser;
+            if (!user) {
+                reject(new Error('User must be logged in'));
+                return;
+            }
 
-        const fileName = `${bookingId}/${Date.now()}_${file.name}`;
-        const storageRef = storage.ref(`ad-files/${fileName}`);
+            // Create organized folder structure: ad-artworks/YYYY/MM/DD/quotation-id/filename
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
 
-        const snapshot = await storageRef.put(file);
-        const downloadURL = await snapshot.ref.getDownloadURL();
+            const fileName = `${Date.now()}_${file.name}`;
+            const filePath = `ad-artworks/${year}/${month}/${day}/${bookingId}/${fileName}`;
+            const storageRef = storage.ref(filePath);
 
-        console.log('✅ File uploaded to Firebase Storage:', downloadURL);
-        return downloadURL;
-    } catch (error) {
-        console.error('❌ Error uploading file:', error);
-        throw error;
-    }
+            // Start upload with progress tracking
+            const uploadTask = storageRef.put(file);
+
+            // Monitor upload progress
+            uploadTask.on('state_changed',
+                // Progress callback
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    console.log(`Upload progress: ${progress.toFixed(1)}%`);
+
+                    // Call progress callback if provided
+                    if (typeof onProgress === 'function') {
+                        onProgress(progress);
+                    }
+                },
+                // Error callback
+                (error) => {
+                    console.error('❌ Error uploading file:', error);
+                    reject(error);
+                },
+                // Success callback
+                async () => {
+                    try {
+                        const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                        console.log('✅ File uploaded to Firebase Storage:', downloadURL);
+                        console.log('📁 File path:', filePath);
+                        resolve(downloadURL);
+                    } catch (error) {
+                        reject(error);
+                    }
+                }
+            );
+
+        } catch (error) {
+            console.error('❌ Error uploading file:', error);
+            reject(error);
+        }
+    });
 }
 
 /**
