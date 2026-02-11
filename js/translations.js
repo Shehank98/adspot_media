@@ -10,6 +10,7 @@ const translations = {
         'nav.publications': 'Publications',
         'nav.howItWorks': 'How It Works',
         'nav.contact': 'Contact',
+        'nav.faq': 'FAQ',
         'nav.bookAd': 'Book Your Ad',
 
         // Hero Section
@@ -207,6 +208,7 @@ const translations = {
         'nav.publications': 'ප්‍රකාශන',
         'nav.howItWorks': 'මෙය ක්‍රියා කරන්නේ කෙසේද',
         'nav.contact': 'සම්බන්ධ වන්න',
+        'nav.faq': 'නිතර අසන ප්‍රශ්න',
         'nav.bookAd': 'ඔබේ දැන්වීම වෙන්කරන්න',
 
         // Hero Section

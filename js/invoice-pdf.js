@@ -22,6 +22,21 @@ async function generateInvoicePDF(invoiceData, bookingData) {
             return `Rs. ${parseFloat(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         };
 
+        const getCategoryName = (categoryKey) => {
+            const categories = {
+                'jobs': 'Jobs / Vacancies',
+                'property': 'Property / Real Estate',
+                'vehicles': 'Vehicles',
+                'matrimonial': 'Matrimonial',
+                'education': 'Education',
+                'services': 'Services',
+                'obituary': 'Obituary',
+                'tenders': 'Tenders / Notices',
+                'general': 'General'
+            };
+            return categories[categoryKey] || categoryKey || 'General';
+        };
+
         let y = 25;
 
         // ===== HEADER =====
@@ -100,130 +115,123 @@ async function generateInvoicePDF(invoiceData, bookingData) {
 
         y += 15;
 
-        // ===== TABLE HEADER =====
-        doc.setFillColor(...lightGray);
-        doc.rect(20, y - 5, 170, 8, 'F');
-
-        doc.setFontSize(9);
+        // ===== AD ITEMS SECTION =====
+        doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(...dark);
-        doc.text('DESCRIPTION', 22, y);
-        doc.text('RATE', 100, y);
-        doc.text('PUBLISH DATE', 145, y);
-        doc.text('AMOUNT', 190, y, { align: 'right' });
-
+        doc.text(`Ad Items (${bookingData.items.length})`, 20, y);
         y += 8;
 
-        // ===== TABLE ROWS - LINE ITEMS =====
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
+        // Draw background box for items
+        const itemsStartY = y;
 
         bookingData.items.forEach((item, index) => {
             // Check if we need a new page
-            if (y > 250) {
+            if (y > 240) {
                 doc.addPage();
                 y = 25;
             }
 
-            // Newspaper name + Ad type
-            doc.setTextColor(...dark);
+            // Item background (alternating colors)
+            const bgColor = index % 2 === 0 ? [249, 250, 251] : [255, 255, 255];
+            doc.setFillColor(...bgColor);
+            doc.rect(20, y - 3, 170, 18, 'F');
+
+            // Newspaper name
+            doc.setFontSize(10);
             doc.setFont('helvetica', 'bold');
-            doc.text(item.newspaperName, 22, y);
+            doc.setTextColor(...dark);
+            doc.text(item.newspaperName, 22, y + 2);
 
-            y += 4;
+            // Ad details line 2
+            y += 6;
             doc.setFont('helvetica', 'normal');
-            doc.setTextColor(...gray);
             doc.setFontSize(8);
+            doc.setTextColor(...gray);
 
-            // Description based on ad type
             if (item.adType === 'box') {
                 const details = item.details || {};
-                doc.text(`Box Ad: ${details.columns || 1} col x ${details.height || 0} cm (${details.colorOption || 'B&W'})`, 22, y);
+                doc.text(`Box Ad: ${details.columns || 1} col x ${details.height || 0} cm (${details.colorOption === 'color' ? 'Color' : 'B&W'})`, 22, y);
             } else if (item.adType === 'classified') {
                 const details = item.details || {};
-                doc.text(`Classified Ad: ${details.wordCount || 0} words`, 22, y);
+                const categoryName = getCategoryName(details.category);
+                doc.text(`Classified: ${details.wordCount || 0} words (${categoryName})`, 22, y);
             }
 
-            // Rate (per sq cm or per word)
-            y -= 4;
-            doc.setFontSize(9);
-            doc.setTextColor(...gray);
-            if (item.adType === 'box') {
-                const details = item.details || {};
-                doc.text(formatCurrency(details.rate || 0) + '/col-cm', 100, y);
-            } else {
-                doc.text('Per word', 100, y);
-            }
+            // Publication date line 3
+            y += 4;
+            doc.text(new Date(item.pubDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }), 22, y);
 
-            // Publish Date
-            doc.text(new Date(item.pubDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }), 145, y);
-
-            // Amount
+            // Amount (right side)
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
             doc.setTextColor(...dark);
-            doc.text(formatCurrency(item.price), 190, y, { align: 'right' });
+            doc.text(formatCurrency(item.price), 188, y - 4, { align: 'right' });
 
-            y += 10;
-
-            // Separator line
-            doc.setDrawColor(230, 230, 230);
-            doc.line(20, y - 2, 190, y - 2);
+            y += 8;
         });
 
-        y += 5;
+        y += 8;
 
-        // ===== TOTALS SECTION =====
-        const totalsX = 120;
+        // ===== CHARGES BREAKDOWN =====
+        // Background box for breakdown
+        doc.setFillColor(249, 250, 251);
+        doc.rect(20, y - 3, 170, 50, 'F');
+
+        const breakdownX = 22;
+        const amountX = 188;
 
         doc.setFontSize(9);
-        doc.setTextColor(...gray);
+        doc.setFont('helvetica', 'normal');
 
-        // Subtotal
-        doc.text('Subtotal:', totalsX, y);
+        // Ad Subtotal
+        doc.setTextColor(...gray);
+        doc.text('Ad Subtotal:', breakdownX, y);
         doc.setTextColor(...dark);
-        doc.text(formatCurrency(invoiceData.subtotal), 190, y, { align: 'right' });
+        doc.text(formatCurrency(invoiceData.subtotal), amountX, y, { align: 'right' });
         y += 6;
 
-        // Commission (for box ads only)
+        // Platform Commission (for box ads only)
         if (invoiceData.hasBoxAds && invoiceData.commission > 0) {
             doc.setTextColor(...gray);
-            doc.text('Platform Commission (10%):', totalsX, y);
+            doc.text('Platform Commission (10%):', breakdownX, y);
             doc.setTextColor(...dark);
-            doc.text(formatCurrency(invoiceData.commission), 190, y, { align: 'right' });
+            doc.text(formatCurrency(invoiceData.commission), amountX, y, { align: 'right' });
             y += 6;
         }
 
         // VAT (for box ads only)
         if (invoiceData.hasBoxAds && invoiceData.vat > 0) {
             doc.setTextColor(...gray);
-            doc.text('VAT (18%):', totalsX, y);
+            doc.text('VAT (18%):', breakdownX, y);
             doc.setTextColor(...dark);
-            doc.text(formatCurrency(invoiceData.vat), 190, y, { align: 'right' });
+            doc.text(formatCurrency(invoiceData.vat), amountX, y, { align: 'right' });
             y += 6;
         }
 
         // Service Charge (for classified ads only)
         if (invoiceData.hasClassifiedAds && invoiceData.serviceCharge > 0) {
             doc.setTextColor(...gray);
-            doc.text('Service Charge:', totalsX, y);
+            doc.text('Service Charge:', breakdownX, y);
             doc.setTextColor(...dark);
-            doc.text(formatCurrency(invoiceData.serviceCharge), 190, y, { align: 'right' });
+            doc.text(formatCurrency(invoiceData.serviceCharge), amountX, y, { align: 'right' });
             y += 6;
         }
 
-        y += 2;
+        y += 5;
 
-        // Total line
+        // Total line separator
         doc.setDrawColor(...primary);
-        doc.setLineWidth(0.5);
-        doc.line(totalsX, y, 190, y);
+        doc.setLineWidth(0.8);
+        doc.line(breakdownX, y, amountX, y);
         y += 8;
 
-        // Total amount
+        // Total amount (prominent)
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(...primary);
-        doc.text('TOTAL:', totalsX, y);
-        doc.text(formatCurrency(invoiceData.total), 190, y, { align: 'right' });
+        doc.text('Total Amount:', breakdownX, y);
+        doc.text(formatCurrency(invoiceData.total), amountX, y, { align: 'right' });
 
         // ===== FOOTER =====
         y = 270;
