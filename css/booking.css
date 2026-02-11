@@ -1138,11 +1138,10 @@
 
 .ad-placement {
     position: absolute;
-    top: 50%;
+    bottom: 10px;
     right: 10px;
-    transform: translateY(-50%);
-    background: rgba(37, 99, 235, 0.2);
-    border: 2px dashed var(--primary);
+    background: rgba(107, 114, 128, 0.15);
+    border: 2px dashed var(--gray-500);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1150,16 +1149,27 @@
     gap: 0.25rem;
 }
 
+/* Color ad preview - purple/blue */
+.ad-placement.color-ad {
+    background: rgba(139, 92, 246, 0.15);
+    border-color: #8b5cf6;
+}
+
+.ad-placement.color-ad .ad-label,
+.ad-placement.color-ad .ad-size {
+    color: #7c3aed;
+}
+
 .ad-label {
     font-size: 0.625rem;
     font-weight: 600;
-    color: var(--primary);
+    color: var(--gray-700);
     text-transform: uppercase;
 }
 
 .ad-size {
     font-size: 0.5rem;
-    color: var(--primary-dark);
+    color: var(--gray-600);
 }
 
 /* Comparison Section */

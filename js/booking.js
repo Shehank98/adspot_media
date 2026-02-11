@@ -726,6 +726,7 @@ function updateNewspaperPreview() {
 
     const columns = parseInt(document.getElementById('adColumns')?.value) || 1;
     const height = parseFloat(document.getElementById('adHeight')?.value) || 10;
+    const colorOption = document.getElementById('colorOption')?.value || 'bw';
     const language = selectedNewspaper.language || 'english';
     const width = getColumnWidth(language, columns);
 
@@ -743,13 +744,16 @@ function updateNewspaperPreview() {
     const scaledAdWidth = width * scale;
     const scaledAdHeight = height * scale;
 
+    // Add color class for color ads
+    const colorClass = colorOption === 'color' ? 'color-ad' : '';
+
     previewContainer.innerHTML = `
         <div class="newspaper-outline" style="width: ${scaledPaperWidth}px; height: ${scaledPaperHeight}px;">
             <div class="newspaper-header">
                 <span class="paper-title">${selectedNewspaper.name}</span>
                 <span class="paper-size">${paperWidth} x ${paperHeight} cm</span>
             </div>
-            <div class="ad-placement" style="width: ${scaledAdWidth}px; height: ${scaledAdHeight}px;">
+            <div class="ad-placement ${colorClass}" style="width: ${scaledAdWidth}px; height: ${scaledAdHeight}px;">
                 <span class="ad-label">Your Ad</span>
                 <span class="ad-size">${width.toFixed(1)} x ${height} cm</span>
             </div>
