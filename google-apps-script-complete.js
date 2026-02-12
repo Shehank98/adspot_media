@@ -262,7 +262,7 @@ function sendAdminNotification(data) {
  * Send quotation/confirmation email to customer
  */
 function sendQuotationEmail(data) {
-  const { customer_email, customer_name, quotation_number, items, total_amount } = data;
+  const { customer_email, customer_name, quotation_number, items, total_amount, subtotalAmount, promoCode, promoDiscount } = data;
 
   const subject = `📋 Your Quotation ${quotation_number} - AdSpot Media`;
 
@@ -345,6 +345,33 @@ function sendQuotationEmail(data) {
                 </td>
               </tr>
 
+              <!-- Price Breakdown (if promo applied) -->
+              ${promoCode && promoDiscount > 0 ? `
+              <tr>
+                <td style="padding: 20px 40px;">
+                  <div style="background: #f0fdf4; border-radius: 12px; padding: 20px; border: 2px solid #86efac;">
+                    <table width="100%" style="font-size: 14px;">
+                      <tr>
+                        <td style="color: #6b7280; padding: 6px 0;">Subtotal:</td>
+                        <td style="font-weight: 600; text-align: right; color: #1f2937;">Rs. ${parseFloat(subtotalAmount || total_amount).toLocaleString()}</td>
+                      </tr>
+                      <tr>
+                        <td style="color: #059669; padding: 6px 0; font-weight: 600;">🎉 Promo Discount (${promoCode}):</td>
+                        <td style="font-weight: 700; text-align: right; color: #059669;">-Rs. ${parseFloat(promoDiscount || 0).toLocaleString()}</td>
+                      </tr>
+                      <tr style="border-top: 2px solid #86efac;">
+                        <td style="color: #1f2937; padding: 12px 0 6px 0; font-weight: 700; font-size: 16px;">Total:</td>
+                        <td style="font-weight: 700; text-align: right; color: #1f2937; padding: 12px 0 6px 0; font-size: 16px;">Rs. ${parseFloat(total_amount || 0).toLocaleString()}</td>
+                      </tr>
+                    </table>
+                    <div style="text-align: center; margin-top: 12px; padding: 8px; background: #d1fae5; border-radius: 6px;">
+                      <span style="color: #059669; font-weight: 600; font-size: 12px;">✨ You saved Rs. ${parseFloat(promoDiscount || 0).toLocaleString()} with promo code ${promoCode}!</span>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              ` : ''}
+
               <!-- Total -->
               <tr>
                 <td style="padding: 20px 40px;">
@@ -424,7 +451,7 @@ function sendQuotationEmail(data) {
  * Send booking confirmation email to customer
  */
 function sendBookingConfirmation(data) {
-  const { customerEmail, customerName, quotationNumber, invoiceNumber, totalAmount, paymentMethod, items, customerPhone } = data;
+  const { customerEmail, customerName, quotationNumber, invoiceNumber, totalAmount, paymentMethod, items, customerPhone, subtotalAmount, promoCode, promoDiscount } = data;
 
   const subject = `🎉 Booking Confirmed - ${quotationNumber} | AdSpot Media`;
 
@@ -565,6 +592,33 @@ function sendBookingConfirmation(data) {
                   </div>
                 </td>
               </tr>
+
+              <!-- Price Breakdown (if promo applied) -->
+              ${promoCode && promoDiscount > 0 ? `
+              <tr>
+                <td style="padding: 20px 40px;">
+                  <div style="background: #f0fdf4; border-radius: 12px; padding: 20px; border: 2px solid #86efac;">
+                    <table width="100%" style="font-size: 14px;">
+                      <tr>
+                        <td style="color: #6b7280; padding: 6px 0;">Subtotal:</td>
+                        <td style="font-weight: 600; text-align: right; color: #1f2937;">Rs. ${parseFloat(subtotalAmount || totalAmount).toLocaleString()}</td>
+                      </tr>
+                      <tr>
+                        <td style="color: #059669; padding: 6px 0; font-weight: 600;">🎉 Promo Discount (${promoCode}):</td>
+                        <td style="font-weight: 700; text-align: right; color: #059669;">-Rs. ${parseFloat(promoDiscount || 0).toLocaleString()}</td>
+                      </tr>
+                      <tr style="border-top: 2px solid #86efac;">
+                        <td style="color: #1f2937; padding: 12px 0 6px 0; font-weight: 700; font-size: 16px;">Total:</td>
+                        <td style="font-weight: 700; text-align: right; color: #1f2937; padding: 12px 0 6px 0; font-size: 16px;">Rs. ${parseFloat(totalAmount || 0).toLocaleString()}</td>
+                      </tr>
+                    </table>
+                    <div style="text-align: center; margin-top: 12px; padding: 8px; background: #d1fae5; border-radius: 6px;">
+                      <span style="color: #059669; font-weight: 600; font-size: 12px;">✨ You saved Rs. ${parseFloat(promoDiscount || 0).toLocaleString()} with promo code ${promoCode}!</span>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              ` : ''}
 
               <!-- Total -->
               <tr>

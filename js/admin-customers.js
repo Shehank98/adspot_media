@@ -116,14 +116,14 @@ async function loadData() {
  */
 function updateStats() {
     // Total customers
-    document.getElementById('totalCustomers').textContent = allCustomers.length;
+    document.getElementById('totalCustomers').textContent = allCustomers.length.toLocaleString();
 
     // Total bookings
-    document.getElementById('totalBookings').textContent = allBookings.length;
+    document.getElementById('totalBookings').textContent = allBookings.length.toLocaleString();
 
-    // Total revenue
+    // Total revenue - use shorter format for large numbers
     const totalRevenue = allCustomers.reduce((sum, customer) => sum + customer.totalSpent, 0);
-    document.getElementById('totalRevenue').textContent = formatCurrency(totalRevenue);
+    document.getElementById('totalRevenue').textContent = formatStatCurrency(totalRevenue);
 
     // New customers this month
     const now = new Date();
@@ -131,7 +131,7 @@ function updateStats() {
     const newThisMonth = allCustomers.filter(customer =>
         customer.firstBooking && customer.firstBooking >= firstDayOfMonth
     ).length;
-    document.getElementById('newCustomers').textContent = newThisMonth;
+    document.getElementById('newCustomers').textContent = newThisMonth.toLocaleString();
 }
 
 /**
@@ -171,7 +171,7 @@ function renderCustomersTable(customers = allCustomers) {
                 </td>
                 <td>${lastBooking}</td>
                 <td>
-                    <button class="btn-view" onclick='viewCustomer(${JSON.stringify(customer).replace(/'/g, "&apos;")})'>
+                    <button class="btn-view" onclick="viewCustomerByEmail('${customer.email.replace(/'/g, "\\'")}')">
                         View Details
                     </button>
                 </td>
@@ -198,6 +198,18 @@ function filterCustomers() {
     );
 
     renderCustomersTable(filtered);
+}
+
+/**
+ * View customer by email (helper for onclick)
+ */
+function viewCustomerByEmail(email) {
+    const customer = allCustomers.find(c => c.email === email);
+    if (customer) {
+        viewCustomer(customer);
+    } else {
+        alert('Customer not found');
+    }
 }
 
 /**
@@ -254,6 +266,19 @@ function formatCurrency(amount) {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     });
+}
+
+/**
+ * Format currency for stats (more compact for large numbers)
+ */
+function formatStatCurrency(amount) {
+    if (amount >= 1000000) {
+        return 'Rs. ' + (amount / 1000000).toFixed(2) + 'M';
+    } else if (amount >= 1000) {
+        return 'Rs. ' + (amount / 1000).toFixed(1) + 'K';
+    } else {
+        return 'Rs. ' + amount.toFixed(2);
+    }
 }
 
 /**

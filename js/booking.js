@@ -1494,6 +1494,20 @@ async function handleSubmit(e) {
                 const bookingId = await saveBookingToFirebase(bookingData);
                 console.log('✅ Booking saved to Firebase:', bookingId);
 
+                // Increment promo code usage count if promo was applied
+                if (appliedPromoCode && appliedPromoCode.code) {
+                    try {
+                        await firebase.firestore().collection('promoCodes').doc(appliedPromoCode.code).update({
+                            usedCount: firebase.firestore.FieldValue.increment(1),
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        console.log('✅ Promo code usage count incremented');
+                    } catch (promoError) {
+                        console.warn('Failed to increment promo code usage:', promoError);
+                        // Don't fail the booking if promo increment fails
+                    }
+                }
+
                 // Save invoice to Firebase
                 if (typeof saveInvoiceToFirebase === 'function') {
                     // Calculate proper invoice breakdown based on ad types in cart

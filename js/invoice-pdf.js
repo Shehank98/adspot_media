@@ -218,6 +218,14 @@ async function generateInvoicePDF(invoiceData, bookingData) {
             y += 6;
         }
 
+        // Promo Discount (if applied)
+        if (invoiceData.promoCode && invoiceData.promoDiscount > 0) {
+            doc.setTextColor(5, 150, 105); // Green color for discount
+            doc.text(`Promo Discount (${invoiceData.promoCode}):`, breakdownX, y);
+            doc.text('-' + formatCurrency(invoiceData.promoDiscount), amountX, y, { align: 'right' });
+            y += 6;
+        }
+
         y += 5;
 
         // Total line separator
