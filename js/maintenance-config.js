@@ -17,7 +17,7 @@
 
 const MaintenanceConfig = {
     // ⚠️ TOGGLE MAINTENANCE MODE HERE ⚠️
-    maintenanceMode: false, // Set to true to enable maintenance
+    maintenanceMode: true, // Set to true to enable maintenance
 
     // Admin access password (change this!)
     adminPassword: 'adspot2026',
