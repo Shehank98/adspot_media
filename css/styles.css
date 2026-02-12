@@ -370,7 +370,9 @@ input, textarea, select {
     display: flex;
     align-items: center;
     gap: var(--space-xl);
-    animation: fadeInUp 0.6s ease 0.4s both;
+    margin-top: var(--space-xl);
+    margin-bottom: var(--space-2xl);
+    animation: fadeInUp 0.6s ease 0.2s both;
 }
 
 .stat {
