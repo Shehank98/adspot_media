@@ -2621,15 +2621,29 @@ html, body {
     }
 
     .hero-stats {
-        flex-direction: column;
-        gap: var(--space-md);
+        flex-direction: row;
+        justify-content: center;
+        gap: var(--space-sm);
         width: 100%;
+        flex-wrap: nowrap;
+    }
+
+    .stat {
+        flex: 0 1 auto;
+    }
+
+    .stat-number {
+        font-size: 1.5rem;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
     }
 
     .stat-divider {
-        width: 60px;
-        height: 2px;
-        margin: 0 auto;
+        width: 1px;
+        height: 35px;
+        margin: 0;
     }
 
     /* Payment badges - better stacking on mobile */
