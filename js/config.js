@@ -580,6 +580,9 @@ function getNewspapersByLanguage(language) {
 
 // Validate booking date
 function validateBookingDate(selectedDate, newspaper) {
+    const now = new Date();
+    const currentHour = now.getHours();
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -591,22 +594,54 @@ function validateBookingDate(selectedDate, newspaper) {
     minDate.setDate(minDate.getDate() + CONFIG.BOOKING_RULES.minDaysInAdvance);
 
     const errors = [];
+    const dayOfWeek = bookingDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    const todayDayOfWeek = now.getDay();
+
+    // Check 1 PM deadline for tomorrow's paper
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    if (bookingDate.getTime() === tomorrow.getTime() && currentHour >= 13) {
+        errors.push(`Cannot book tomorrow's paper after 1:00 PM. Please contact us for urgent bookings.`);
+    }
+
+    // Check if it's Friday after 1 PM and trying to book for Sunday
+    if (todayDayOfWeek === 5 && currentHour >= 13) { // Friday after 1 PM
+        const upcomingSunday = new Date(today);
+        upcomingSunday.setDate(upcomingSunday.getDate() + (7 - todayDayOfWeek)); // Next Sunday
+
+        if (bookingDate.getTime() === upcomingSunday.getTime() && newspaper && newspaper.isSundayPaper) {
+            errors.push(`Cannot book Sunday papers after Friday 1:00 PM. Please contact us for urgent bookings.`);
+        }
+    }
 
     // Check if booking is at least 2 days in advance
     if (bookingDate < minDate) {
         errors.push(`Today's newspaper was printed yesterday. Please select a future date (minimum ${CONFIG.BOOKING_RULES.minDaysInAdvance} days in advance).`);
     }
 
-    // Check Sunday paper deadline
-    if (newspaper && newspaper.isSundayPaper) {
-        const dayOfWeek = bookingDate.getDay();
-        if (dayOfWeek === 0) { // Sunday
-            // Find the Friday before
-            const friday = new Date(bookingDate);
-            friday.setDate(friday.getDate() - 2);
+    // Check publication type restrictions
+    if (newspaper) {
+        if (newspaper.isSundayPaper) {
+            // Sunday papers: only allow Sunday dates
+            if (dayOfWeek !== 0) {
+                errors.push(`This is a Sunday paper. Please select a Sunday for publication.`);
+            } else {
+                // Find the Friday before this Sunday
+                const friday = new Date(bookingDate);
+                friday.setDate(friday.getDate() - 2);
+                friday.setHours(13, 0, 0, 0); // Friday 1 PM deadline
 
-            if (today > friday) {
-                errors.push(`Sunday papers must be booked on or before Friday. The deadline for this Sunday edition has passed.`);
+                if (now > friday) {
+                    errors.push(`Sunday papers must be booked by Friday 1:00 PM. The deadline for this Sunday edition has passed.`);
+                }
+            }
+        } else {
+            // Daily papers: only allow Monday-Friday (not Saturday or Sunday)
+            if (dayOfWeek === 0) {
+                errors.push(`Daily papers don't publish on Sundays. Please select a weekday (Monday-Friday).`);
+            } else if (dayOfWeek === 6) {
+                errors.push(`Daily papers don't publish on Saturdays. Please select a weekday (Monday-Friday).`);
             }
         }
     }

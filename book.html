@@ -445,7 +445,8 @@
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label">Phone Number *</label>
-                                    <input type="tel" id="customerPhone" name="customerPhone" required placeholder="+94 77 123 4567">
+                                    <input type="tel" id="customerPhone" name="customerPhone" required placeholder="07X XXX XXXX" pattern="[0-9]{10}" maxlength="10">
+                                    <span class="input-hint">Enter 10 digits (e.g., 0771234567)</span>
                                 </div>
                             </div>
 
@@ -487,6 +488,28 @@
                                 <h3>Order Summary</h3>
                                 <div id="orderSummary">
                                     <!-- Populated by JavaScript -->
+                                </div>
+                            </div>
+
+                            <!-- Promo Code -->
+                            <div class="form-section promo-code-section">
+                                <label class="form-label">Have a Promo Code?</label>
+                                <div class="promo-code-input-group">
+                                    <input type="text" id="promoCode" name="promoCode" placeholder="Enter promo code" maxlength="20">
+                                    <button type="button" id="applyPromoBtn" class="btn btn-secondary">
+                                        <span id="applyPromoText">Apply</span>
+                                        <span id="applyPromoLoader" class="btn-loader" style="display: none;"></span>
+                                    </button>
+                                </div>
+                                <div id="promoMessage" class="promo-message" style="display: none;"></div>
+                                <div id="promoDiscount" class="promo-discount" style="display: none;">
+                                    <div class="discount-applied">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        <span id="promoDiscountText"></span>
+                                    </div>
+                                    <button type="button" id="removePromoBtn" class="btn-link-danger">Remove</button>
                                 </div>
                             </div>
 
@@ -657,7 +680,8 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Phone Number *</label>
-                    <input type="tel" id="fpPhone" required placeholder="+94 77 123 4567">
+                    <input type="tel" id="fpPhone" required placeholder="07X XXX XXXX" pattern="[0-9]{10}" maxlength="10">
+                    <span class="input-hint">Enter 10 digits (e.g., 0771234567)</span>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Email *</label>

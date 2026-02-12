@@ -713,6 +713,15 @@
     font-size: 1.25rem;
 }
 
+.discount-row {
+    color: #059669;
+    font-weight: 600;
+}
+
+.discount-amount {
+    color: #059669 !important;
+}
+
 /* Contact Modal Enhancements */
 .contact-direct {
     margin-top: 1.5rem;

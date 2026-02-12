@@ -12,6 +12,8 @@ let selectedLanguage = 'sinhala'; // Default language
 let adCart = [];
 let stripe = null;
 let cardElement = null;
+let appliedPromoCode = null; // { code, discount, type }
+let promoDiscount = 0;
 
 document.addEventListener('DOMContentLoaded', async function() {
     // Load newspapers from Firebase first
@@ -440,6 +442,16 @@ function initBookingForm() {
 
     // Continue button
     document.getElementById('continueBtn')?.addEventListener('click', () => goToStep(2));
+
+    // Promo code buttons
+    document.getElementById('applyPromoBtn')?.addEventListener('click', applyPromoCode);
+    document.getElementById('removePromoBtn')?.addEventListener('click', removePromoCode);
+    document.getElementById('promoCode')?.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            applyPromoCode();
+        }
+    });
 
     // Navigation buttons
     document.querySelectorAll('.next-step').forEach(btn => {
@@ -1137,13 +1149,19 @@ function validateStep(step) {
                 emailField?.classList.add('field-error');
             }
 
-            // Validate phone
+            // Validate phone (exactly 10 digits)
             if (!phone) {
                 errors.push('Phone number is required');
                 phoneField?.classList.add('field-error');
                 if (errors.length === 1) phoneField?.focus();
-            } else if (!/^[\d\s\-\+\(\)]{8,15}$/.test(phone)) {
-                errors.push('Please enter a valid phone number');
+            } else if (!/^[0-9]{10}$/.test(phone)) {
+                if (phone.length < 10) {
+                    errors.push('Phone number must be exactly 10 digits');
+                } else if (phone.length > 10) {
+                    errors.push('Phone number cannot exceed 10 digits');
+                } else {
+                    errors.push('Phone number must contain only digits (0-9)');
+                }
                 phoneField?.classList.add('field-error');
             }
 
@@ -1246,18 +1264,25 @@ function updateOrderSummary() {
                 <span>${formatCurrency(totalServiceCharge)}</span>
             </div>
             ` : ''}
+            ${promoDiscount > 0 ? `
+            <div class="charge-row discount-row">
+                <span>Promo Discount (${appliedPromoCode?.code}):</span>
+                <span class="discount-amount">-${formatCurrency(promoDiscount)}</span>
+            </div>
+            ` : ''}
         </div>
         <div class="summary-total">
             <span>Total Amount:</span>
-            <strong>${formatCurrency(total)}</strong>
+            <strong>${formatCurrency(total - promoDiscount)}</strong>
         </div>
     `;
 
     // Update submit button text
     const submitText = document.getElementById('submitText');
     const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value;
+    const finalTotal = total - promoDiscount;
     if (paymentMethod === 'card') {
-        submitText.textContent = `Pay ${formatCurrency(total)}`;
+        submitText.textContent = `Pay ${formatCurrency(finalTotal)}`;
     } else {
         submitText.textContent = 'Submit & Pay Later';
     }
@@ -1433,6 +1458,9 @@ async function handleSubmit(e) {
                 }
 
                 // Prepare booking data for Firebase
+                const cartTotal = adCart.reduce((sum, item) => sum + item.price, 0);
+                const finalTotal = cartTotal - promoDiscount;
+
                 const bookingData = {
                     quotationNumber: quotationNumber,
                     invoiceNumber: invoiceNumber,
@@ -1452,7 +1480,10 @@ async function handleSubmit(e) {
                         description: item.description || '',
                         adFileUrl: adFileUrl
                     })),
-                    totalAmount: formData.total_amount,
+                    subtotalAmount: cartTotal,
+                    promoCode: appliedPromoCode?.code || null,
+                    promoDiscount: promoDiscount || 0,
+                    totalAmount: finalTotal,
                     paymentMethod: paymentMethod,
                     paymentStatus: formData.payment_status,
                     paymentReference: formData.payment_reference || '',
@@ -1497,7 +1528,9 @@ async function handleSubmit(e) {
                         commission: commission, // Only for box ads
                         vat: vat, // Only for box ads
                         serviceCharge: serviceCharge, // Only for classified ads
-                        total: formData.total_amount,
+                        promoCode: appliedPromoCode?.code || null,
+                        promoDiscount: promoDiscount || 0,
+                        total: finalTotal,
                         hasBoxAds: adCart.some(item => item.adType === 'box'),
                         hasClassifiedAds: adCart.some(item => item.adType === 'classified')
                     };
@@ -2092,6 +2125,150 @@ function loginFromWarning() {
     if (loginBtn) {
         loginBtn.click();
     }
+}
+
+/**
+ * Apply promo code
+ */
+async function applyPromoCode() {
+    const promoInput = document.getElementById('promoCode');
+    const applyBtn = document.getElementById('applyPromoBtn');
+    const btnText = document.getElementById('applyPromoText');
+    const btnLoader = document.getElementById('applyPromoLoader');
+    const promoMessage = document.getElementById('promoMessage');
+    const promoDiscountDiv = document.getElementById('promoDiscount');
+
+    const code = promoInput.value.trim().toUpperCase();
+
+    if (!code) {
+        showPromoMessage('Please enter a promo code', 'error');
+        return;
+    }
+
+    // Show loading state
+    btnText.style.display = 'none';
+    btnLoader.style.display = 'inline-block';
+    applyBtn.disabled = true;
+
+    try {
+        // Validate promo code from Firebase
+        const promoDoc = await firebase.firestore()
+            .collection('promoCodes')
+            .doc(code)
+            .get();
+
+        if (!promoDoc.exists) {
+            showPromoMessage('Invalid promo code', 'error');
+            return;
+        }
+
+        const promoData = promoDoc.data();
+        const now = new Date();
+
+        // Check if promo code is active
+        if (!promoData.active) {
+            showPromoMessage('This promo code is no longer active', 'error');
+            return;
+        }
+
+        // Check validity period
+        if (promoData.validFrom && now < promoData.validFrom.toDate()) {
+            showPromoMessage('This promo code is not yet valid', 'error');
+            return;
+        }
+
+        if (promoData.validUntil && now > promoData.validUntil.toDate()) {
+            showPromoMessage('This promo code has expired', 'error');
+            return;
+        }
+
+        // Check usage limit
+        if (promoData.maxUses && promoData.usedCount >= promoData.maxUses) {
+            showPromoMessage('This promo code has reached its usage limit', 'error');
+            return;
+        }
+
+        // Apply the discount
+        appliedPromoCode = {
+            code: code,
+            discount: promoData.discount,
+            type: promoData.type, // 'percentage' or 'fixed'
+            name: promoData.name
+        };
+
+        // Calculate discount
+        const cartTotal = adCart.reduce((sum, item) => sum + item.price, 0);
+
+        if (promoData.type === 'percentage') {
+            promoDiscount = (cartTotal * promoData.discount) / 100;
+        } else {
+            promoDiscount = Math.min(promoData.discount, cartTotal); // Don't exceed cart total
+        }
+
+        // Show success message
+        const discountText = promoData.type === 'percentage'
+            ? `${promoData.discount}% off`
+            : `Rs. ${promoData.discount} off`;
+
+        showPromoMessage(`Promo code applied! You saved ${formatCurrency(promoDiscount)}`, 'success');
+
+        // Show discount badge
+        document.getElementById('promoDiscountText').textContent =
+            `${code} - ${discountText} applied`;
+        promoDiscountDiv.style.display = 'flex';
+
+        // Hide input group
+        promoInput.disabled = true;
+
+        // Update order summary
+        updateOrderSummary();
+
+    } catch (error) {
+        console.error('Error applying promo code:', error);
+        showPromoMessage('Error validating promo code. Please try again.', 'error');
+    } finally {
+        // Reset button state
+        btnText.style.display = 'inline';
+        btnLoader.style.display = 'none';
+        applyBtn.disabled = false;
+    }
+}
+
+/**
+ * Remove applied promo code
+ */
+function removePromoCode() {
+    appliedPromoCode = null;
+    promoDiscount = 0;
+
+    const promoInput = document.getElementById('promoCode');
+    const promoMessage = document.getElementById('promoMessage');
+    const promoDiscountDiv = document.getElementById('promoDiscount');
+
+    promoInput.value = '';
+    promoInput.disabled = false;
+    promoMessage.style.display = 'none';
+    promoDiscountDiv.style.display = 'none';
+
+    updateOrderSummary();
+    showNotification('Promo code removed', 'info');
+}
+
+/**
+ * Show promo code validation message
+ */
+function showPromoMessage(message, type) {
+    const promoMessage = document.getElementById('promoMessage');
+    promoMessage.textContent = message;
+    promoMessage.className = `promo-message ${type}`;
+    promoMessage.style.display = 'block';
+
+    // Hide after 5 seconds for success, 8 seconds for error
+    setTimeout(() => {
+        if (type === 'success') {
+            promoMessage.style.display = 'none';
+        }
+    }, type === 'success' ? 5000 : 8000);
 }
 
 // Make functions globally available
