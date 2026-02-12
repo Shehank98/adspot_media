@@ -28,7 +28,6 @@ const MaintenanceConfig = {
 
     // Pages that should always be accessible (even during maintenance)
     allowedPages: [
-        '/maintenance.html',
         '/maintenance',
     ],
 
@@ -56,9 +55,8 @@ const MaintenanceConfig = {
 
     // Redirect to maintenance page
     redirectToMaintenance() {
-        if (window.location.pathname !== '/maintenance.html' &&
-            window.location.pathname !== '/maintenance') {
-            window.location.href = '/maintenance.html';
+        if (window.location.pathname !== '/maintenance') {
+            window.location.href = '/maintenance';
         }
     },
 
