@@ -2522,27 +2522,7 @@ html, body {
     }
 
     .hero-stats {
-        order: 3;
-        justify-content: center;
-        margin-top: var(--space-xl);
-        gap: var(--space-sm);
-    }
-
-    .stat {
-        flex: 0 1 auto;
-    }
-
-    .stat-number {
-        font-size: 1.25rem;
-    }
-
-    .stat-label {
-        font-size: 0.7rem;
-    }
-
-    .stat-divider {
-        width: 1px;
-        height: 30px;
+        display: none;
     }
 
     .hero-subtitle {
