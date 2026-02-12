@@ -411,10 +411,36 @@
             <div class="payment-methods-display">
                 <p class="payment-label" data-translate="trust.payment.label">We Accept</p>
                 <div class="payment-logos">
-                    <div class="payment-logo visa">VISA</div>
-                    <div class="payment-logo mastercard">Mastercard</div>
-                    <div class="payment-logo bank">Bank Transfer</div>
-                    <div class="payment-logo secure">🔐 Secure</div>
+                    <div class="payment-badge visa-badge">
+                        <svg class="payment-icon" viewBox="0 0 48 32" fill="none">
+                            <rect width="48" height="32" rx="4" fill="#1434CB"/>
+                            <path d="M19.5 10L16.8 22h-2.4l-1.7-6.6c-.1-.4-.2-.5-.5-.7-.5-.3-1.3-.5-2-.7l0-.3h3.5c.4 0 .8.3.9.7l.8 4.3 2-5h2.4zm3.8 12h-2.3l1.4-12h2.3l-1.4 12zm6.5-9.8c0-.4.3-.7.8-.7.7 0 1.3.2 1.8.5l.3-2c-.6-.2-1.2-.4-1.9-.4-2.1 0-3.6 1.1-3.6 2.7 0 1.2 1.1 1.8 1.9 2.2.8.4 1.1.7 1.1 1 0 .5-.6.7-1.1.7-.7 0-1.4-.2-2-.5l-.3 2c.7.3 1.4.4 2.2.4 2.2 0 3.7-1.1 3.7-2.8 0-2-2.8-2.1-2.8-3zm7.5 9.8h2l-1.7-12h-2c-.4 0-.7.2-.8.6l-2.9 11.4h2.4l.5-1.3h2.9l.3 1.3zm-2.5-3.2l1.2-3.3.7 3.3h-1.9z" fill="white"/>
+                        </svg>
+                        <span class="payment-name">Visa</span>
+                    </div>
+                    <div class="payment-badge mastercard-badge">
+                        <svg class="payment-icon" viewBox="0 0 48 32" fill="none">
+                            <rect width="48" height="32" rx="4" fill="#000000"/>
+                            <circle cx="18" cy="16" r="8" fill="#EB001B"/>
+                            <circle cx="30" cy="16" r="8" fill="#FF5F00"/>
+                            <circle cx="24" cy="16" r="8" fill="#F79E1B" opacity="0.8"/>
+                        </svg>
+                        <span class="payment-name">Mastercard</span>
+                    </div>
+                    <div class="payment-badge bank-badge">
+                        <svg class="payment-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="5" width="20" height="14" rx="2"/>
+                            <line x1="2" y1="10" x2="22" y2="10"/>
+                        </svg>
+                        <span class="payment-name">Bank Transfer</span>
+                    </div>
+                    <div class="payment-badge secure-badge">
+                        <svg class="payment-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            <path d="M9 12l2 2 4-4"/>
+                        </svg>
+                        <span class="payment-name">SSL Secured</span>
+                    </div>
                 </div>
             </div>
         </div>

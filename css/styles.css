@@ -2508,16 +2508,24 @@ html, body {
         margin: 0 auto;
     }
 
-    /* Payment logos - better stacking on mobile */
+    /* Payment badges - better stacking on mobile */
     .payment-logos {
-        gap: var(--space-sm);
+        gap: var(--space-md);
         justify-content: center;
     }
 
-    .payment-logo {
-        padding: 0.5rem 1rem;
+    .payment-badge {
+        padding: 1.25rem 1rem;
+        min-width: 100px;
+    }
+
+    .payment-icon {
+        width: 40px;
+        height: 28px;
+    }
+
+    .payment-name {
         font-size: 0.75rem;
-        min-width: auto;
     }
 
     /* Trust cards - ensure proper spacing */
@@ -3289,41 +3297,96 @@ html, body {
 
 .payment-logos {
     display: flex;
-    align-items: center;
+    align-items: stretch;
     justify-content: center;
-    gap: var(--space-xl);
+    gap: var(--space-lg);
     flex-wrap: wrap;
 }
 
-.payment-logo {
-    padding: 0.75rem 1.5rem;
-    background: var(--gray-50);
-    border: 1px solid var(--gray-200);
-    border-radius: var(--radius-md);
-    font-weight: 600;
-    font-size: 0.9375rem;
-    color: var(--gray-700);
-    transition: all var(--transition-fast);
+.payment-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1.5rem 1.25rem;
+    background: var(--white);
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    min-width: 120px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: default;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.payment-logo:hover {
+.payment-badge:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
     border-color: var(--primary);
-    background: var(--primary-pale);
-    transform: translateY(-2px);
 }
 
-.payment-logo.visa {
-    color: #1434CB;
+.payment-icon {
+    width: 48px;
+    height: 32px;
+    transition: transform 0.3s ease;
 }
 
-.payment-logo.mastercard {
-    color: #EB001B;
+.payment-badge:hover .payment-icon {
+    transform: scale(1.05);
 }
 
-.payment-logo.secure {
-    background: var(--success);
-    color: var(--white);
-    border-color: var(--success);
+.payment-name {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--gray-700);
+    text-align: center;
+    letter-spacing: 0.01em;
+}
+
+/* Visa badge styling */
+.visa-badge:hover {
+    border-color: #1434CB;
+    background: linear-gradient(135deg, #f6f8ff 0%, #ffffff 100%);
+}
+
+/* Mastercard badge styling */
+.mastercard-badge:hover {
+    border-color: #EB001B;
+    background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
+}
+
+/* Bank transfer badge styling */
+.bank-badge .payment-icon {
+    width: 40px;
+    height: 40px;
+    padding: 8px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: var(--radius-md);
+    stroke: white;
+}
+
+.bank-badge:hover {
+    border-color: #667eea;
+    background: linear-gradient(135deg, #f5f7ff 0%, #ffffff 100%);
+}
+
+/* Secure badge styling */
+.secure-badge .payment-icon {
+    width: 40px;
+    height: 40px;
+    padding: 8px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-radius: var(--radius-md);
+    stroke: white;
+}
+
+.secure-badge:hover {
+    border-color: #10b981;
+    background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+}
+
+.secure-badge .payment-name {
+    color: #059669;
 }
 
 /* ============================================
@@ -3436,9 +3499,18 @@ html, body {
         padding: var(--space-md);
     }
 
-    .payment-logo {
-        padding: 0.625rem 1rem;
-        font-size: 0.8125rem;
+    .payment-badge {
+        padding: 1rem 0.875rem;
+        min-width: 90px;
+    }
+
+    .payment-icon {
+        width: 36px;
+        height: 24px;
+    }
+
+    .payment-name {
+        font-size: 0.75rem;
     }
 }
 
@@ -3611,15 +3683,18 @@ body.lang-si .section-title {
         font-size: 0.875rem;
     }
 
-    /* Payment logos - stack vertically on very small screens */
+    /* Payment badges - stack vertically on very small screens */
     .payment-logos {
         flex-direction: column;
+        align-items: center;
         width: 100%;
+        gap: var(--space-sm);
     }
 
-    .payment-logo {
+    .payment-badge {
         width: 100%;
-        text-align: center;
+        max-width: 280px;
+        padding: 1.25rem 1rem;
     }
 
     /* FAQ - compact on small screens */
