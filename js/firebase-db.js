@@ -335,14 +335,38 @@ async function sendBookingEmails(bookingData) {
                 customerEmail: bookingData.customerEmail,
                 customerPhone: bookingData.customerPhone,
                 totalAmount: bookingData.totalAmount,
+                subtotalAmount: bookingData.subtotalAmount,
+                promoCode: bookingData.promoCode,
+                promoDiscount: bookingData.promoDiscount,
                 paymentMethod: bookingData.paymentMethod,
                 items: items
             })
         });
         console.log('✅ Customer confirmation email sent');
 
-        // REMOVED: Admin notification now sent via EmailService in booking.js to prevent duplicate emails
-        // The EmailService.notifyAdmin() call in booking.js handles admin notifications
+        // 2. Send admin notification
+        const adminEmailResponse = await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                type: 'admin_notification',
+                quotation_number: bookingData.quotationNumber,
+                customer_name: bookingData.customerName,
+                customer_email: bookingData.customerEmail,
+                customer_phone: bookingData.customerPhone,
+                newspaper_name: items[0]?.newspaperName || 'Multiple',
+                total_amount: bookingData.totalAmount,
+                subtotalAmount: bookingData.subtotalAmount,
+                promoCode: bookingData.promoCode,
+                promoDiscount: bookingData.promoDiscount,
+                ad_type: items[0]?.adType || 'box',
+                items: items
+            })
+        });
+        console.log('✅ Admin notification email sent');
 
     } catch (error) {
         console.error('❌ Error sending emails:', error);
@@ -378,8 +402,11 @@ async function sendInvoiceEmail(bookingData, invoiceData) {
                 subtotal: invoiceData.subtotal,
                 commission: invoiceData.commission,
                 vat: invoiceData.vat,
+                serviceCharge: invoiceData.serviceCharge,
+                promoCode: invoiceData.promoCode,
+                promoDiscount: invoiceData.promoDiscount,
                 pdfUrl: invoiceData.pdfUrl || '',
-                payment_status: bookingData.paymentStatus,
+                payment_status: 'paid', // Invoice is sent only when payment is confirmed
                 items: bookingData.items.map(item => ({
                     newspaperName: item.newspaperName,
                     adType: item.adType,

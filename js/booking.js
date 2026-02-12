@@ -1691,15 +1691,11 @@ async function handleSubmit(e) {
                     phone: formData.customer_phone
                 };
 
-                // Send admin notification (you receive the order)
-                EmailService.notifyAdmin(quotationData, customerData)
-                    .then(() => console.log('Admin notification sent'))
-                    .catch(err => console.warn('Admin notification failed:', err));
-
-                // Send quotation/confirmation to customer
-                EmailService.sendQuotation(quotationData, customerData)
-                    .then(() => console.log('Customer confirmation sent'))
-                    .catch(err => console.warn('Customer email failed:', err));
+                // NOTE: Emails are now sent via firebase-db.js sendBookingEmails()
+                // - Booking confirmation sent to customer
+                // - Admin notification sent to admin
+                // Both handled in the Firebase save function (no quotation email)
+                console.log('✅ Emails will be sent via Firebase DB function');
 
             } catch (emailError) {
                 console.warn('Email sending failed:', emailError);

@@ -108,7 +108,7 @@ function doGet(e) {
  * Send notification to admin when new order received
  */
 function sendAdminNotification(data) {
-  const { quotation_number, customer_name, customer_email, customer_phone, newspaper_name, total_amount, ad_type, items } = data;
+  const { quotation_number, customer_name, customer_email, customer_phone, newspaper_name, total_amount, subtotalAmount, promoCode, promoDiscount, ad_type, items } = data;
 
   const subject = `🔔 New Ad Booking: ${quotation_number}`;
 
@@ -218,12 +218,33 @@ function sendAdminNotification(data) {
                 </td>
               </tr>
 
+              <!-- Promo Code Breakdown (if applied) -->
+              ${promoCode && promoDiscount > 0 ? `
+              <tr>
+                <td style="padding: 0 30px 20px 30px;">
+                  <div style="background: #f0fdf4; border-radius: 12px; padding: 16px; border: 2px solid #86efac;">
+                    <table width="100%" style="font-size: 14px;">
+                      <tr>
+                        <td style="color: #6b7280; padding: 4px 0;">Subtotal:</td>
+                        <td style="font-weight: 600; text-align: right; color: #1f2937;">Rs. ${parseFloat(subtotalAmount || total_amount).toLocaleString()}</td>
+                      </tr>
+                      <tr>
+                        <td style="color: #059669; padding: 4px 0; font-weight: 600;">🎉 Promo Discount (${promoCode}):</td>
+                        <td style="font-weight: 700; text-align: right; color: #059669;">-Rs. ${parseFloat(promoDiscount || 0).toLocaleString()}</td>
+                      </tr>
+                    </table>
+                  </div>
+                </td>
+              </tr>
+              ` : ''}
+
               <!-- Total -->
               <tr>
                 <td style="padding: 0 30px 30px 30px;">
                   <div style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%); border-radius: 12px; padding: 24px; text-align: center;">
                     <div style="color: rgba(255,255,255,0.9); font-size: 14px; margin-bottom: 8px;">TOTAL AMOUNT</div>
                     <div style="color: #ffffff; font-size: 36px; font-weight: 800;">Rs. ${parseFloat(total_amount || 0).toLocaleString()}</div>
+                    ${promoCode ? `<div style="color: rgba(255,255,255,0.8); font-size: 12px; margin-top: 8px;">✨ Promo code ${promoCode} applied</div>` : ''}
                   </div>
                 </td>
               </tr>
@@ -700,7 +721,7 @@ function sendBookingConfirmation(data) {
  * Includes PDF attachment if provided
  */
 function sendInvoiceEmail(data) {
-  const { customer_email, customer_name, quotation_number, invoice_number, items, total_amount, pdfBase64, pdfUrl } = data;
+  const { customer_email, customer_name, quotation_number, invoice_number, items, total_amount, subtotal, promoCode, promoDiscount, pdfBase64, pdfUrl } = data;
 
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -792,12 +813,19 @@ function sendInvoiceEmail(data) {
               </tr>
             </table>
 
-            <!-- Amount Due -->
-            <div style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 16px 20px; margin-bottom: 20px;">
-              <div style="font-size: 20px; font-weight: 700; color: #065f46;">
-                Rs. ${parseFloat(total_amount || 0).toLocaleString()} - PAID
+            <!-- Payment Received Message -->
+            <div style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%); border-radius: 12px; padding: 24px; margin-bottom: 20px; text-align: center;">
+              <div style="font-size: 32px; margin-bottom: 12px;">✅</div>
+              <div style="font-size: 24px; font-weight: 700; color: #ffffff; margin-bottom: 8px;">
+                Payment Received!
               </div>
-              <div style="color: #047857; font-size: 14px; margin-top: 4px;">Payment received - Thank you!</div>
+              <div style="color: rgba(255,255,255,0.9); font-size: 16px; margin-bottom: 8px;">
+                Thank you for your payment
+              </div>
+              <div style="color: rgba(255,255,255,0.95); font-size: 20px; font-weight: 700; margin-top: 16px;">
+                Rs. ${parseFloat(total_amount || 0).toLocaleString()}
+              </div>
+              ${promoCode ? `<div style="color: rgba(255,255,255,0.8); font-size: 13px; margin-top: 8px;">✨ Promo code ${promoCode} applied</div>` : ''}
             </div>
 
             ${pdfUrl || pdfBase64 ? `
@@ -839,8 +867,15 @@ function sendInvoiceEmail(data) {
               <tr>
                 <td width="60%"></td>
                 <td style="padding: 8px 0; color: #6b7280;">Subtotal</td>
-                <td style="padding: 8px 0; text-align: right;">Rs. ${parseFloat(total_amount || 0).toLocaleString()}</td>
+                <td style="padding: 8px 0; text-align: right;">Rs. ${parseFloat(subtotal || total_amount).toLocaleString()}</td>
               </tr>
+              ${promoCode && promoDiscount > 0 ? `
+              <tr>
+                <td></td>
+                <td style="padding: 8px 0; color: #059669; font-weight: 600;">Promo Discount (${promoCode})</td>
+                <td style="padding: 8px 0; text-align: right; color: #059669; font-weight: 600;">-Rs. ${parseFloat(promoDiscount || 0).toLocaleString()}</td>
+              </tr>
+              ` : ''}
               <tr>
                 <td></td>
                 <td style="padding: 8px 0; color: #6b7280;">Total</td>
@@ -848,8 +883,8 @@ function sendInvoiceEmail(data) {
               </tr>
               <tr>
                 <td></td>
-                <td style="padding: 12px 0; font-weight: 700; color: #1f2937; border-top: 2px solid #1f2937;">Amount paid</td>
-                <td style="padding: 12px 0; text-align: right; font-weight: 700; color: #1f2937; border-top: 2px solid #1f2937;">Rs. ${parseFloat(total_amount || 0).toLocaleString()}</td>
+                <td style="padding: 12px 0; font-weight: 700; color: #10b981; border-top: 2px solid #10b981;">Amount Paid ✅</td>
+                <td style="padding: 12px 0; text-align: right; font-weight: 700; color: #10b981; border-top: 2px solid #10b981;">Rs. ${parseFloat(total_amount || 0).toLocaleString()}</td>
               </tr>
             </table>
 
