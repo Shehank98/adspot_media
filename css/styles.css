@@ -2503,22 +2503,56 @@ html, body {
 
 @media (max-width: 1024px) {
     .hero-content {
-        grid-template-columns: 1fr;
+        display: flex;
+        flex-direction: column;
         text-align: center;
     }
-    
+
+    .hero-left-col {
+        order: 1;
+    }
+
+    .hero-right-col {
+        order: 2;
+    }
+
+    .hero-badge {
+        justify-content: center;
+        margin: 0 auto var(--space-lg);
+    }
+
+    .hero-stats {
+        order: 3;
+        justify-content: center;
+        margin-top: var(--space-xl);
+        gap: var(--space-sm);
+    }
+
+    .stat {
+        flex: 0 1 auto;
+    }
+
+    .stat-number {
+        font-size: 1.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.7rem;
+    }
+
+    .stat-divider {
+        width: 1px;
+        height: 30px;
+    }
+
     .hero-subtitle {
         margin: 0 auto var(--space-xl);
     }
-    
+
     .hero-cta {
         justify-content: center;
     }
-    
-    .hero-stats {
-        justify-content: center;
-    }
-    
+
     .hero-visual {
         display: none;
     }
@@ -2618,32 +2652,6 @@ html, body {
         /* Ensure proper touch target size */
         min-height: 48px;
         padding: 0.875rem 1.5rem;
-    }
-
-    .hero-stats {
-        flex-direction: row;
-        justify-content: center;
-        gap: var(--space-sm);
-        width: 100%;
-        flex-wrap: nowrap;
-    }
-
-    .stat {
-        flex: 0 1 auto;
-    }
-
-    .stat-number {
-        font-size: 1.5rem;
-    }
-
-    .stat-label {
-        font-size: 0.75rem;
-    }
-
-    .stat-divider {
-        width: 1px;
-        height: 35px;
-        margin: 0;
     }
 
     /* Payment badges - better stacking on mobile */
