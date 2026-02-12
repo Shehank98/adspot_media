@@ -352,7 +352,7 @@ async function sendBookingEmails(bookingData) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                type: 'admin_notification',
+                action: 'sendAdminNotification',
                 quotation_number: bookingData.quotationNumber,
                 customer_name: bookingData.customerName,
                 customer_email: bookingData.customerEmail,
@@ -423,37 +423,7 @@ async function sendInvoiceEmail(bookingData, invoiceData) {
     }
 }
 
-/**
- * Send payment confirmation email to customer via Apps Script
- */
-async function sendPaymentConfirmationEmail(bookingData, amount) {
-    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
-        console.warn('⚠️ Apps Script URL not configured. Skipping payment confirmation email.');
-        return;
-    }
-
-    try {
-        const response = await fetch(APPS_SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                type: 'payment_confirmation',
-                quotation_number: bookingData.quotationNumber,
-                customer_name: bookingData.customerName,
-                customer_email: bookingData.customerEmail,
-                amount: amount || bookingData.totalAmount,
-                payment_reference: bookingData.paymentReference || bookingData.quotationNumber
-            })
-        });
-
-        console.log('✅ Payment confirmation email sent to Apps Script');
-    } catch (error) {
-        console.error('❌ Error sending payment confirmation email:', error);
-    }
-}
+// Payment confirmation email removed - invoice email now includes payment received message
 
 /**
  * Send email with file attachment notification to admin
@@ -509,7 +479,6 @@ window.loadNewspapersFromFirebase = loadNewspapersFromFirebase;
 window.loadNewspaperLogos = loadNewspaperLogos;
 window.sendBookingEmails = sendBookingEmails;
 window.sendInvoiceEmail = sendInvoiceEmail;
-window.sendPaymentConfirmationEmail = sendPaymentConfirmationEmail;
 window.sendFileUploadNotification = sendFileUploadNotification;
 
 console.log('✅ Firebase database operations loaded');

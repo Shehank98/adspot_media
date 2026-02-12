@@ -775,20 +775,13 @@
 
                         await sendInvoiceEmail(currentBooking, invoiceData);
 
-                        // Also send payment confirmation if payment is completed
-                        if (currentBooking.paymentStatus === 'completed' && typeof sendPaymentConfirmationEmail === 'function') {
-                            console.log('📧 Sending payment confirmation email...');
-                            await sendPaymentConfirmationEmail(currentBooking, invoiceData.total);
-                        }
-
                         alert(
                             '✅ Invoice Generated Successfully!\n\n' +
                             '📧 Email sent to: ' + currentBooking.customerEmail + '\n' +
                             '📄 Invoice Number: ' + invoiceData.invoiceNumber + '\n' +
                             '💰 Total Amount: LKR ' + invoiceData.total.toLocaleString() + '\n\n' +
                             'The customer will receive:\n' +
-                            '• Invoice details\n' +
-                            (currentBooking.paymentStatus === 'completed' ? '• Payment confirmation\n' : '') +
+                            '• Invoice with payment received confirmation\n' +
                             (invoiceData.pdfUrl ? '• PDF attachment' : '• Invoice PDF (if CORS is fixed)')
                         );
                     } else {
