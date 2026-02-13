@@ -658,7 +658,7 @@ function updatePrice() {
             { label: colorOption === 'color' ? 'Color Rate' : 'B&W Rate', value: `${formatCurrency(calc.rate)}/col-cm` },
             { label: 'Calculation', value: `${columns} col x ${height} cm x ${formatCurrency(calc.rate)}` },
             { label: 'Ad Total', value: formatCurrency(calc.adTotal) },
-            { label: 'Platform Commission (10%)', value: formatCurrency(calc.commission) },
+            { label: 'Platform Commission (5%)', value: formatCurrency(calc.commission) },
             { label: 'VAT (18%)', value: formatCurrency(calc.vat) }
         ];
 
@@ -1248,7 +1248,7 @@ function updateOrderSummary() {
             </div>
             ${totalCommission > 0 ? `
             <div class="charge-row">
-                <span>Platform Commission (10%):</span>
+                <span>Platform Commission (5%):</span>
                 <span>${formatCurrency(totalCommission)}</span>
             </div>
             ` : ''}
