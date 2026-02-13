@@ -47,8 +47,8 @@ const CONFIG = {
 
     // Service Charges and Commissions
     CHARGES: {
-        classifiedServiceCharge: 50, // Rs. 100 for classified ads
-        boxAdCommission: 0.5, // 10% platform commission for box ads
+        classifiedServiceCharge: 60, // Rs. 60 for classified ads
+        boxAdCommission: 0.05, // 5% platform commission for box ads
         vatRate: 0.18 // 18% VAT for box ads
     },
 
@@ -428,7 +428,7 @@ const CONFIG = {
     CLASSIFIED_CONFIG: {
         baseWordLimit: { min: 10, max: 30 }, // Admin configurable range
         defaultFreeWords: 20, // Default base word limit
-        serviceCharge: 100 // Rs. 100 service charge for classified ads
+        serviceCharge: 60 // Rs. 60 service charge for classified ads
     },
 
     // Full page dimensions (triggers contact form)
@@ -491,7 +491,7 @@ function calculateBoxAdPrice(newspaper, height, columns, colorOption) {
     const rate = colorOption === 'color' ? newspaper.colorRate : newspaper.bwRate;
     const adTotal = area * rate;
 
-    // Add 10% platform commission
+    // Add 5% platform commission
     const commission = adTotal * CONFIG.CHARGES.boxAdCommission;
 
     // Add 18% VAT on adTotal only (not on adTotal + commission)
@@ -520,7 +520,7 @@ function calculateClassifiedPrice(newspaper, wordCount) {
     const extraCost = extraWords * newspaper.classifiedExtraRate;
     const adTotal = newspaper.classifiedBase + extraCost;
 
-    // Add Rs. 100 service charge
+    // Add Rs. 60 service charge
     const serviceCharge = CONFIG.CHARGES.classifiedServiceCharge;
     const total = adTotal + serviceCharge;
 
