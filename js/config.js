@@ -48,7 +48,7 @@ const CONFIG = {
     // Service Charges and Commissions
     CHARGES: {
         classifiedServiceCharge: 50, // Rs. 100 for classified ads
-        boxAdCommission: 0.5, // 10% platform commission for box ads
+        boxAdCommission: 0.05, // 10% platform commission for box ads
         vatRate: 0.18 // 18% VAT for box ads
     },
 
