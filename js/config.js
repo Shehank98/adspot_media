@@ -428,7 +428,7 @@ const CONFIG = {
     CLASSIFIED_CONFIG: {
         baseWordLimit: { min: 10, max: 30 }, // Admin configurable range
         defaultFreeWords: 20, // Default base word limit
-        serviceCharge: 100 // Rs. 100 service charge for classified ads
+        serviceCharge: 50 // Rs. 100 service charge for classified ads
     },
 
     // Full page dimensions (triggers contact form)
