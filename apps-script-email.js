@@ -139,87 +139,178 @@ function sendBookingConfirmation(data) {
  * Send invoice email with PDF attachment
  */
 function sendInvoiceEmail(data) {
-  const subject = `Invoice ${data.invoiceNumber} | AdSpot Finance`;
+  const subject = `Invoice ${data.invoiceNumber} | AdSpot Media`;
+
+  // Format items for the email
+  let itemsHtml = '';
+  if (data.items && data.items.length > 0) {
+    data.items.forEach(function(item) {
+      const adType = item.adType === 'box' ? 'Box Ad' : 'Classified Ad';
+      const pubDate = new Date(item.pubDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      itemsHtml += '<tr>' +
+        '<td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb; color: #374151;">' +
+        item.newspaperName + ' - ' + adType + '<br>' +
+        '<span style="color: #9ca3af; font-size: 13px;">Publication: ' + pubDate + '</span>' +
+        '</td>' +
+        '<td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb; color: #374151; text-align: center;">1</td>' +
+        '<td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb; color: #374151; text-align: right;">Rs. ' + formatNumber(item.price) + '</td>' +
+        '<td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb; color: #374151; text-align: right; font-weight: 500;">Rs. ' + formatNumber(item.price) + '</td>' +
+        '</tr>';
+    });
+  }
 
   const htmlBody = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
-        <h1 style="color: white; margin: 0;">AdSpot Finance</h1>
-        <p style="color: white; margin: 10px 0 0 0;">Invoice & Payment Services</p>
-      </div>
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f3f4f6; margin: 0; padding: 40px 20px;">
+      <div style="max-width: 800px; margin: 0 auto; background: white; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); border-radius: 8px; overflow: hidden;">
+        <div style="padding: 40px; background: white;">
 
-      <div style="padding: 30px; background: #f8fafc;">
-        <h2 style="color: #1e293b;">Invoice Ready</h2>
-        <p style="color: #64748b;">Dear ${data.customerName},</p>
-        <p style="color: #64748b;">Your invoice has been generated and is ready to download.</p>
-
-        ${data.pdfUrl || data.pdfBase64 ? `
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 24px; margin: 20px 0; text-align: center;">
-          <div style="color: rgba(255,255,255,0.9); font-size: 14px; margin-bottom: 12px;">📄 YOUR INVOICE IS READY</div>
-          ${data.pdfUrl ? `
-          <a href="${data.pdfUrl}" style="display: inline-block; background: #ffffff; color: #667eea; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 700; font-size: 16px; margin-bottom: 8px;">
-            ⬇️ Download Invoice PDF
-          </a>
-          ` : `
-          <div style="background: rgba(255,255,255,0.2); border-radius: 8px; padding: 14px 32px; margin-bottom: 8px;">
-            <div style="color: #ffffff; font-weight: 700; font-size: 16px;">📎 Invoice PDF Attached</div>
+          <!-- Header -->
+          <div style="margin-bottom: 30px; overflow: hidden;">
+            <div style="color: #1e40af; font-size: 28px; font-weight: 600; float: left;">Invoice</div>
+            <div style="font-size: 24px; font-weight: 700; color: #1e40af; float: right;">◈ AdSpot</div>
+            <div style="clear: both;"></div>
           </div>
-          `}
-          <div style="color: rgba(255,255,255,0.8); font-size: 13px; margin-top: 8px;">
-            ${data.pdfUrl ? 'Click the button above to download your invoice' : 'Check your email attachments to download the invoice PDF'}
-          </div>
-        </div>
-        ` : ''}
 
-        <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3 style="color: #667eea; margin-top: 0;">Invoice Summary</h3>
-          <table style="width: 100%; color: #64748b;">
+          <!-- Invoice Details -->
+          <table style="width: 100%; margin-bottom: 25px; font-size: 14px;">
             <tr>
-              <td style="padding: 8px 0;"><strong>Invoice Number:</strong></td>
-              <td>${data.invoiceNumber}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px 0;"><strong>Quotation Number:</strong></td>
-              <td>${data.quotationNumber}</td>
-            </tr>
-            <tr style="border-top: 2px solid #e2e8f0;">
-              <td style="padding: 8px 0;"><strong>Subtotal:</strong></td>
-              <td>LKR ${formatNumber(data.subtotal)}</td>
+              <td style="padding: 4px 0; color: #6b7280; width: 140px;">Invoice number</td>
+              <td style="font-weight: 500;">${data.invoiceNumber}</td>
             </tr>
             <tr>
-              <td style="padding: 8px 0;"><strong>Commission (10%):</strong></td>
-              <td>LKR ${formatNumber(data.commission)}</td>
+              <td style="padding: 4px 0; color: #6b7280;">Date of issue</td>
+              <td style="font-weight: 500;">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</td>
             </tr>
             <tr>
-              <td style="padding: 8px 0;"><strong>VAT (18%):</strong></td>
-              <td>LKR ${formatNumber(data.vat)}</td>
+              <td style="padding: 4px 0; color: #6b7280;">Reference</td>
+              <td style="font-weight: 500;">${data.quotationNumber}</td>
             </tr>
-            <tr style="border-top: 2px solid #667eea;">
-              <td style="padding: 8px 0;"><strong style="color: #667eea; font-size: 16px;">TOTAL:</strong></td>
-              <td><strong style="color: #667eea; font-size: 16px;">LKR ${formatNumber(data.totalAmount)}</strong></td>
+            <tr>
+              <td style="padding: 4px 0; color: #6b7280;">Payment method</td>
+              <td style="font-weight: 500;"><strong>${data.paymentMethod || 'VISA'}</strong></td>
             </tr>
           </table>
-        </div>
 
-        ${data.paymentStatus === 'completed' ? `
-        <div style="background: #dcfce7; padding: 20px; border-radius: 8px; border-left: 4px solid #10b981;">
-          <p style="color: #166534; margin: 0;"><strong>✓ Payment Received</strong></p>
-          <p style="color: #166534; margin: 5px 0 0 0;">Thank you for your payment!</p>
-        </div>
-        ` : `
-        <div style="background: #fef3c7; padding: 20px; border-radius: 8px; border-left: 4px solid #f59e0b;">
-          <p style="color: #92400e; margin: 0;"><strong>Payment Pending</strong></p>
-          <p style="color: #92400e; margin: 5px 0 0 0;">Please send payment to: adspot77@gmail.com</p>
-        </div>
-        `}
+          <!-- Company & Customer Info -->
+          <table style="width: 100%; margin-bottom: 30px; font-size: 14px;">
+            <tr>
+              <td style="vertical-align: top; width: 50%;">
+                <div style="font-weight: 600; color: #1f2937; margin-bottom: 8px;">AdSpot Media</div>
+                <div style="color: #6b7280; line-height: 1.6;">
+                  130 High Level Road<br>
+                  Colombo 06<br>
+                  Sri Lanka<br>
+                  adspot77@gmail.com
+                </div>
+              </td>
+              <td style="vertical-align: top; width: 50%;">
+                <div style="font-weight: 600; color: #1f2937; margin-bottom: 8px;">Bill to</div>
+                <div style="color: #6b7280; line-height: 1.6;">
+                  ${data.customerName}<br>
+                  ${data.customerEmail}
+                </div>
+              </td>
+            </tr>
+          </table>
 
-        <p style="color: #64748b; margin-top: 30px;">For any billing inquiries, contact us at adspot77@gmail.com or call +94 70 642 1998.</p>
+          <!-- Payment Status Box -->
+          <div style="background: #f0fdf4; border: 2px solid #86efac; border-radius: 8px; padding: 24px; margin-bottom: 30px;">
+            <div style="margin-bottom: 20px;">
+              <span style="display: inline-block; background: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; margin-right: 12px;">✓ Paid</span>
+              <span style="color: #6b7280; font-size: 14px;">Thank you for your payment</span>
+            </div>
+            <div style="padding: 16px 0; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; margin-bottom: 16px;">
+              <table style="width: 100%;">
+                <tr>
+                  <td style="color: #6b7280; font-size: 14px;">Amount paid</td>
+                  <td style="color: #1f2937; font-size: 24px; font-weight: 700; text-align: right;">Rs. ${formatNumber(data.totalAmount)}</td>
+                </tr>
+              </table>
+            </div>
+            ${data.pdfUrl ? `
+            <a href="${data.pdfUrl}" style="display: inline-block; background: #1e40af; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px;">
+              ⬇ Download Invoice PDF
+            </a>
+            ` : ''}
+          </div>
+
+          <!-- Items Table -->
+          <table style="width: 100%; margin-bottom: 20px; font-size: 14px; border-collapse: collapse;">
+            <thead>
+              <tr style="border-bottom: 2px solid #e5e7eb;">
+                <th style="padding: 12px 0; text-align: left; color: #6b7280; font-weight: 500; font-size: 13px;">Description</th>
+                <th style="padding: 12px 0; text-align: center; color: #6b7280; font-weight: 500; font-size: 13px;">Qty</th>
+                <th style="padding: 12px 0; text-align: right; color: #6b7280; font-weight: 500; font-size: 13px;">Unit price</th>
+                <th style="padding: 12px 0; text-align: right; color: #6b7280; font-weight: 500; font-size: 13px;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
+
+          <!-- Totals -->
+          <table style="width: 100%; margin-bottom: 40px; font-size: 14px;">
+            <tr>
+              <td style="width: 60%;"></td>
+              <td style="padding: 8px 0; color: #6b7280; text-align: right; padding-right: 40px;">Subtotal</td>
+              <td style="text-align: right;">Rs. ${formatNumber(data.subtotal)}</td>
+            </tr>
+            ${data.commission && data.commission > 0 ? `
+            <tr>
+              <td></td>
+              <td style="padding: 8px 0; color: #6b7280; text-align: right; padding-right: 40px;">Platform Commission (10%)</td>
+              <td style="text-align: right;">Rs. ${formatNumber(data.commission)}</td>
+            </tr>
+            ` : ''}
+            ${data.vat && data.vat > 0 ? `
+            <tr>
+              <td></td>
+              <td style="padding: 8px 0; color: #6b7280; text-align: right; padding-right: 40px;">VAT (18%)</td>
+              <td style="text-align: right;">Rs. ${formatNumber(data.vat)}</td>
+            </tr>
+            ` : ''}
+            ${data.serviceCharge && data.serviceCharge > 0 ? `
+            <tr>
+              <td></td>
+              <td style="padding: 8px 0; color: #6b7280; text-align: right; padding-right: 40px;">Service Charge</td>
+              <td style="text-align: right;">Rs. ${formatNumber(data.serviceCharge)}</td>
+            </tr>
+            ` : ''}
+            ${data.promoDiscount && data.promoDiscount > 0 ? `
+            <tr>
+              <td></td>
+              <td style="padding: 8px 0; color: #059669; text-align: right; padding-right: 40px;">Discount (${data.promoCode})</td>
+              <td style="text-align: right; color: #059669;">-Rs. ${formatNumber(data.promoDiscount)}</td>
+            </tr>
+            ` : ''}
+            <tr>
+              <td></td>
+              <td style="padding: 8px 0; color: #6b7280; text-align: right; padding-right: 40px;">Total</td>
+              <td style="text-align: right;">Rs. ${formatNumber(data.totalAmount)}</td>
+            </tr>
+            <tr>
+              <td></td>
+              <td style="padding: 12px 0; color: #10b981; text-align: right; padding-right: 40px; border-top: 2px solid #10b981; font-weight: 700; padding-top: 12px;">Amount paid ✅</td>
+              <td style="text-align: right; color: #10b981; border-top: 2px solid #10b981; font-weight: 700; padding-top: 12px;">Rs. ${formatNumber(data.totalAmount)}</td>
+            </tr>
+          </table>
+
+          <!-- Footer -->
+          <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; font-size: 13px; color: #6b7280;">
+            <p style="margin: 0 0 8px 0;">AdSpot Media Services</p>
+            <p style="margin: 0;">Phone: 070 161 1411 / 070 642 1998 | Email: adspot77@gmail.com</p>
+          </div>
+        </div>
       </div>
-
-      <div style="background: #1e293b; padding: 20px; text-align: center;">
-        <p style="color: #94a3b8; margin: 0; font-size: 12px;">© ${new Date().getFullYear()} AdSpot Media. All rights reserved.</p>
-      </div>
-    </div>
+    </body>
+    </html>
   `;
 
   // Prepare email options

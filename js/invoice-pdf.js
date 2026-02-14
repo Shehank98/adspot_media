@@ -1,6 +1,6 @@
 /**
  * Invoice PDF Generator for AdSpot Media
- * Professional Anthropic-style invoice with complete breakdown
+ * Clean minimal design inspired by Anthropic/Stripe
  */
 
 async function generateInvoicePDF(invoiceData, bookingData) {
@@ -12,11 +12,12 @@ async function generateInvoicePDF(invoiceData, bookingData) {
         const { jsPDF } = jspdf;
         const doc = new jsPDF();
 
-        // Professional color scheme
-        const primary = [26, 86, 219]; // #1a56db (AdSpot blue)
+        // Clean color scheme (matching HTML template)
+        const primary = [30, 64, 175]; // #1e40af (blue)
         const dark = [31, 41, 55]; // #1f2937
         const gray = [107, 114, 128]; // #6b7280
-        const lightGray = [243, 244, 246]; // #f3f4f6
+        const lightGray = [229, 231, 235]; // #e5e7eb
+        const green = [16, 185, 129]; // #10b981
 
         const formatCurrency = (amount) => {
             return `Rs. ${parseFloat(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -39,216 +40,241 @@ async function generateInvoicePDF(invoiceData, bookingData) {
 
         let y = 25;
 
-        // ===== HEADER =====
+        // ===== HEADER (Clean minimal style) =====
+        // "Invoice" on the left
         doc.setFontSize(28);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(...primary);
-        doc.text('AdSpot Media', 20, y);
+        doc.text('Invoice', 20, y);
 
-        doc.setFontSize(11);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...gray);
-        doc.text('Newspaper Advertising Services', 20, y + 7);
-
-        // Invoice number (right side)
-        doc.setFontSize(11);
-        doc.setTextColor(...gray);
-        doc.text('Invoice', 190, y, { align: 'right' });
-        doc.setFontSize(16);
+        // "◈ AdSpot" on the right
+        doc.setFontSize(24);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...dark);
-        doc.text(invoiceData.invoiceNumber, 190, y + 7, { align: 'right' });
-
-        y += 25;
-
-        // ===== COMPANY & INVOICE INFO =====
-        // Left column - Company details
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...gray);
-        doc.text('AdSpot Media', 20, y);
-        doc.text('Email: adspot77@gmail.com', 20, y + 5);
-        doc.text('Phone: +94 70 642 1998', 20, y + 10);
-        doc.text('Colombo, Sri Lanka', 20, y + 15);
-
-        // Right column - Invoice details
-        doc.text('Quotation No:', 140, y);
-        doc.setTextColor(...dark);
-        doc.text(invoiceData.quotationNumber, 190, y, { align: 'right' });
-
-        doc.setTextColor(...gray);
-        doc.text('Issue Date:', 140, y + 5);
-        doc.setTextColor(...dark);
-        doc.text(new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }), 190, y + 5, { align: 'right' });
-
-        doc.setTextColor(...gray);
-        doc.text('Payment Status:', 140, y + 10);
-        const statusText = bookingData.paymentStatus === 'completed' ? 'PAID' : 'PENDING';
-        const statusColor = bookingData.paymentStatus === 'completed' ? [34, 197, 94] : [234, 179, 8];
-        doc.setTextColor(...statusColor);
-        doc.setFont('helvetica', 'bold');
-        doc.text(statusText, 190, y + 10, { align: 'right' });
-
-        y += 30;
-
-        // ===== BILL TO =====
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...dark);
-        doc.text('BILL TO', 20, y);
-
-        y += 6;
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.text(bookingData.customerName, 20, y);
-
-        if (bookingData.customerCompany) {
-            y += 5;
-            doc.text(bookingData.customerCompany, 20, y);
-        }
-
-        y += 5;
-        doc.setTextColor(...gray);
-        doc.text(bookingData.customerEmail, 20, y);
-        y += 5;
-        doc.text(bookingData.customerPhone || '', 20, y);
+        doc.setTextColor(...primary);
+        doc.text('◈ AdSpot', 190, y, { align: 'right' });
 
         y += 15;
 
-        // ===== AD ITEMS SECTION =====
-        doc.setFontSize(11);
+        // ===== INVOICE DETAILS TABLE =====
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...gray);
+
+        const labelX = 20;
+        const valueX = 65;
+
+        doc.text('Invoice number', labelX, y);
+        doc.setTextColor(...dark);
+        doc.setFont('helvetica', 'normal');
+        doc.text(invoiceData.invoiceNumber, valueX, y);
+
+        y += 6;
+        doc.setTextColor(...gray);
+        doc.text('Date of issue', labelX, y);
+        doc.setTextColor(...dark);
+        doc.text(new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), valueX, y);
+
+        y += 6;
+        doc.setTextColor(...gray);
+        doc.text('Date due', labelX, y);
+        doc.setTextColor(...dark);
+        doc.text(new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), valueX, y);
+
+        y += 6;
+        doc.setTextColor(...gray);
+        doc.text('Reference', labelX, y);
+        doc.setTextColor(...dark);
+        doc.text(invoiceData.quotationNumber, valueX, y);
+
+        y += 15;
+
+        // ===== COMPANY & CUSTOMER INFO (Two columns) =====
+        doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(...dark);
-        doc.text(`Ad Items (${bookingData.items.length})`, 20, y);
+        doc.text('AdSpot Media', 20, y);
+
+        doc.text('Bill to', 110, y);
+
+        y += 6;
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...gray);
+
+        // Left column - Company details
+        doc.text('130 High Level Road', 20, y);
+        y += 5;
+        doc.text('Colombo 06', 20, y);
+        y += 5;
+        doc.text('Sri Lanka', 20, y);
+        y += 5;
+        doc.text('adspot77@gmail.com', 20, y);
+
+        // Right column - Customer details
+        y -= 15; // Reset to top of customer section
+        doc.text(bookingData.customerName, 110, y);
+        y += 5;
+        if (bookingData.customerCompany) {
+            doc.text(bookingData.customerCompany, 110, y);
+            y += 5;
+        }
+        doc.text(bookingData.customerEmail, 110, y);
+
+        y += 20;
+
+        // ===== ITEMS TABLE =====
+        // Table header
+        doc.setFontSize(8.5);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...gray);
+
+        const colDesc = 20;
+        const colQty = 115;
+        const colUnit = 140;
+        const colAmount = 190;
+
+        doc.text('Description', colDesc, y);
+        doc.text('Qty', colQty, y, { align: 'center' });
+        doc.text('Unit price', colUnit, y, { align: 'right' });
+        doc.text('Amount', colAmount, y, { align: 'right' });
+
+        // Header line
+        y += 2;
+        doc.setDrawColor(...lightGray);
+        doc.setLineWidth(0.5);
+        doc.line(20, y, 190, y);
         y += 8;
 
-        // Draw background box for items
-        const itemsStartY = y;
-
+        // Items
         bookingData.items.forEach((item, index) => {
             // Check if we need a new page
-            if (y > 240) {
+            if (y > 230) {
                 doc.addPage();
                 y = 25;
             }
 
-            // Item background (alternating colors)
-            const bgColor = index % 2 === 0 ? [249, 250, 251] : [255, 255, 255];
-            doc.setFillColor(...bgColor);
-            doc.rect(20, y - 3, 170, 18, 'F');
-
-            // Newspaper name
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(...dark);
-            doc.text(item.newspaperName, 22, y + 2);
-
-            // Ad details line 2
-            y += 6;
+            doc.setFontSize(9);
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(8);
-            doc.setTextColor(...gray);
+            doc.setTextColor(...dark);
 
+            // Description with newspaper name
+            let adTypeName = '';
             if (item.adType === 'box') {
-                const details = item.details || {};
-                doc.text(`Box Ad: ${details.columns || 1} col x ${details.height || 0} cm (${details.colorOption === 'color' ? 'Color' : 'B&W'})`, 22, y);
+                adTypeName = 'Box Ad';
             } else if (item.adType === 'classified') {
-                const details = item.details || {};
-                const categoryName = getCategoryName(details.category);
-                doc.text(`Classified: ${details.wordCount || 0} words (${categoryName})`, 22, y);
+                adTypeName = 'Classified Ad';
             }
 
-            // Publication date line 3
+            const descLine1 = `${item.newspaperName} - ${adTypeName}`;
+            doc.text(descLine1, colDesc, y);
+
+            // Publication date
             y += 4;
-            doc.text(new Date(item.pubDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }), 22, y);
+            doc.setFontSize(8);
+            doc.setTextColor(...gray);
+            doc.text(`Publication: ${new Date(item.pubDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, colDesc, y);
 
-            // Amount (right side)
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'bold');
+            // Quantity, unit price, amount
+            y -= 2;
+            doc.setFontSize(9);
             doc.setTextColor(...dark);
-            doc.text(formatCurrency(item.price), 188, y - 4, { align: 'right' });
+            doc.text('1', colQty, y, { align: 'center' });
+            doc.text(formatCurrency(item.price), colUnit, y, { align: 'right' });
+            doc.setFont('helvetica', 'normal');
+            doc.text(formatCurrency(item.price), colAmount, y, { align: 'right' });
 
+            // Item divider line
+            y += 6;
+            doc.setDrawColor(...lightGray);
+            doc.setLineWidth(0.3);
+            doc.line(20, y, 190, y);
             y += 8;
         });
 
-        y += 8;
+        y += 5;
 
-        // ===== CHARGES BREAKDOWN =====
-        // Background box for breakdown
-        doc.setFillColor(249, 250, 251);
-        doc.rect(20, y - 3, 170, 50, 'F');
-
-        const breakdownX = 22;
-        const amountX = 188;
+        // ===== TOTALS TABLE =====
+        const labelX = 130;
+        const valueX = 190;
 
         doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
 
-        // Ad Subtotal
+        // Subtotal
         doc.setTextColor(...gray);
-        doc.text('Ad Subtotal:', breakdownX, y);
+        doc.text('Subtotal', labelX, y);
         doc.setTextColor(...dark);
-        doc.text(formatCurrency(invoiceData.subtotal), amountX, y, { align: 'right' });
+        doc.text(formatCurrency(invoiceData.subtotal), valueX, y, { align: 'right' });
         y += 6;
 
         // Platform Commission (for box ads only)
         if (invoiceData.hasBoxAds && invoiceData.commission > 0) {
             doc.setTextColor(...gray);
-            doc.text('Platform Commission (10%):', breakdownX, y);
+            doc.text('Platform Commission (10%)', labelX, y);
             doc.setTextColor(...dark);
-            doc.text(formatCurrency(invoiceData.commission), amountX, y, { align: 'right' });
+            doc.text(formatCurrency(invoiceData.commission), valueX, y, { align: 'right' });
             y += 6;
         }
 
         // VAT (for box ads only)
         if (invoiceData.hasBoxAds && invoiceData.vat > 0) {
             doc.setTextColor(...gray);
-            doc.text('VAT (18%):', breakdownX, y);
+            doc.text('VAT (18%)', labelX, y);
             doc.setTextColor(...dark);
-            doc.text(formatCurrency(invoiceData.vat), amountX, y, { align: 'right' });
+            doc.text(formatCurrency(invoiceData.vat), valueX, y, { align: 'right' });
             y += 6;
         }
 
         // Service Charge (for classified ads only)
         if (invoiceData.hasClassifiedAds && invoiceData.serviceCharge > 0) {
             doc.setTextColor(...gray);
-            doc.text('Service Charge:', breakdownX, y);
+            doc.text('Service Charge', labelX, y);
             doc.setTextColor(...dark);
-            doc.text(formatCurrency(invoiceData.serviceCharge), amountX, y, { align: 'right' });
+            doc.text(formatCurrency(invoiceData.serviceCharge), valueX, y, { align: 'right' });
             y += 6;
         }
 
         // Promo Discount (if applied)
         if (invoiceData.promoCode && invoiceData.promoDiscount > 0) {
-            doc.setTextColor(5, 150, 105); // Green color for discount
-            doc.text(`Promo Discount (${invoiceData.promoCode}):`, breakdownX, y);
-            doc.text('-' + formatCurrency(invoiceData.promoDiscount), amountX, y, { align: 'right' });
+            doc.setTextColor(5, 150, 105);
+            doc.text(`Discount (${invoiceData.promoCode})`, labelX, y);
+            doc.text('-' + formatCurrency(invoiceData.promoDiscount), valueX, y, { align: 'right' });
             y += 6;
         }
 
-        y += 5;
-
-        // Total line separator
-        doc.setDrawColor(...primary);
-        doc.setLineWidth(0.8);
-        doc.line(breakdownX, y, amountX, y);
+        // Total
+        doc.setTextColor(...gray);
+        doc.text('Total', labelX, y);
+        doc.setTextColor(...dark);
+        doc.text(formatCurrency(invoiceData.total), valueX, y, { align: 'right' });
         y += 8;
 
-        // Total amount (prominent)
-        doc.setFontSize(12);
+        // Amount paid line (with green highlight)
+        doc.setDrawColor(...green);
+        doc.setLineWidth(0.5);
+        doc.line(labelX, y - 2, valueX, y - 2);
+
+        y += 4;
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...primary);
-        doc.text('Total Amount:', breakdownX, y);
-        doc.text(formatCurrency(invoiceData.total), amountX, y, { align: 'right' });
+        doc.setTextColor(...green);
+        doc.text('Amount paid ✓', labelX, y);
+        doc.text(formatCurrency(invoiceData.total), valueX, y, { align: 'right' });
 
         // ===== FOOTER =====
         y = 270;
+
+        // Footer divider line
+        doc.setDrawColor(...lightGray);
+        doc.setLineWidth(0.3);
+        doc.line(20, y, 190, y);
+        y += 6;
+
         doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(...gray);
-        doc.text('Thank you for your business with AdSpot Media!', 105, y, { align: 'center' });
+        doc.text('AdSpot Media Services', 20, y);
         y += 4;
-        doc.text('For inquiries, please contact: adspot77@gmail.com | +94 70 642 1998', 105, y, { align: 'center' });
+        doc.text('Phone: 070 161 1411 / 070 642 1998 | Email: adspot77@gmail.com', 20, y);
 
         // ===== UPLOAD TO FIREBASE =====
         const pdfBlob = doc.output('blob');
