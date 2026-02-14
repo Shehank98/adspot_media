@@ -233,9 +233,16 @@ function sendInvoiceEmail(data) {
                 </tr>
               </table>
             </div>
-            <a href="${data.pdfUrl || '#'}" style="display: inline-block; background: #1e40af; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 14px;">
+            ${data.pdfUrl ? `
+            <a href="${data.pdfUrl}" style="display: inline-block; background: #1e40af; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 14px;">
               ⬇️ Download Invoice PDF
             </a>
+            ` : `
+            <div style="display: inline-block; background: #9ca3af; color: #ffffff; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 14px;">
+              📄 PDF Generating...
+            </div>
+            <p style="color: #6b7280; font-size: 13px; margin-top: 8px;">Your invoice PDF is being generated. Please contact us if you need the PDF immediately.</p>
+            `}
           </div>
 
           <!-- Items Table -->

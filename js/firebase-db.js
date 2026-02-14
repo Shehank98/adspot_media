@@ -383,6 +383,12 @@ async function sendInvoiceEmail(bookingData, invoiceData) {
         return;
     }
 
+    // Log PDF URL status
+    console.log('📄 PDF URL for invoice:', invoiceData.pdfUrl || 'NOT GENERATED');
+    if (!invoiceData.pdfUrl) {
+        console.warn('⚠️ Warning: Invoice email will be sent without PDF URL. PDF generation may have failed.');
+    }
+
     try {
         const response = await fetch(APPS_SCRIPT_URL, {
             method: 'POST',
@@ -419,6 +425,7 @@ async function sendInvoiceEmail(bookingData, invoiceData) {
         });
 
         console.log('✅ Invoice email sent to Apps Script');
+        console.log('📧 Email includes PDF URL:', invoiceData.pdfUrl ? 'YES (' + invoiceData.pdfUrl + ')' : 'NO');
     } catch (error) {
         console.error('❌ Error sending invoice email:', error);
     }
