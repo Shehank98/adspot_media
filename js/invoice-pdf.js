@@ -194,71 +194,71 @@ async function generateInvoicePDF(invoiceData, bookingData) {
         y += 5;
 
         // ===== TOTALS TABLE =====
-        const labelX = 130;
-        const valueX = 190;
+        const totalsLabelX = 130;
+        const totalsValueX = 190;
 
         doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
 
         // Subtotal
         doc.setTextColor(...gray);
-        doc.text('Subtotal', labelX, y);
+        doc.text('Subtotal', totalsLabelX, y);
         doc.setTextColor(...dark);
-        doc.text(formatCurrency(invoiceData.subtotal), valueX, y, { align: 'right' });
+        doc.text(formatCurrency(invoiceData.subtotal), totalsValueX, y, { align: 'right' });
         y += 6;
 
         // Platform Commission (for box ads only)
         if (invoiceData.hasBoxAds && invoiceData.commission > 0) {
             doc.setTextColor(...gray);
-            doc.text('Platform Commission (10%)', labelX, y);
+            doc.text('Platform Commission (10%)', totalsLabelX, y);
             doc.setTextColor(...dark);
-            doc.text(formatCurrency(invoiceData.commission), valueX, y, { align: 'right' });
+            doc.text(formatCurrency(invoiceData.commission), totalsValueX, y, { align: 'right' });
             y += 6;
         }
 
         // VAT (for box ads only)
         if (invoiceData.hasBoxAds && invoiceData.vat > 0) {
             doc.setTextColor(...gray);
-            doc.text('VAT (18%)', labelX, y);
+            doc.text('VAT (18%)', totalsLabelX, y);
             doc.setTextColor(...dark);
-            doc.text(formatCurrency(invoiceData.vat), valueX, y, { align: 'right' });
+            doc.text(formatCurrency(invoiceData.vat), totalsValueX, y, { align: 'right' });
             y += 6;
         }
 
         // Service Charge (for classified ads only)
         if (invoiceData.hasClassifiedAds && invoiceData.serviceCharge > 0) {
             doc.setTextColor(...gray);
-            doc.text('Service Charge', labelX, y);
+            doc.text('Service Charge', totalsLabelX, y);
             doc.setTextColor(...dark);
-            doc.text(formatCurrency(invoiceData.serviceCharge), valueX, y, { align: 'right' });
+            doc.text(formatCurrency(invoiceData.serviceCharge), totalsValueX, y, { align: 'right' });
             y += 6;
         }
 
         // Promo Discount (if applied)
         if (invoiceData.promoCode && invoiceData.promoDiscount > 0) {
             doc.setTextColor(5, 150, 105);
-            doc.text(`Discount (${invoiceData.promoCode})`, labelX, y);
-            doc.text('-' + formatCurrency(invoiceData.promoDiscount), valueX, y, { align: 'right' });
+            doc.text(`Discount (${invoiceData.promoCode})`, totalsLabelX, y);
+            doc.text('-' + formatCurrency(invoiceData.promoDiscount), totalsValueX, y, { align: 'right' });
             y += 6;
         }
 
         // Total
         doc.setTextColor(...gray);
-        doc.text('Total', labelX, y);
+        doc.text('Total', totalsLabelX, y);
         doc.setTextColor(...dark);
-        doc.text(formatCurrency(invoiceData.total), valueX, y, { align: 'right' });
+        doc.text(formatCurrency(invoiceData.total), totalsValueX, y, { align: 'right' });
         y += 8;
 
         // Amount paid line (with green highlight)
         doc.setDrawColor(...green);
         doc.setLineWidth(0.5);
-        doc.line(labelX, y - 2, valueX, y - 2);
+        doc.line(totalsLabelX, y - 2, totalsValueX, y - 2);
 
         y += 4;
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(...green);
-        doc.text('Amount paid ✓', labelX, y);
-        doc.text(formatCurrency(invoiceData.total), valueX, y, { align: 'right' });
+        doc.text('Amount paid ✓', totalsLabelX, y);
+        doc.text(formatCurrency(invoiceData.total), totalsValueX, y, { align: 'right' });
 
         // ===== FOOTER =====
         y = 270;
