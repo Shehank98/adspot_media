@@ -752,7 +752,20 @@
                 // Generate PDF and upload to Firebase Storage
                 try {
                     btn.textContent = 'Generating PDF...';
+
+                    // Check if storage is available
+                    if (typeof storage === 'undefined') {
+                        throw new Error('Firebase Storage not initialized. Check firebase-config.js is loaded.');
+                    }
+
+                    console.log('📄 Starting PDF generation...');
                     const pdfUrl = await generateInvoicePDF(invoiceData, currentBooking);
+
+                    if (!pdfUrl) {
+                        throw new Error('PDF generation returned empty URL');
+                    }
+
+                    console.log('✅ PDF generated and uploaded:', pdfUrl);
 
                     // Update invoice with PDF URL
                     await db.collection('invoices').doc(invoiceNumber).update({
@@ -760,10 +773,15 @@
                     });
 
                     invoiceData.pdfUrl = pdfUrl;
-                    console.log('✅ Invoice PDF generated:', pdfUrl);
+                    console.log('✅ Invoice document updated with PDF URL');
                 } catch (pdfError) {
-                    console.error('PDF generation error:', pdfError);
-                    // Continue even if PDF fails
+                    console.error('❌ PDF generation/upload error:', pdfError);
+                    console.error('Error details:', {
+                        message: pdfError.message,
+                        stack: pdfError.stack,
+                        storageAvailable: typeof storage !== 'undefined'
+                    });
+                    // Continue even if PDF fails - email will still be sent without PDF
                 }
 
                 // Send invoice email to customer
@@ -822,16 +840,27 @@
             }
 
             try {
+                console.log('📥 Attempting to download invoice:', currentBooking.invoiceNumber);
                 const invoiceDoc = await db.collection('invoices').doc(currentBooking.invoiceNumber).get();
 
-                if (invoiceDoc.exists && invoiceDoc.data().pdfUrl) {
-                    window.open(invoiceDoc.data().pdfUrl, '_blank');
+                if (invoiceDoc.exists) {
+                    const invoiceData = invoiceDoc.data();
+                    console.log('📄 Invoice data:', invoiceData);
+
+                    if (invoiceData.pdfUrl) {
+                        console.log('✅ Opening PDF:', invoiceData.pdfUrl);
+                        window.open(invoiceData.pdfUrl, '_blank');
+                    } else {
+                        console.warn('⚠️ PDF URL not found in invoice data');
+                        alert('Invoice created but PDF not yet uploaded to Firebase Storage.\n\nPossible causes:\n• PDF generation failed\n• Firebase Storage not configured\n• Network error during upload\n\nCheck browser console for details.');
+                    }
                 } else {
-                    alert('Invoice created but PDF not yet uploaded to Google Drive. You can still send the invoice details via email.');
+                    console.error('❌ Invoice document not found');
+                    alert('Invoice not found. Please generate the invoice first.');
                 }
             } catch (error) {
                 console.error('Error downloading invoice:', error);
-                alert('Failed to download invoice.');
+                alert('Failed to download invoice: ' + error.message);
             }
         }
 

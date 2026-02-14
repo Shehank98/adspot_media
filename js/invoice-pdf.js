@@ -277,12 +277,20 @@ async function generateInvoicePDF(invoiceData, bookingData) {
         doc.text('Phone: 070 161 1411 / 070 642 1998 | Email: adspot77@gmail.com', 20, y);
 
         // ===== UPLOAD TO FIREBASE =====
+        console.log('📤 Preparing to upload PDF to Firebase Storage...');
         const pdfBlob = doc.output('blob');
-        const fileName = `invoices/${invoiceData.invoiceNumber}.pdf`;
-        const storageRef = storage.ref(fileName);
-        const uploadTask = await storageRef.put(pdfBlob);
-        const downloadURL = await uploadTask.ref.getDownloadURL();
+        console.log('📦 PDF blob created, size:', pdfBlob.size, 'bytes');
 
+        const fileName = `invoices/${invoiceData.invoiceNumber}.pdf`;
+        console.log('📁 Upload path:', fileName);
+
+        const storageRef = storage.ref(fileName);
+        console.log('⏳ Starting upload...');
+
+        const uploadTask = await storageRef.put(pdfBlob);
+        console.log('✅ Upload complete!');
+
+        const downloadURL = await uploadTask.ref.getDownloadURL();
         console.log('✅ Invoice PDF uploaded to Firebase Storage:', downloadURL);
 
         return downloadURL;
