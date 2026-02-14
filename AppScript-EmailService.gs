@@ -103,7 +103,10 @@ function sendInvoiceEmail(data) {
       '<span style="color: #6b7280; font-size: 14px;">Thank you for your payment</span></div>' +
       '<div style="padding: 16px 0; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; margin-bottom: 16px;"><table style="width: 100%;"><tr><td style="color: #6b7280; font-size: 14px;">Amount paid</td>' +
       '<td style="color: #1f2937; font-size: 24px; font-weight: 700; text-align: right;">Rs. ' + formatNumber(totalAmount) + '</td></tr></table></div>' +
-      (pdfUrl ? '<a href="' + pdfUrl + '" style="display: inline-block; background: #1e40af; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px;">⬇ Download Invoice PDF</a>' : '') +
+      '<a href="' + (pdfUrl || '#') + '" style="display: inline-block; background: #1e40af; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px;">' +
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 6px;">' +
+      '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>' +
+      'Download Invoice PDF</a>' +
       '</div><table style="width: 100%; margin-bottom: 20px; font-size: 14px; border-collapse: collapse;"><thead><tr style="border-bottom: 2px solid #e5e7eb;">' +
       '<th style="padding: 12px 0; text-align: left; color: #6b7280; font-weight: 500; font-size: 13px;">Description</th>' +
       '<th style="padding: 12px 0; text-align: center; color: #6b7280; font-weight: 500; font-size: 13px;">Qty</th>' +
