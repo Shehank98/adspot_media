@@ -47,11 +47,11 @@ async function generateInvoicePDF(invoiceData, bookingData) {
         doc.setTextColor(...primary);
         doc.text('Invoice', 20, y);
 
-        // "◈ AdSpot" on the right
+        // "AdSpot Media" on the right
         doc.setFontSize(24);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(...primary);
-        doc.text('◈ AdSpot', 190, y, { align: 'right' });
+        doc.text('AdSpot Media', 190, y, { align: 'right' });
 
         y += 15;
 
