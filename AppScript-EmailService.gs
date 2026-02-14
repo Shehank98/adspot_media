@@ -18,19 +18,28 @@ function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
 
-    Logger.log('Received request type: ' + data.type);
+    // Support both 'action' (new format) and 'type' (old format) for backwards compatibility
+    const actionType = data.action || data.type;
 
-    switch(data.type) {
+    Logger.log('Received request type: ' + actionType);
+
+    switch(actionType) {
       case 'invoice_email':
+      case 'sendInvoice':
         return sendInvoiceEmail(data);
       case 'booking_confirmation':
+      case 'sendBookingConfirmation':
         return sendBookingConfirmation(data);
       case 'payment_confirmation':
+      case 'sendPaymentConfirmation':
         return sendPaymentConfirmation(data);
+      case 'contact_message':
+      case 'sendContactForm':
+        return sendContactMessage(data);
       default:
         return ContentService.createTextOutput(JSON.stringify({
           success: false,
-          error: 'Unknown request type'
+          error: 'Unknown request type: ' + actionType
         })).setMimeType(ContentService.MimeType.JSON);
     }
   } catch (error) {
@@ -240,6 +249,64 @@ AdSpot Team
 
   } catch (error) {
     Logger.log('❌ Error sending booking confirmation: ' + error);
+    throw error;
+  }
+}
+
+/**
+ * Send contact form message to admin
+ */
+function sendContactMessage(data) {
+  try {
+    const name = data.name || 'Unknown';
+    const email = data.email || 'No email provided';
+    const phone = data.phone || 'Not provided';
+    const subject = data.subject || 'Contact Form Submission';
+    const message = data.message || '';
+
+    const emailSubject = `[CONTACT FORM] ${subject} - from ${name}`;
+
+    const body = `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📧 NEW CONTACT FORM MESSAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+From: ${name}
+Email: ${email}
+Phone: ${phone}
+Subject: ${subject}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MESSAGE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${message}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Received: ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Colombo' })}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+
+    // Send to admin email
+    MailApp.sendEmail({
+      to: 'adspot77@gmail.com',
+      replyTo: email,
+      subject: emailSubject,
+      body: body,
+      name: 'AdSpot Contact Form'
+    });
+
+    Logger.log('✅ Contact form message sent from: ' + email);
+
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: 'Contact message sent successfully'
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (error) {
+    Logger.log('❌ Error sending contact message: ' + error);
     throw error;
   }
 }
