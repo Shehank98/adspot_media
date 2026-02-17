@@ -720,10 +720,18 @@
                     });
                 }
 
-                // Calculate invoice details
-                const subtotal = currentBooking.totalAmount / 1.28; // Reverse calculate (total / 1.28)
-                const commission = subtotal * 0.10;
-                const vat = subtotal * 0.18;
+                // Use the actual fee breakdown from the booking
+                // Don't reverse calculate - use the actual values stored in the booking
+                const subtotal = currentBooking.subtotalAmount || currentBooking.totalAmount;
+                const commission = currentBooking.commission || 0;
+                const vat = currentBooking.vat || 0;
+                const serviceCharge = currentBooking.serviceCharge || 0;
+                const promoDiscount = currentBooking.promoDiscount || 0;
+                const promoCode = currentBooking.promoCode || '';
+
+                // Determine ad types
+                const hasBoxAds = currentBooking.items?.some(item => item.adType === 'box') || false;
+                const hasClassifiedAds = currentBooking.items?.some(item => item.adType === 'classified') || false;
 
                 // Create/update invoice in Firestore
                 const invoiceData = {
@@ -740,7 +748,13 @@
                     subtotal: subtotal,
                     commission: commission,
                     vat: vat,
+                    serviceCharge: serviceCharge,
+                    promoCode: promoCode,
+                    promoDiscount: promoDiscount,
+                    hasBoxAds: hasBoxAds,
+                    hasClassifiedAds: hasClassifiedAds,
                     total: currentBooking.totalAmount,
+                    paymentMethod: currentBooking.paymentMethod || 'card',
                     pdfUrl: '', // Will be updated after PDF generation
                     status: 'generated',
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
