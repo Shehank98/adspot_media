@@ -207,8 +207,8 @@ async function generateInvoicePDF(invoiceData, bookingData) {
         doc.text(formatCurrency(invoiceData.subtotal), totalsValueX, y, { align: 'right' });
         y += 6;
 
-        // Platform Commission (for box ads only)
-        if (invoiceData.hasBoxAds && invoiceData.commission > 0) {
+        // Platform Commission (show if present)
+        if (invoiceData.commission && invoiceData.commission > 0) {
             doc.setTextColor(...gray);
             doc.text('Platform Commission (10%)', totalsLabelX, y);
             doc.setTextColor(...dark);
@@ -216,8 +216,8 @@ async function generateInvoicePDF(invoiceData, bookingData) {
             y += 6;
         }
 
-        // VAT (for box ads only)
-        if (invoiceData.hasBoxAds && invoiceData.vat > 0) {
+        // VAT (show if present)
+        if (invoiceData.vat && invoiceData.vat > 0) {
             doc.setTextColor(...gray);
             doc.text('VAT (18%)', totalsLabelX, y);
             doc.setTextColor(...dark);
@@ -225,8 +225,8 @@ async function generateInvoicePDF(invoiceData, bookingData) {
             y += 6;
         }
 
-        // Service Charge (for classified ads only)
-        if (invoiceData.hasClassifiedAds && invoiceData.serviceCharge > 0) {
+        // Service Charge (show if present)
+        if (invoiceData.serviceCharge && invoiceData.serviceCharge > 0) {
             doc.setTextColor(...gray);
             doc.text('Service Charge', totalsLabelX, y);
             doc.setTextColor(...dark);
