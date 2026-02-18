@@ -448,31 +448,59 @@
                 <div id="modalItems"></div>
             </div>
 
-            <div class="status-update">
-                <label>Update Booking Status</label>
-                <select id="statusSelect">
-                    <option value="pending">Pending</option>
-                    <option value="confirmed">Confirmed</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                </select>
+            <!-- Status Management Section -->
+            <div style="margin-top: 24px; padding: 20px; background: var(--bg-secondary); border-radius: 8px;">
+                <h3 style="margin: 0 0 16px 0; font-size: 16px;">Status Management</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="status-update">
+                        <label>Booking Status</label>
+                        <select id="statusSelect">
+                            <option value="pending">Pending</option>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="status-update">
+                        <label>Payment Status</label>
+                        <select id="paymentStatusSelect">
+                            <option value="pending">Pending</option>
+                            <option value="completed">Paid</option>
+                            <option value="failed">Failed</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 12px; margin-top: 16px;">
+                    <button class="btn btn-primary" onclick="updateStatus()" style="flex: 1;">
+                        Update Booking Status
+                    </button>
+                    <button class="btn btn-primary" onclick="updatePaymentStatus()" style="flex: 1;">
+                        Update Payment Status
+                    </button>
+                </div>
             </div>
 
-            <div class="status-update">
-                <label>Payment Status</label>
-                <select id="paymentStatusSelect">
-                    <option value="pending">Pending</option>
-                    <option value="completed">Paid</option>
-                    <option value="failed">Failed</option>
-                </select>
+            <!-- Invoice Actions -->
+            <div style="margin-top: 20px; padding: 20px; background: #f0f9ff; border-radius: 8px; border: 1px solid #bfdbfe;">
+                <h3 style="margin: 0 0 12px 0; font-size: 16px; color: #1e40af;">Invoice & Documents</h3>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <button class="btn btn-primary" onclick="generateAndSendInvoice()" style="flex: 1; min-width: 200px;">
+                        <svg width="16" height="16" fill="currentColor" style="margin-right: 6px; vertical-align: middle;">
+                            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7zm-1 2l5 5h-5V4z"/>
+                        </svg>
+                        Generate & Send Invoice
+                    </button>
+                    <button class="btn btn-secondary" onclick="downloadInvoice()" style="flex: 1; min-width: 200px;">
+                        <svg width="16" height="16" fill="currentColor" style="margin-right: 6px; vertical-align: middle;">
+                            <path d="M7 10l-4-4h3V2h2v4h3l-4 4zm-5 2h10v2H2v-2z"/>
+                        </svg>
+                        Download Invoice
+                    </button>
+                </div>
             </div>
 
-            <div class="modal-actions">
+            <div class="modal-actions" style="margin-top: 24px; justify-content: flex-end;">
                 <button class="btn btn-secondary" onclick="closeModal()">Close</button>
-                <button class="btn btn-primary" onclick="updateStatus()">Update Status</button>
-                <button class="btn btn-primary" onclick="updatePaymentStatus()">Mark as Paid</button>
-                <button class="btn btn-primary" onclick="generateAndSendInvoice()">Generate & Send Invoice</button>
-                <button class="btn btn-primary" onclick="downloadInvoice()">Download Invoice</button>
             </div>
         </div>
     </div>
@@ -651,36 +679,47 @@
             `;
 
             modalItems.innerHTML = booking.items.map(item => `
-                <div class="booking-item">
-                    <strong>${item.newspaperName}</strong>
-                    <p>${item.adType === 'box' ? 'Box Ad' : 'Classified Ad'} • ${item.pubDate}</p>
-                    <p><strong>${formatCurrency(item.price)}</strong></p>
-                    ${item.details ? `<p style="font-size: 13px; color: var(--text-secondary);">
-                        ${item.adType === 'box' ?
-                            `${item.details.columns} col × ${item.details.height} cm (${item.details.colorOption})` :
-                            item.details.text || 'N/A'}
-                    </p>` : ''}
+                <div class="booking-item" style="border: 1px solid var(--gray-200); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                        <div>
+                            <strong style="font-size: 16px;">${item.newspaperName}</strong>
+                            <p style="margin: 4px 0; color: var(--text-secondary);">${item.adType === 'box' ? 'Box Ad' : 'Classified Ad'} • ${item.pubDate}</p>
+                            ${item.details ? `<p style="font-size: 13px; color: var(--text-secondary); margin: 4px 0;">
+                                ${item.adType === 'box' ?
+                                    `${item.details.columns} col × ${item.details.height} cm (${item.details.colorOption})` :
+                                    item.details.text || 'N/A'}
+                            </p>` : ''}
+                        </div>
+                        <p style="margin: 0;"><strong style="font-size: 18px; color: var(--primary);">${formatCurrency(item.price)}</strong></p>
+                    </div>
+
                     ${item.adFileUrl ? `
-                        <div class="ad-artwork-section" style="margin-top: 12px; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
-                            <div style="display: flex; align-items: center; justify-content: space-between;">
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <svg width="20" height="20" fill="currentColor" style="color: var(--primary);">
+                        <div class="ad-artwork-section" style="margin-top: 16px; padding: 16px; background: linear-gradient(135deg, #dbeafe 0%, #f0f9ff 100%); border-radius: 8px; border: 2px solid #3b82f6;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <svg width="24" height="24" fill="currentColor" style="color: #3b82f6;">
                                         <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7zm-1 2l5 5h-5V4z"/>
                                     </svg>
-                                    <span style="font-size: 13px; font-weight: 500;">Ad Artwork</span>
+                                    <div>
+                                        <div style="font-size: 14px; font-weight: 600; color: #1e40af;">📎 Ad Artwork Uploaded</div>
+                                        <div id="filesize-${item.pubDate.replace(/\//g, '-')}" style="margin-top: 4px; font-size: 12px; color: #1e40af;"></div>
+                                    </div>
                                 </div>
                                 <button onclick="downloadArtwork('${item.adFileUrl}', '${item.newspaperName}', '${item.pubDate}')"
                                         class="btn btn-primary"
-                                        style="padding: 6px 12px; font-size: 13px;">
-                                    <svg width="14" height="14" fill="currentColor" style="margin-right: 4px; vertical-align: middle;">
+                                        style="padding: 10px 20px; font-size: 14px; font-weight: 600; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);">
+                                    <svg width="16" height="16" fill="currentColor" style="margin-right: 6px; vertical-align: middle;">
                                         <path d="M7 10l-4-4h3V2h2v4h3l-4 4zm-5 2h10v2H2v-2z"/>
                                     </svg>
-                                    Download
+                                    Download Artwork
                                 </button>
                             </div>
-                            <div id="filesize-${item.pubDate.replace(/\//g, '-')}" style="margin-top: 8px; font-size: 12px; color: var(--text-secondary);"></div>
                         </div>
-                    ` : ''}
+                    ` : `
+                        <div style="margin-top: 16px; padding: 12px; background: #fef3c7; border-radius: 8px; border: 1px dashed #f59e0b; text-align: center;">
+                            <span style="color: #92400e; font-size: 13px;">⚠️ No artwork uploaded for this ad</span>
+                        </div>
+                    `}
                 </div>
             `).join('');
 
