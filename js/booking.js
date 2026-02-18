@@ -823,8 +823,28 @@ function initFileUpload() {
         const file = fileInput.files[0];
         if (!file) return;
 
+        // Check file size (10MB limit)
+        const maxSizeBytes = 10 * 1024 * 1024; // 10MB
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+
+        if (file.size > maxSizeBytes) {
+            // Show warning and clear file input
+            alert(`⚠️ File Size Too Large (${fileSizeMB} MB)\n\nYour file exceeds our 10 MB upload limit.\n\nPlease send your artwork via:\n\n📧 Email: info@adspotmedia.lk\n📱 WhatsApp: Contact us directly\n☁️ Cloud Storage: Upload to Google Drive/Dropbox and share the link\n\nWe'll process your ad and confirm within 24 hours.\n\nTip: You can still complete your booking and upload the artwork later!`);
+
+            // Clear the file input
+            fileInput.value = '';
+
+            // Reset preview area
+            uploadPlaceholder.style.display = 'flex';
+            uploadPreview.style.display = 'none';
+            previewImage.style.display = 'none';
+            fileName.textContent = '';
+
+            return;
+        }
+
         // Show file name
-        fileName.textContent = file.name;
+        fileName.textContent = `${file.name} (${fileSizeMB} MB)`;
         uploadPlaceholder.style.display = 'none';
         uploadPreview.style.display = 'flex';
 

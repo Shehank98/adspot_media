@@ -935,27 +935,14 @@
         // Note: sendInvoiceEmail() function is loaded from firebase-db.js
         // It will send emails via Apps Script automatically
 
-        // Download ad artwork and check file size
+        // Download ad artwork (all files are pre-validated to be under 10MB on upload)
         async function downloadArtwork(fileUrl, newspaperName, pubDate) {
             try {
-                // Get file metadata from Firebase Storage
+                // Download file directly (already validated on customer upload)
                 const storage = firebase.storage();
                 const fileRef = storage.refFromURL(fileUrl);
-                const metadata = await fileRef.getMetadata();
-                const fileSizeBytes = metadata.size;
-                const fileSizeMB = (fileSizeBytes / (1024 * 1024)).toFixed(2);
-
-                console.log('📁 File size:', fileSizeMB, 'MB');
-
-                // Check if file is larger than 10MB
-                if (fileSizeBytes > 10 * 1024 * 1024) {
-                    const contactMessage = `This file is ${fileSizeMB} MB, which exceeds our 10 MB limit for direct downloads.\n\nPlease contact the customer to arrange file transfer via:\n\n• Email: info@adspotmedia.lk\n• WhatsApp: Send direct link\n• Cloud storage: Google Drive/Dropbox\n\nFile: ${newspaperName} - ${pubDate}`;
-                    alert(contactMessage);
-                    return;
-                }
-
-                // Download file if under 10MB
                 const downloadUrl = await fileRef.getDownloadURL();
+
                 const link = document.createElement('a');
                 link.href = downloadUrl;
                 link.download = `${newspaperName}_${pubDate}_artwork`.replace(/\s+/g, '_');
@@ -971,7 +958,7 @@
             }
         }
 
-        // Check and display file size for artwork
+        // Check and display file size for artwork (all files pre-validated to be under 10MB)
         async function checkFileSize(fileUrl, pubDate) {
             try {
                 const storage = firebase.storage();
@@ -982,15 +969,7 @@
 
                 const sizeElement = document.getElementById(`filesize-${pubDate.replace(/\//g, '-')}`);
                 if (sizeElement) {
-                    if (fileSizeBytes > 10 * 1024 * 1024) {
-                        sizeElement.innerHTML = `
-                            <span style="color: #f59e0b; font-weight: 500;">
-                                ⚠️ Large file (${fileSizeMB} MB) - Contact customer for transfer
-                            </span>
-                        `;
-                    } else {
-                        sizeElement.innerHTML = `<span style="color: var(--success);">✓ File size: ${fileSizeMB} MB</span>`;
-                    }
+                    sizeElement.innerHTML = `<span style="color: var(--success);">✓ File size: ${fileSizeMB} MB</span>`;
                 }
             } catch (error) {
                 console.error('Error checking file size:', error);
