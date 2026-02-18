@@ -10,10 +10,9 @@ let selectedNewspaper = null;
 let selectedGroup = null;
 let selectedLanguage = 'sinhala'; // Default language
 let adCart = [];
-let stripe = null;
-let cardElement = null;
 let appliedPromoCode = null; // { code, discount, type }
 let promoDiscount = 0;
+let payhereBookingId = null; // Stores Firebase booking ID for PayHere callback
 
 document.addEventListener('DOMContentLoaded', async function() {
     // Load newspapers from Firebase first
@@ -21,7 +20,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     initLanguageSelection();
     initBookingForm();
-    initStripe();
+    initPayhere();
     setMinDate();
     loadSampleImages();
     initFileUpload();
@@ -1309,34 +1308,110 @@ function setMinDate() {
 }
 
 /**
- * Initialize Stripe
+ * Initialize PayHere payment callbacks
  */
-function initStripe() {
-    if (typeof Stripe === 'undefined') {
-        setTimeout(initStripe, 100);
+function initPayhere() {
+    if (typeof payhere === 'undefined') {
+        // PayHere script not loaded yet, try again
+        setTimeout(initPayhere, 200);
         return;
     }
 
-    stripe = Stripe(CONFIG.STRIPE_PUBLISHABLE_KEY);
-    const elements = stripe.elements();
-
-    cardElement = elements.create('card', {
-        style: {
-            base: {
-                fontSize: '16px',
-                color: '#1e293b',
-                '::placeholder': { color: '#94a3b8' }
-            },
-            invalid: { color: '#ef4444' }
+    // Payment completed — update booking status in Firebase
+    payhere.onCompleted = async function(orderId) {
+        console.log('✅ PayHere payment completed. Order ID:', orderId);
+        try {
+            if (payhereBookingId && typeof db !== 'undefined') {
+                await db.collection('bookings').doc(payhereBookingId).update({
+                    paymentStatus: 'completed',
+                    paymentReference: orderId,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                console.log('✅ Booking updated to completed in Firebase');
+            }
+        } catch (err) {
+            console.warn('Could not update booking status:', err);
         }
-    });
 
-    cardElement.mount('#card-element');
+        // Show success modal
+        const customerEmail = document.getElementById('customerEmail')?.value || '';
+        const storedQuotation = sessionStorage.getItem('lastQuotationNumber') || orderId;
+        showSuccessModal(storedQuotation, customerEmail, 'card');
+    };
 
-    cardElement.on('change', function(event) {
-        const displayError = document.getElementById('card-errors');
-        displayError.textContent = event.error ? event.error.message : '';
-    });
+    // Payment dismissed (user closed popup)
+    payhere.onDismissed = function() {
+        console.log('ℹ️ PayHere popup dismissed by user');
+        showNotification('Payment cancelled. You can try again or choose Bank Transfer.', 'info');
+        const btn = document.getElementById('submitBtn');
+        const submitText = document.getElementById('submitText');
+        const submitLoader = document.getElementById('submitLoader');
+        if (btn) btn.disabled = false;
+        if (submitText) submitText.style.display = 'block';
+        if (submitLoader) submitLoader.style.display = 'none';
+    };
+
+    // Payment error
+    payhere.onError = function(error) {
+        console.error('❌ PayHere payment error:', error);
+        showNotification('Payment failed: ' + error + '. Please try again or use Bank Transfer.', 'error');
+        const btn = document.getElementById('submitBtn');
+        const submitText = document.getElementById('submitText');
+        const submitLoader = document.getElementById('submitLoader');
+        if (btn) btn.disabled = false;
+        if (submitText) submitText.style.display = 'block';
+        if (submitLoader) submitLoader.style.display = 'none';
+    };
+
+    console.log('✅ PayHere initialized');
+}
+
+/**
+ * Start PayHere payment popup
+ */
+function startPayherePayment(quotationNumber, formData, amount) {
+    if (typeof payhere === 'undefined') {
+        showNotification('PayHere is not loaded. Please refresh the page and try again.', 'error');
+        return;
+    }
+
+    // Generate hash: MD5(merchant_id + order_id + amount + currency + MD5(merchant_secret).toUpperCase())
+    const merchantId = CONFIG.PAYHERE_MERCHANT_ID;
+    const merchantSecret = CONFIG.PAYHERE_MERCHANT_SECRET;
+    const orderId = quotationNumber;
+    const formattedAmount = parseFloat(amount).toFixed(2);
+    const currency = 'LKR';
+
+    const secretHash = CryptoJS.MD5(merchantSecret).toString().toUpperCase();
+    const hash = CryptoJS.MD5(merchantId + orderId + formattedAmount + currency + secretHash).toString().toUpperCase();
+
+    // Split customer name into first/last
+    const nameParts = (formData.customer_name || '').trim().split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || firstName;
+
+    const payment = {
+        sandbox: CONFIG.PAYHERE_SANDBOX,
+        merchant_id: merchantId,
+        return_url: window.location.href,
+        cancel_url: window.location.href,
+        notify_url: 'https://script.google.com/macros/s/YOUR_APPS_SCRIPT_ID/exec', // ← Update with your Apps Script URL
+        order_id: orderId,
+        items: 'Newspaper Advertisement - ' + orderId,
+        amount: formattedAmount,
+        currency: currency,
+        hash: hash,
+        first_name: firstName,
+        last_name: lastName,
+        email: formData.customer_email || '',
+        phone: (formData.customer_phone || '').replace(/\D/g, '').substring(0, 10),
+        address: formData.customer_address || 'N/A',
+        city: 'Colombo',
+        country: 'Sri Lanka',
+    };
+
+    console.log('🔁 Starting PayHere payment for:', orderId, '| Amount:', formattedAmount);
+    payhere.startPayment(payment);
 }
 
 /**
@@ -1374,23 +1449,9 @@ async function handleSubmit(e) {
             status: 'pending'
         };
 
-        // Process payment if card
-        if (paymentMethod === 'card' && stripe && cardElement) {
-            const { error, paymentMethod: pm } = await stripe.createPaymentMethod({
-                type: 'card',
-                card: cardElement,
-                billing_details: {
-                    name: formData.customer_name,
-                    email: formData.customer_email
-                }
-            });
-
-            if (error) throw error;
-            formData.payment_status = 'completed';
-            formData.payment_reference = pm.id;
-        } else {
-            formData.payment_status = 'pending';
-        }
+        // For card: save as pending first, then trigger PayHere popup
+        // For bank: save as pending (manual verification)
+        formData.payment_status = 'pending';
 
         // Save to database (if available) or use local storage
         let saveSuccess = false;
@@ -1492,6 +1553,7 @@ async function handleSubmit(e) {
 
                 // Save to Firebase (also triggers email via Apps Script)
                 const bookingId = await saveBookingToFirebase(bookingData);
+                payhereBookingId = bookingId; // Store for PayHere callback
                 console.log('✅ Booking saved to Firebase:', bookingId);
 
                 // Increment promo code usage count if promo was applied
@@ -1705,8 +1767,21 @@ async function handleSubmit(e) {
         // Small delay for UX
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        // Show success
-        showSuccessModal(quotationNumber, formData.customer_email, paymentMethod);
+        // Show success or trigger PayHere payment
+        if (paymentMethod === 'card') {
+            // Trigger PayHere popup for online payment
+            sessionStorage.setItem('lastQuotationNumber', quotationNumber);
+            startPayherePayment(quotationNumber, formData, finalTotal);
+            // Note: success modal is shown inside payhere.onCompleted callback
+            // Reset button state here since PayHere controls the flow
+            submitBtn.disabled = false;
+            submitText.style.display = 'block';
+            submitLoader.style.display = 'none';
+            return; // Don't fall through to finally block reset
+        } else {
+            // Bank transfer — show success modal immediately
+            showSuccessModal(quotationNumber, formData.customer_email, paymentMethod);
+        }
 
     } catch (error) {
         console.error('Error:', error);
