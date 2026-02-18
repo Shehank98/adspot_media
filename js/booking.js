@@ -1433,6 +1433,10 @@ async function handleSubmit(e) {
         const invoiceNumber = generateInvoiceNumber();
         const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value;
 
+        // Calculate cart total and final amount (needed for PayHere and throughout)
+        const cartTotal = adCart.reduce((sum, item) => sum + item.price, 0);
+        const finalTotal = cartTotal - promoDiscount;
+
         // Collect form data
         const formData = {
             quotation_number: quotationNumber,
@@ -1519,9 +1523,6 @@ async function handleSubmit(e) {
                 }
 
                 // Prepare booking data for Firebase
-                const cartTotal = adCart.reduce((sum, item) => sum + item.price, 0);
-                const finalTotal = cartTotal - promoDiscount;
-
                 const bookingData = {
                     quotationNumber: quotationNumber,
                     invoiceNumber: invoiceNumber,
