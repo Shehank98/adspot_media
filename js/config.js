@@ -14,8 +14,8 @@ const CONFIG = {
     // PayHere Payment Gateway Configuration
     // Sign up at https://www.payhere.lk and get your Merchant ID & Secret
     // ⚠️ IMPORTANT: Move PAYHERE_MERCHANT_SECRET to your server/Apps Script in production!
-    PAYHERE_MERCHANT_ID: 'YOUR_PAYHERE_MERCHANT_ID',       // e.g., '1229248'
-    PAYHERE_MERCHANT_SECRET: 'YOUR_PAYHERE_MERCHANT_SECRET', // e.g., 'MzQ5NDM2MzI0Mjg0MDc...'
+    PAYHERE_MERCHANT_ID: '1234072',       // e.g., '1229248'
+    PAYHERE_MERCHANT_SECRET: 'NTY3NzM0MTUwMjQ4MTEyNTkwMjI4NDI1MzQyNTM4NTAzMTE5OQ==', // e.g., 'MzQ5NDM2MzI0Mjg0MDc...'
     PAYHERE_SANDBOX: true, // Set to false for LIVE payments
 
     // Company Information
