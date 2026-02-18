@@ -1395,7 +1395,7 @@ function startPayherePayment(quotationNumber, formData, amount) {
         merchant_id: merchantId,
         return_url: window.location.href,
         cancel_url: window.location.href,
-        notify_url: 'https://script.google.com/macros/s/YOUR_APPS_SCRIPT_ID/exec', // ← Update with your Apps Script URL
+        notify_url: 'https://script.google.com/macros/s/AKfycbxqC7dhbLgOB9PjLuMFHBwn2uyTVQyJnDdt92GwWLC-q-UlJ3mB0a7eWNvwOnyhDxHV/exec', // ← Update with your Apps Script URL
         order_id: orderId,
         items: 'Newspaper Advertisement - ' + orderId,
         amount: formattedAmount,
