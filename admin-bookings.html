@@ -386,7 +386,15 @@
 
     <main class="admin-container">
         <div class="admin-header">
-            <h1>Manage Bookings</h1>
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 20px;">
+                <h1>Manage Bookings</h1>
+                <button onclick="manualCleanup()" class="btn btn-secondary" style="padding: 10px 20px; font-size: 14px;">
+                    <svg width="16" height="16" fill="currentColor" style="margin-right: 6px; vertical-align: middle;">
+                        <path d="M5 3V1h6v2h5v2H0V3h5zM2 6h12l-1 11H3L2 6zm3 2v7h2V8H5zm4 0v7h2V8H9z"/>
+                    </svg>
+                    Cleanup Old Files (>10 days)
+                </button>
+            </div>
             <div class="filter-tabs">
                 <button class="filter-tab active" data-filter="all">All</button>
                 <button class="filter-tab" data-filter="pending">Pending</button>
@@ -652,10 +660,38 @@
                             `${item.details.columns} col × ${item.details.height} cm (${item.details.colorOption})` :
                             item.details.text || 'N/A'}
                     </p>` : ''}
+                    ${item.adFileUrl ? `
+                        <div class="ad-artwork-section" style="margin-top: 12px; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <svg width="20" height="20" fill="currentColor" style="color: var(--primary);">
+                                        <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7zm-1 2l5 5h-5V4z"/>
+                                    </svg>
+                                    <span style="font-size: 13px; font-weight: 500;">Ad Artwork</span>
+                                </div>
+                                <button onclick="downloadArtwork('${item.adFileUrl}', '${item.newspaperName}', '${item.pubDate}')"
+                                        class="btn btn-primary"
+                                        style="padding: 6px 12px; font-size: 13px;">
+                                    <svg width="14" height="14" fill="currentColor" style="margin-right: 4px; vertical-align: middle;">
+                                        <path d="M7 10l-4-4h3V2h2v4h3l-4 4zm-5 2h10v2H2v-2z"/>
+                                    </svg>
+                                    Download
+                                </button>
+                            </div>
+                            <div id="filesize-${item.pubDate.replace(/\//g, '-')}" style="margin-top: 8px; font-size: 12px; color: var(--text-secondary);"></div>
+                        </div>
+                    ` : ''}
                 </div>
             `).join('');
 
             modal.classList.add('active');
+
+            // Check file sizes for all items with artwork
+            booking.items.forEach(item => {
+                if (item.adFileUrl) {
+                    checkFileSize(item.adFileUrl, item.pubDate);
+                }
+            });
         }
 
         // Close modal
@@ -898,6 +934,160 @@
 
         // Note: sendInvoiceEmail() function is loaded from firebase-db.js
         // It will send emails via Apps Script automatically
+
+        // Download ad artwork and check file size
+        async function downloadArtwork(fileUrl, newspaperName, pubDate) {
+            try {
+                // Get file metadata from Firebase Storage
+                const storage = firebase.storage();
+                const fileRef = storage.refFromURL(fileUrl);
+                const metadata = await fileRef.getMetadata();
+                const fileSizeBytes = metadata.size;
+                const fileSizeMB = (fileSizeBytes / (1024 * 1024)).toFixed(2);
+
+                console.log('📁 File size:', fileSizeMB, 'MB');
+
+                // Check if file is larger than 10MB
+                if (fileSizeBytes > 10 * 1024 * 1024) {
+                    const contactMessage = `This file is ${fileSizeMB} MB, which exceeds our 10 MB limit for direct downloads.\n\nPlease contact the customer to arrange file transfer via:\n\n• Email: info@adspotmedia.lk\n• WhatsApp: Send direct link\n• Cloud storage: Google Drive/Dropbox\n\nFile: ${newspaperName} - ${pubDate}`;
+                    alert(contactMessage);
+                    return;
+                }
+
+                // Download file if under 10MB
+                const downloadUrl = await fileRef.getDownloadURL();
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = `${newspaperName}_${pubDate}_artwork`.replace(/\s+/g, '_');
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                console.log('✅ File downloaded successfully');
+            } catch (error) {
+                console.error('Error downloading artwork:', error);
+                alert('Failed to download artwork. Please try again or contact support.');
+            }
+        }
+
+        // Check and display file size for artwork
+        async function checkFileSize(fileUrl, pubDate) {
+            try {
+                const storage = firebase.storage();
+                const fileRef = storage.refFromURL(fileUrl);
+                const metadata = await fileRef.getMetadata();
+                const fileSizeBytes = metadata.size;
+                const fileSizeMB = (fileSizeBytes / (1024 * 1024)).toFixed(2);
+
+                const sizeElement = document.getElementById(`filesize-${pubDate.replace(/\//g, '-')}`);
+                if (sizeElement) {
+                    if (fileSizeBytes > 10 * 1024 * 1024) {
+                        sizeElement.innerHTML = `
+                            <span style="color: #f59e0b; font-weight: 500;">
+                                ⚠️ Large file (${fileSizeMB} MB) - Contact customer for transfer
+                            </span>
+                        `;
+                    } else {
+                        sizeElement.innerHTML = `<span style="color: var(--success);">✓ File size: ${fileSizeMB} MB</span>`;
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking file size:', error);
+            }
+        }
+
+        // Auto-delete files older than 10 days from publish date
+        async function checkAndDeleteOldFiles() {
+            try {
+                const now = new Date();
+                const bookingsSnapshot = await db.collection('bookings').get();
+
+                let deletedCount = 0;
+
+                for (const doc of bookingsSnapshot.docs) {
+                    const booking = doc.data();
+
+                    for (const item of booking.items) {
+                        if (item.adFileUrl && item.pubDate) {
+                            const pubDate = new Date(item.pubDate);
+                            const daysSincePublish = Math.floor((now - pubDate) / (1000 * 60 * 60 * 24));
+
+                            if (daysSincePublish > 10) {
+                                try {
+                                    const storage = firebase.storage();
+                                    const fileRef = storage.refFromURL(item.adFileUrl);
+                                    await fileRef.delete();
+
+                                    // Update booking to remove file URL
+                                    const updatedItems = booking.items.map(i => {
+                                        if (i.pubDate === item.pubDate && i.adFileUrl === item.adFileUrl) {
+                                            return { ...i, adFileUrl: null, fileDeletedAt: firebase.firestore.FieldValue.serverTimestamp() };
+                                        }
+                                        return i;
+                                    });
+
+                                    await db.collection('bookings').doc(doc.id).update({
+                                        items: updatedItems,
+                                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                                    });
+
+                                    deletedCount++;
+                                    console.log(`🗑️ Deleted file for ${item.newspaperName} - ${item.pubDate} (${daysSincePublish} days old)`);
+                                } catch (deleteError) {
+                                    console.error('Error deleting file:', deleteError);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (deletedCount > 0) {
+                    console.log(`✅ Auto-deleted ${deletedCount} old files (>10 days from publish date)`);
+                }
+
+                return deletedCount;
+            } catch (error) {
+                console.error('Error checking old files:', error);
+                return 0;
+            }
+        }
+
+        // Manual cleanup trigger for admin
+        async function manualCleanup() {
+            if (!confirm('This will delete all ad artwork files that are older than 10 days from their publication date.\n\nDo you want to continue?')) {
+                return;
+            }
+
+            const btn = event.target.closest('button');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span style="display: inline-block; animation: spin 1s linear infinite;">⏳</span> Cleaning up...';
+
+            try {
+                const deletedCount = await checkAndDeleteOldFiles();
+
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+
+                if (deletedCount > 0) {
+                    alert(`✅ Successfully deleted ${deletedCount} old file(s)!`);
+                    loadBookings(); // Reload bookings to update display
+                } else {
+                    alert('No files older than 10 days found.');
+                }
+            } catch (error) {
+                console.error('Manual cleanup error:', error);
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                alert('Failed to cleanup files. Please check console for details.');
+            }
+        }
+
+        // Run auto-delete check when page loads
+        setTimeout(() => {
+            checkAndDeleteOldFiles();
+        }, 5000); // Run after 5 seconds to not block page load
 
         // Filter tabs
         document.querySelectorAll('.filter-tab').forEach(tab => {
