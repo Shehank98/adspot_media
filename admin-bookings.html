@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Bookings | AdSpot Admin</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/firebase-ui.css">
+
+    <style>
+        body {
+            background: #f8fafc;
+        }
+
+        .admin-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 100px 20px 40px;
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .admin-header h1 {
+            font-size: 32px;
+            color: var(--text-primary);
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            padding: 8px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--gray-300);
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-tab.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .bookings-table {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid var(--gray-200);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: var(--gray-50);
+        }
+
+        th {
+            padding: 16px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 16px;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        tbody tr {
+            transition: background 0.2s;
+            cursor: pointer;
+        }
+
+        tbody tr:hover {
+            background: var(--gray-50);
+        }
+
+        .booking-id {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            display: inline-block;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-confirmed {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-completed {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-cancelled {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 13px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-view {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-view:hover {
+            background: var(--primary-dark);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 32px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 24px;
+        }
+
+        .modal-header h2 {
+            font-size: 24px;
+            color: var(--text-primary);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .detail-item label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .detail-item p {
+            font-size: 15px;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .items-section {
+            background: var(--gray-50);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .items-section h3 {
+            font-size: 16px;
+            margin-bottom: 16px;
+        }
+
+        .booking-item {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .status-update {
+            margin-bottom: 24px;
+        }
+
+        .status-update label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .status-update select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--gray-200);
+            color: var(--text-primary);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .empty-state p {
+            color: var(--text-secondary);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--gray-200);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+
+    <!-- Meta Pixel Code -->
+    <script>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '835278496221371');
+    fbq('track', 'PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none"
+    src="https://www.facebook.com/tr?id=835278496221371&ev=PageView&noscript=1"
+    /></noscript>
+    <!-- End Meta Pixel Code -->
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <span class="logo-icon">◈</span>
+                <span class="logo-text">AdSpot Admin</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/admin-bookings" class="active">Manage Bookings</a></li>
+                <li><a href="/admin-publications">Publications</a></li>
+                <li><a href="/admin-promo-codes">Promo Codes</a></li>
+                <li><a href="/admin-customers">Customers</a></li>
+                <li><a href="/">Back to Home</a></li>
+            </ul>
+            <div class="nav-actions">
+                <!-- User Menu (Admin) -->
+                <div id="userMenu" class="user-menu">
+                    <img id="userPhoto" class="user-avatar" src="" alt="">
+                    <div class="user-dropdown">
+                        <button class="user-toggle" id="userToggle">
+                            <span id="userName">Admin</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                <path d="M6 9l6 6 6-6"/>
+                            </svg>
+                        </button>
+                        <div class="dropdown-menu" id="dropdownMenu">
+                            <div class="user-info-dropdown">
+                                <span id="userEmail" class="user-email-dropdown">admin@adspot.lk</span>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <a href="/" class="dropdown-item">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                                </svg>
+                                Back to Home
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <button class="dropdown-item" id="signOutBtn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+                                </svg>
+                                Sign Out
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="admin-container">
+        <div class="admin-header">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 20px;">
+                <h1>Manage Bookings</h1>
+                <button onclick="manualCleanup()" class="btn btn-secondary" style="padding: 10px 20px; font-size: 14px;">
+                    <svg width="16" height="16" fill="currentColor" style="margin-right: 6px; vertical-align: middle;">
+                        <path d="M5 3V1h6v2h5v2H0V3h5zM2 6h12l-1 11H3L2 6zm3 2v7h2V8H5zm4 0v7h2V8H9z"/>
+                    </svg>
+                    Cleanup Old Files (>10 days)
+                </button>
+            </div>
+            <div class="filter-tabs">
+                <button class="filter-tab active" data-filter="all">All</button>
+                <button class="filter-tab" data-filter="pending">Pending</button>
+                <button class="filter-tab" data-filter="confirmed">Confirmed</button>
+                <button class="filter-tab" data-filter="completed">Completed</button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="loading">
+            <div class="spinner"></div>
+            <p>Loading bookings...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <p>No bookings found.</p>
+        </div>
+
+        <!-- Bookings Table -->
+        <div id="bookingsTable" class="bookings-table" style="display: none;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Booking ID</th>
+                        <th>Customer</th>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Payment</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="bookingsTableBody"></tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Booking Details Modal -->
+    <div id="bookingModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalBookingId">Booking Details</h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+
+            <div class="detail-grid" id="modalDetails"></div>
+
+            <div class="items-section">
+                <h3>Ad Items</h3>
+                <div id="modalItems"></div>
+            </div>
+
+            <!-- Status Management Section -->
+            <div style="margin-top: 24px; padding: 20px; background: var(--bg-secondary); border-radius: 8px;">
+                <h3 style="margin: 0 0 16px 0; font-size: 16px;">Status Management</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="status-update">
+                        <label>Booking Status</label>
+                        <select id="statusSelect">
+                            <option value="pending">Pending</option>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="status-update">
+                        <label>Payment Status</label>
+                        <select id="paymentStatusSelect">
+                            <option value="pending">Pending</option>
+                            <option value="completed">Paid</option>
+                            <option value="failed">Failed</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 12px; margin-top: 16px;">
+                    <button class="btn btn-primary" onclick="updateStatus()" style="flex: 1;">
+                        Update Booking Status
+                    </button>
+                    <button class="btn btn-primary" onclick="updatePaymentStatus()" style="flex: 1;">
+                        Update Payment Status
+                    </button>
+                </div>
+            </div>
+
+            <!-- Invoice Actions -->
+            <div style="margin-top: 20px; padding: 20px; background: #f0f9ff; border-radius: 8px; border: 1px solid #bfdbfe;">
+                <h3 style="margin: 0 0 12px 0; font-size: 16px; color: #1e40af;">Invoice & Documents</h3>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <button class="btn btn-primary" onclick="generateAndSendInvoice()" style="flex: 1; min-width: 200px;">
+                        <svg width="16" height="16" fill="currentColor" style="margin-right: 6px; vertical-align: middle;">
+                            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7zm-1 2l5 5h-5V4z"/>
+                        </svg>
+                        Generate & Send Invoice
+                    </button>
+                    <button class="btn btn-secondary" onclick="downloadInvoice()" style="flex: 1; min-width: 200px;">
+                        <svg width="16" height="16" fill="currentColor" style="margin-right: 6px; vertical-align: middle;">
+                            <path d="M7 10l-4-4h3V2h2v4h3l-4 4zm-5 2h10v2H2v-2z"/>
+                        </svg>
+                        Download Invoice
+                    </button>
+                </div>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 24px; justify-content: flex-end;">
+                <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- Firebase Config -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/firebase-db.js"></script>
+    <script src="js/invoice-pdf.js"></script>
+
+    <script>
+        let allBookings = [];
+        let currentBooking = null;
+        let currentFilter = 'all';
+
+        // Format currency
+        function formatCurrency(amount) {
+            return `LKR ${amount.toLocaleString('en-LK')}`;
+        }
+
+        // Format date
+        function formatDate(timestamp) {
+            if (!timestamp) return 'N/A';
+            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        // Load all bookings (admin view)
+        async function loadBookings() {
+            const user = firebase.auth().currentUser;
+
+            if (!user) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // Check if user is admin (you can add role check here)
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (userDoc.exists && userDoc.data().role !== 'admin') {
+                alert('Access denied. Admin only.');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            const loadingState = document.getElementById('loadingState');
+            const emptyState = document.getElementById('emptyState');
+            const bookingsTable = document.getElementById('bookingsTable');
+
+            try {
+                // Load ALL bookings (admin view)
+                const snapshot = await db.collection('bookings').get();
+
+                loadingState.style.display = 'none';
+
+                if (snapshot.empty) {
+                    emptyState.style.display = 'block';
+                    return;
+                }
+
+                // Store all bookings
+                allBookings = [];
+                snapshot.forEach(doc => {
+                    allBookings.push({ id: doc.id, ...doc.data() });
+                });
+
+                // Sort by createdAt descending
+                allBookings.sort((a, b) => {
+                    const timeA = a.createdAt ? a.createdAt.toMillis() : 0;
+                    const timeB = b.createdAt ? b.createdAt.toMillis() : 0;
+                    return timeB - timeA;
+                });
+
+                bookingsTable.style.display = 'block';
+                renderBookings();
+
+            } catch (error) {
+                console.error('Error loading bookings:', error);
+                loadingState.innerHTML = `
+                    <p style="color: #ef4444;">Failed to load bookings: ${error.message}</p>
+                `;
+            }
+        }
+
+        // Render bookings based on filter
+        function renderBookings() {
+            const tbody = document.getElementById('bookingsTableBody');
+            tbody.innerHTML = '';
+
+            const filtered = currentFilter === 'all'
+                ? allBookings
+                : allBookings.filter(b => b.status === currentFilter);
+
+            filtered.forEach(booking => {
+                const row = document.createElement('tr');
+                row.onclick = () => viewBooking(booking);
+
+                const statusClass = `status-${booking.status || 'pending'}`;
+                const statusText = (booking.status || 'pending').charAt(0).toUpperCase() + (booking.status || 'pending').slice(1);
+
+                row.innerHTML = `
+                    <td class="booking-id">${booking.bookingId}</td>
+                    <td>
+                        <div>${booking.customerName}</div>
+                        <div style="font-size: 13px; color: var(--text-secondary);">${booking.customerEmail}</div>
+                    </td>
+                    <td>${formatDate(booking.createdAt)}</td>
+                    <td><strong>${formatCurrency(booking.totalAmount)}</strong></td>
+                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                    <td style="text-transform: capitalize;">${booking.paymentStatus || 'Pending'}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-sm btn-view" onclick="event.stopPropagation(); viewBooking(${JSON.stringify(booking).replace(/"/g, '&quot;')})">View</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // View booking details
+        function viewBooking(booking) {
+            currentBooking = booking;
+            const modal = document.getElementById('bookingModal');
+            const modalBookingId = document.getElementById('modalBookingId');
+            const modalDetails = document.getElementById('modalDetails');
+            const modalItems = document.getElementById('modalItems');
+            const statusSelect = document.getElementById('statusSelect');
+            const paymentStatusSelect = document.getElementById('paymentStatusSelect');
+
+            modalBookingId.textContent = booking.bookingId;
+            statusSelect.value = booking.status || 'pending';
+            paymentStatusSelect.value = booking.paymentStatus || 'pending';
+
+            modalDetails.innerHTML = `
+                <div class="detail-item">
+                    <label>Customer Name</label>
+                    <p>${booking.customerName}</p>
+                </div>
+                <div class="detail-item">
+                    <label>Email</label>
+                    <p>${booking.customerEmail}</p>
+                </div>
+                <div class="detail-item">
+                    <label>Phone</label>
+                    <p>${booking.customerPhone || 'N/A'}</p>
+                </div>
+                <div class="detail-item">
+                    <label>Company</label>
+                    <p>${booking.customerCompany || 'N/A'}</p>
+                </div>
+                <div class="detail-item">
+                    <label>Quotation #</label>
+                    <p>${booking.quotationNumber}</p>
+                </div>
+                <div class="detail-item">
+                    <label>Invoice #</label>
+                    <p>${booking.invoiceNumber || 'Pending'}</p>
+                </div>
+                <div class="detail-item">
+                    <label>Total Amount</label>
+                    <p><strong>${formatCurrency(booking.totalAmount)}</strong></p>
+                </div>
+                <div class="detail-item">
+                    <label>Payment Method</label>
+                    <p style="text-transform: capitalize;">${booking.paymentMethod || 'N/A'}</p>
+                </div>
+            `;
+
+            modalItems.innerHTML = booking.items.map(item => `
+                <div class="booking-item" style="border: 1px solid var(--gray-200); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                        <div>
+                            <strong style="font-size: 16px;">${item.newspaperName}</strong>
+                            <p style="margin: 4px 0; color: var(--text-secondary);">${item.adType === 'box' ? 'Box Ad' : 'Classified Ad'} • ${item.pubDate}</p>
+                            ${item.details ? `<p style="font-size: 13px; color: var(--text-secondary); margin: 4px 0;">
+                                ${item.adType === 'box' ?
+                                    `${item.details.columns} col × ${item.details.height} cm (${item.details.colorOption})` :
+                                    item.details.text || 'N/A'}
+                            </p>` : ''}
+                        </div>
+                        <p style="margin: 0;"><strong style="font-size: 18px; color: var(--primary);">${formatCurrency(item.price)}</strong></p>
+                    </div>
+
+                    ${item.adFileUrl ? `
+                        <div class="ad-artwork-section" style="margin-top: 16px; padding: 16px; background: linear-gradient(135deg, #dbeafe 0%, #f0f9ff 100%); border-radius: 8px; border: 2px solid #3b82f6;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <svg width="24" height="24" fill="currentColor" style="color: #3b82f6;">
+                                        <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7zm-1 2l5 5h-5V4z"/>
+                                    </svg>
+                                    <div>
+                                        <div style="font-size: 14px; font-weight: 600; color: #1e40af;">📎 Ad Artwork Uploaded</div>
+                                        <div id="filesize-${item.pubDate.replace(/\//g, '-')}" style="margin-top: 4px; font-size: 12px; color: #1e40af;"></div>
+                                    </div>
+                                </div>
+                                <button onclick="downloadArtwork('${item.adFileUrl}', '${item.newspaperName}', '${item.pubDate}')"
+                                        class="btn btn-primary"
+                                        style="padding: 10px 20px; font-size: 14px; font-weight: 600; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);">
+                                    <svg width="16" height="16" fill="currentColor" style="margin-right: 6px; vertical-align: middle;">
+                                        <path d="M7 10l-4-4h3V2h2v4h3l-4 4zm-5 2h10v2H2v-2z"/>
+                                    </svg>
+                                    Download Artwork
+                                </button>
+                            </div>
+                        </div>
+                    ` : `
+                        <div style="margin-top: 16px; padding: 12px; background: #fef3c7; border-radius: 8px; border: 1px dashed #f59e0b; text-align: center;">
+                            <span style="color: #92400e; font-size: 13px;">⚠️ No artwork uploaded for this ad</span>
+                        </div>
+                    `}
+                </div>
+            `).join('');
+
+            modal.classList.add('active');
+
+            // Check file sizes for all items with artwork
+            booking.items.forEach(item => {
+                if (item.adFileUrl) {
+                    checkFileSize(item.adFileUrl, item.pubDate);
+                }
+            });
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('bookingModal').classList.remove('active');
+        }
+
+        // Update booking status
+        async function updateStatus() {
+            if (!currentBooking) return;
+
+            const newStatus = document.getElementById('statusSelect').value;
+
+            try {
+                await db.collection('bookings').doc(currentBooking.id).update({
+                    status: newStatus,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                alert('Status updated successfully!');
+                currentBooking.status = newStatus;
+                closeModal();
+                loadBookings(); // Reload bookings
+            } catch (error) {
+                console.error('Error updating status:', error);
+                alert('Failed to update status: ' + error.message);
+            }
+        }
+
+        // Update payment status
+        async function updatePaymentStatus() {
+            if (!currentBooking) return;
+
+            const newPaymentStatus = document.getElementById('paymentStatusSelect').value;
+
+            try {
+                await db.collection('bookings').doc(currentBooking.id).update({
+                    paymentStatus: newPaymentStatus,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                alert('Payment status updated successfully!');
+                currentBooking.paymentStatus = newPaymentStatus;
+
+                // If marked as paid, generate and send invoice
+                if (newPaymentStatus === 'completed') {
+                    const shouldGenerateInvoice = confirm('Payment marked as paid. Generate and send invoice to customer?');
+                    if (shouldGenerateInvoice) {
+                        await generateAndSendInvoice();
+                    }
+                }
+
+                loadBookings(); // Reload bookings
+            } catch (error) {
+                console.error('Error updating payment status:', error);
+                alert('Failed to update payment status: ' + error.message);
+            }
+        }
+
+        // Generate invoice and send to customer
+        async function generateAndSendInvoice(event) {
+            if (!currentBooking) return;
+
+            const btn = event ? event.target : document.querySelector('button[onclick*="generateAndSendInvoice"]');
+            btn.disabled = true;
+            btn.textContent = 'Generating...';
+
+            try {
+                // Check if invoice already exists
+                let invoiceNumber = currentBooking.invoiceNumber;
+
+                if (!invoiceNumber) {
+                    // Generate new invoice number
+                    invoiceNumber = 'INV-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+
+                    // Update booking with invoice number
+                    await db.collection('bookings').doc(currentBooking.id).update({
+                        invoiceNumber: invoiceNumber,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+
+                // Use the actual fee breakdown from the booking
+                // Don't reverse calculate - use the actual values stored in the booking
+                const subtotal = currentBooking.subtotalAmount || currentBooking.totalAmount;
+                const commission = currentBooking.commission || 0;
+                const vat = currentBooking.vat || 0;
+                const serviceCharge = currentBooking.serviceCharge || 0;
+                const promoDiscount = currentBooking.promoDiscount || 0;
+                const promoCode = currentBooking.promoCode || '';
+
+                // Determine ad types
+                const hasBoxAds = currentBooking.items?.some(item => item.adType === 'box') || false;
+                const hasClassifiedAds = currentBooking.items?.some(item => item.adType === 'classified') || false;
+
+                // Create/update invoice in Firestore
+                const invoiceData = {
+                    invoiceNumber: invoiceNumber,
+                    quotationNumber: currentBooking.quotationNumber,
+                    bookingId: currentBooking.id,
+                    customerId: currentBooking.customerId,
+                    customerName: currentBooking.customerName,
+                    customerEmail: currentBooking.customerEmail,
+                    customerPhone: currentBooking.customerPhone || '',
+                    customerCompany: currentBooking.customerCompany || '',
+                    customerAddress: currentBooking.customerAddress || '',
+                    items: currentBooking.items,
+                    subtotal: subtotal,
+                    commission: commission,
+                    vat: vat,
+                    serviceCharge: serviceCharge,
+                    promoCode: promoCode,
+                    promoDiscount: promoDiscount,
+                    hasBoxAds: hasBoxAds,
+                    hasClassifiedAds: hasClassifiedAds,
+                    total: currentBooking.totalAmount,
+                    paymentMethod: currentBooking.paymentMethod || 'card',
+                    pdfUrl: '', // Will be updated after PDF generation
+                    status: 'generated',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    generatedBy: firebase.auth().currentUser.uid
+                };
+
+                await db.collection('invoices').doc(invoiceNumber).set(invoiceData, { merge: true });
+
+                // Generate PDF and upload to Firebase Storage
+                try {
+                    btn.textContent = 'Generating PDF...';
+
+                    // Check if storage is available
+                    if (typeof storage === 'undefined') {
+                        throw new Error('Firebase Storage not initialized. Check firebase-config.js is loaded.');
+                    }
+
+                    console.log('📄 Starting PDF generation...');
+                    const pdfUrl = await generateInvoicePDF(invoiceData, currentBooking);
+
+                    if (!pdfUrl) {
+                        throw new Error('PDF generation returned empty URL');
+                    }
+
+                    console.log('✅ PDF generated and uploaded:', pdfUrl);
+
+                    // Update invoice with PDF URL
+                    await db.collection('invoices').doc(invoiceNumber).update({
+                        pdfUrl: pdfUrl
+                    });
+
+                    invoiceData.pdfUrl = pdfUrl;
+                    console.log('✅ Invoice document updated with PDF URL');
+                } catch (pdfError) {
+                    console.error('❌ PDF generation/upload error:', pdfError);
+                    console.error('Error details:', {
+                        message: pdfError.message,
+                        stack: pdfError.stack,
+                        storageAvailable: typeof storage !== 'undefined'
+                    });
+                    // Continue even if PDF fails - email will still be sent without PDF
+                }
+
+                // Send invoice email to customer
+                try {
+                    btn.textContent = 'Sending email...';
+                    if (typeof sendInvoiceEmail === 'function') {
+                        console.log('📧 Sending invoice email to:', currentBooking.customerEmail);
+                        console.log('📋 Invoice data:', invoiceData);
+
+                        await sendInvoiceEmail(currentBooking, invoiceData);
+
+                        alert(
+                            '✅ Invoice Generated Successfully!\n\n' +
+                            '📧 Email sent to: ' + currentBooking.customerEmail + '\n' +
+                            '📄 Invoice Number: ' + invoiceData.invoiceNumber + '\n' +
+                            '💰 Total Amount: LKR ' + invoiceData.total.toLocaleString() + '\n\n' +
+                            'The customer will receive:\n' +
+                            '• Invoice with payment received confirmation\n' +
+                            (invoiceData.pdfUrl ? '• PDF attachment' : '• Invoice PDF (if CORS is fixed)')
+                        );
+                    } else {
+                        alert('⚠️ Email function not loaded.\n\nInvoice created but not sent.\n\nPlease check:\n1. firebase-db.js is loaded\n2. Apps Script URL is configured');
+                    }
+                } catch (emailError) {
+                    console.error('❌ Email sending error:', emailError);
+                    alert(
+                        '⚠️ Email Failed to Send\n\n' +
+                        'Invoice and PDF created successfully but email failed.\n\n' +
+                        'Error: ' + emailError.message + '\n\n' +
+                        'Possible causes:\n' +
+                        '• Apps Script URL not configured\n' +
+                        '• Apps Script deployment issue\n' +
+                        '• Network error\n\n' +
+                        '💡 You can still download the PDF and send manually.'
+                    );
+                }
+
+                currentBooking.invoiceNumber = invoiceNumber;
+                closeModal();
+                loadBookings();
+
+            } catch (error) {
+                console.error('Error generating invoice:', error);
+                alert('Failed to generate invoice: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Generate & Send Invoice';
+            }
+        }
+
+        // Download invoice
+        async function downloadInvoice() {
+            if (!currentBooking || !currentBooking.invoiceNumber) {
+                alert('No invoice available yet. Generate invoice first.');
+                return;
+            }
+
+            try {
+                console.log('📥 Attempting to download invoice:', currentBooking.invoiceNumber);
+                const invoiceDoc = await db.collection('invoices').doc(currentBooking.invoiceNumber).get();
+
+                if (invoiceDoc.exists) {
+                    const invoiceData = invoiceDoc.data();
+                    console.log('📄 Invoice data:', invoiceData);
+
+                    if (invoiceData.pdfUrl) {
+                        console.log('✅ Opening PDF:', invoiceData.pdfUrl);
+                        window.open(invoiceData.pdfUrl, '_blank');
+                    } else {
+                        console.warn('⚠️ PDF URL not found in invoice data');
+                        alert('Invoice created but PDF not yet uploaded to Firebase Storage.\n\nPossible causes:\n• PDF generation failed\n• Firebase Storage not configured\n• Network error during upload\n\nCheck browser console for details.');
+                    }
+                } else {
+                    console.error('❌ Invoice document not found');
+                    alert('Invoice not found. Please generate the invoice first.');
+                }
+            } catch (error) {
+                console.error('Error downloading invoice:', error);
+                alert('Failed to download invoice: ' + error.message);
+            }
+        }
+
+        // Note: sendInvoiceEmail() function is loaded from firebase-db.js
+        // It will send emails via Apps Script automatically
+
+        // Download ad artwork (all files are pre-validated to be under 10MB on upload)
+        async function downloadArtwork(fileUrl, newspaperName, pubDate) {
+            try {
+                // Download file directly (already validated on customer upload)
+                const storage = firebase.storage();
+                const fileRef = storage.refFromURL(fileUrl);
+                const downloadUrl = await fileRef.getDownloadURL();
+
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = `${newspaperName}_${pubDate}_artwork`.replace(/\s+/g, '_');
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                console.log('✅ File downloaded successfully');
+            } catch (error) {
+                console.error('Error downloading artwork:', error);
+                alert('Failed to download artwork. Please try again or contact support.');
+            }
+        }
+
+        // Check and display file size for artwork (all files pre-validated to be under 10MB)
+        async function checkFileSize(fileUrl, pubDate) {
+            try {
+                const storage = firebase.storage();
+                const fileRef = storage.refFromURL(fileUrl);
+                const metadata = await fileRef.getMetadata();
+                const fileSizeBytes = metadata.size;
+                const fileSizeMB = (fileSizeBytes / (1024 * 1024)).toFixed(2);
+
+                const sizeElement = document.getElementById(`filesize-${pubDate.replace(/\//g, '-')}`);
+                if (sizeElement) {
+                    sizeElement.innerHTML = `<span style="color: var(--success);">✓ File size: ${fileSizeMB} MB</span>`;
+                }
+            } catch (error) {
+                console.error('Error checking file size:', error);
+            }
+        }
+
+        // Auto-delete files older than 10 days from publish date
+        async function checkAndDeleteOldFiles() {
+            try {
+                const now = new Date();
+                const bookingsSnapshot = await db.collection('bookings').get();
+
+                let deletedCount = 0;
+
+                for (const doc of bookingsSnapshot.docs) {
+                    const booking = doc.data();
+
+                    for (const item of booking.items) {
+                        if (item.adFileUrl && item.pubDate) {
+                            const pubDate = new Date(item.pubDate);
+                            const daysSincePublish = Math.floor((now - pubDate) / (1000 * 60 * 60 * 24));
+
+                            if (daysSincePublish > 10) {
+                                try {
+                                    const storage = firebase.storage();
+                                    const fileRef = storage.refFromURL(item.adFileUrl);
+                                    await fileRef.delete();
+
+                                    // Update booking to remove file URL
+                                    const updatedItems = booking.items.map(i => {
+                                        if (i.pubDate === item.pubDate && i.adFileUrl === item.adFileUrl) {
+                                            return { ...i, adFileUrl: null, fileDeletedAt: firebase.firestore.FieldValue.serverTimestamp() };
+                                        }
+                                        return i;
+                                    });
+
+                                    await db.collection('bookings').doc(doc.id).update({
+                                        items: updatedItems,
+                                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                                    });
+
+                                    deletedCount++;
+                                    console.log(`🗑️ Deleted file for ${item.newspaperName} - ${item.pubDate} (${daysSincePublish} days old)`);
+                                } catch (deleteError) {
+                                    console.error('Error deleting file:', deleteError);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (deletedCount > 0) {
+                    console.log(`✅ Auto-deleted ${deletedCount} old files (>10 days from publish date)`);
+                }
+
+                return deletedCount;
+            } catch (error) {
+                console.error('Error checking old files:', error);
+                return 0;
+            }
+        }
+
+        // Manual cleanup trigger for admin
+        async function manualCleanup() {
+            if (!confirm('This will delete all ad artwork files that are older than 10 days from their publication date.\n\nDo you want to continue?')) {
+                return;
+            }
+
+            const btn = event.target.closest('button');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span style="display: inline-block; animation: spin 1s linear infinite;">⏳</span> Cleaning up...';
+
+            try {
+                const deletedCount = await checkAndDeleteOldFiles();
+
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+
+                if (deletedCount > 0) {
+                    alert(`✅ Successfully deleted ${deletedCount} old file(s)!`);
+                    loadBookings(); // Reload bookings to update display
+                } else {
+                    alert('No files older than 10 days found.');
+                }
+            } catch (error) {
+                console.error('Manual cleanup error:', error);
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                alert('Failed to cleanup files. Please check console for details.');
+            }
+        }
+
+        // Run auto-delete check when page loads
+        setTimeout(() => {
+            checkAndDeleteOldFiles();
+        }, 5000); // Run after 5 seconds to not block page load
+
+        // Filter tabs
+        document.querySelectorAll('.filter-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                currentFilter = this.dataset.filter;
+                renderBookings();
+            });
+        });
+
+        // Wait for auth
+        firebase.auth().onAuthStateChanged(user => {
+            if (user) {
+                loadBookings();
+            } else {
+                window.location.href = 'index.html';
+            }
+        });
+    </script>
+    <!-- Maintenance Mode -->
+    <script src="js/maintenance-config.js"></script>
+    <script src="js/maintenance-check.js"></script>
+</body>
+</html>

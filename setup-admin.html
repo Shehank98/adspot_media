@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Admin Access | AdSpot</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .setup-card {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .setup-card h1 {
+            font-size: 24px;
+            margin-bottom: 16px;
+            color: var(--gray-900);
+        }
+
+        .setup-card p {
+            color: var(--gray-600);
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        .user-info {
+            background: var(--gray-50);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+        }
+
+        .user-info p {
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        .user-info strong {
+            color: var(--gray-900);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: #1347b9;
+        }
+
+        .btn:disabled {
+            background: var(--gray-300);
+            cursor: not-allowed;
+        }
+
+        .status {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .status.success {
+            background: #d1fae5;
+            color: #059669;
+            display: block;
+        }
+
+        .status.error {
+            background: #fee2e2;
+            color: #dc2626;
+            display: block;
+        }
+
+        .loading {
+            text-align: center;
+            color: var(--gray-600);
+        }
+
+        .login-prompt {
+            text-align: center;
+        }
+
+        .login-prompt button {
+            margin-top: 16px;
+        }
+
+        .admin-check {
+            background: #d1fae5;
+            border: 2px solid #059669;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            display: none;
+        }
+
+        .admin-check.active {
+            display: block;
+        }
+
+        .admin-check h3 {
+            color: #059669;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .admin-check p {
+            color: #059669;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="setup-card">
+        <h1>🔧 Setup Admin Access</h1>
+
+        <div id="loadingState" class="loading">
+            <p>Loading...</p>
+        </div>
+
+        <div id="loginPrompt" class="login-prompt" style="display: none;">
+            <p>Please sign in to setup admin access</p>
+            <button class="btn" onclick="signIn()">Sign In with Google</button>
+        </div>
+
+        <div id="setupContent" style="display: none;">
+            <p>This page will grant admin privileges to your account. Admin access is required to manage promo codes and view customer details.</p>
+
+            <div id="alreadyAdmin" class="admin-check">
+                <h3>✅ You already have admin access!</h3>
+                <p>You can now access all admin features.</p>
+            </div>
+
+            <div id="userInfo" class="user-info">
+                <!-- User info will be populated here -->
+            </div>
+
+            <button id="grantAdminBtn" class="btn" onclick="grantAdminAccess()">
+                Grant Admin Access
+            </button>
+
+            <div id="statusMessage" class="status"></div>
+
+            <div style="margin-top: 24px; text-align: center;">
+                <a href="/admin-bookings" style="color: var(--primary); text-decoration: none; font-weight: 600;">
+                    → Go to Admin Panel
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <!-- App Scripts -->
+    <script src="js/firebase-config.js"></script>
+
+    <script>
+        let currentUser = null;
+
+        firebase.auth().onAuthStateChanged(async (user) => {
+            const loadingState = document.getElementById('loadingState');
+            const loginPrompt = document.getElementById('loginPrompt');
+            const setupContent = document.getElementById('setupContent');
+
+            if (!user) {
+                loadingState.style.display = 'none';
+                loginPrompt.style.display = 'block';
+                return;
+            }
+
+            currentUser = user;
+            loadingState.style.display = 'none';
+            setupContent.style.display = 'block';
+
+            // Display user info
+            document.getElementById('userInfo').innerHTML = `
+                <p><strong>Email:</strong> ${user.email}</p>
+                <p><strong>UID:</strong> ${user.uid}</p>
+            `;
+
+            // Check if user already has admin access
+            try {
+                const userDoc = await firebase.firestore().collection('users').doc(user.uid).get();
+
+                if (userDoc.exists && userDoc.data().isAdmin === true) {
+                    document.getElementById('alreadyAdmin').classList.add('active');
+                    document.getElementById('grantAdminBtn').style.display = 'none';
+                    showStatus('You already have admin privileges!', 'success');
+                }
+            } catch (error) {
+                console.log('User document does not exist yet, will create one.');
+            }
+        });
+
+        async function signIn() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            try {
+                await firebase.auth().signInWithPopup(provider);
+            } catch (error) {
+                console.error('Sign in error:', error);
+                alert('Sign in failed: ' + error.message);
+            }
+        }
+
+        async function grantAdminAccess() {
+            if (!currentUser) {
+                showStatus('Please sign in first', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('grantAdminBtn');
+            btn.disabled = true;
+            btn.textContent = 'Granting Admin Access...';
+
+            try {
+                // Create or update user document with admin flag
+                await firebase.firestore().collection('users').doc(currentUser.uid).set({
+                    email: currentUser.email,
+                    displayName: currentUser.displayName || 'Admin User',
+                    photoURL: currentUser.photoURL || '',
+                    isAdmin: true,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+
+                showStatus('✅ Admin access granted successfully! You can now access all admin features.', 'success');
+
+                document.getElementById('alreadyAdmin').classList.add('active');
+                btn.style.display = 'none';
+
+                // Refresh after 2 seconds
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+
+            } catch (error) {
+                console.error('Error granting admin access:', error);
+                showStatus('Error: ' + error.message, 'error');
+                btn.disabled = false;
+                btn.textContent = 'Grant Admin Access';
+            }
+        }
+
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+        }
+    </script>
+    <!-- Maintenance Mode -->
+    <script src="js/maintenance-config.js"></script>
+    <script src="js/maintenance-check.js"></script>
+</body>
+</html>

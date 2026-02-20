@@ -2,7 +2,156 @@
    AdSpot Booking Page - Additional Styles
    ============================================ */
 
-/* Publication Group Cards */
+/* Language Selection Buttons */
+.language-select {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.language-btn {
+    flex: 1;
+    min-width: 120px;
+    padding: 0.875rem 1.5rem;
+    background: white;
+    border: 2px solid var(--gray-300);
+    border-radius: var(--radius-lg);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--gray-700);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.language-btn:hover {
+    border-color: var(--primary);
+    background: var(--primary-pale);
+    color: var(--primary);
+    transform: translateY(-2px);
+}
+
+.language-btn.active {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: white;
+}
+
+/* Compact Ad Type Cards */
+.ad-type-select-compact {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.ad-type-card-compact {
+    position: relative;
+    flex: 1;
+    min-width: 150px;
+    cursor: pointer;
+}
+
+.ad-type-card-compact input {
+    position: absolute;
+    opacity: 0;
+}
+
+.ad-type-card-compact .card-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    transition: all var(--transition-fast);
+    background: white;
+}
+
+.ad-type-card-compact:hover .card-content {
+    border-color: var(--primary);
+    background: var(--primary-pale);
+}
+
+.ad-type-card-compact input:checked + .card-content {
+    border-color: var(--primary);
+    background: var(--primary-pale);
+}
+
+.ad-type-card-compact svg {
+    width: 32px;
+    height: 32px;
+    color: var(--gray-600);
+}
+
+.ad-type-card-compact input:checked + .card-content svg {
+    color: var(--primary);
+}
+
+.ad-type-card-compact .type-name {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--gray-900);
+}
+
+/* Sample Preview Popup */
+.sample-popup {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 0.5rem;
+    background: white;
+    border: 2px solid var(--primary);
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    width: 400px;
+    max-width: 90vw;
+    opacity: 0;
+    visibility: hidden;
+    transition: all var(--transition-fast);
+    pointer-events: none;
+}
+
+.ad-type-card-compact:hover .sample-popup {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.popup-header {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--gray-900);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--gray-200);
+}
+
+.sample-images {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+}
+
+.sample-images img {
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--gray-200);
+}
+
+.sample-placeholder {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--gray-500);
+    font-size: 0.875rem;
+    font-style: italic;
+}
+
+/* Publication Group Cards (kept for backwards compatibility) */
 .publication-groups {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -506,6 +655,34 @@
     background: #128c7e;
 }
 
+.help-card .help-link.classifieds-link {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
+    position: relative;
+    overflow: hidden;
+}
+
+.help-card .help-link.classifieds-link::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.5s ease;
+}
+
+.help-card .help-link.classifieds-link:hover::before {
+    left: 100%;
+}
+
+.help-card .help-link.classifieds-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
 /* Order Summary Styles */
 .summary-section {
     margin-bottom: 1.25rem;
@@ -562,6 +739,15 @@
 .summary-total strong {
     color: var(--primary);
     font-size: 1.25rem;
+}
+
+.discount-row {
+    color: #059669;
+    font-weight: 600;
+}
+
+.discount-amount {
+    color: #059669 !important;
 }
 
 /* Contact Modal Enhancements */
@@ -621,35 +807,1026 @@
     to { opacity: 1; transform: translateX(0); }
 }
 
+/* ============================================
+   FIX: Form Action Buttons (Smaller Sizes)
+   ============================================ */
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.form-actions .btn {
+    flex: none !important;
+    min-width: 140px;
+    padding: 0.75rem 1.5rem !important;
+    height: auto !important;
+    max-height: 48px !important;
+}
+
+.form-actions .btn svg {
+    width: 18px !important;
+    height: 18px !important;
+    flex-shrink: 0;
+}
+
+.form-actions .btn.btn-ghost {
+    background: var(--gray-100);
+    color: var(--gray-700);
+}
+
+.form-actions .btn.btn-success,
+.form-actions .btn.next-step {
+    background: var(--success);
+    color: white;
+}
+
+/* Override btn-lg to be reasonable size */
+.btn-lg, .btn-xxl {
+    padding: 0.75rem 1.5rem !important;
+    font-size: 1rem !important;
+    height: auto !important;
+    max-height: 48px !important;
+}
+
+/* ============================================
+   FIX: Newspaper Card Layout
+   ============================================ */
+.newspaper-card .card-content {
+    display: grid !important;
+    grid-template-columns: auto 1fr auto auto;
+    grid-template-rows: auto auto;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    padding: 0.875rem 1rem;
+    min-height: 70px;
+}
+
+.newspaper-card .lang-badge {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    background: var(--gray-100);
+    color: var(--gray-600);
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.newspaper-card .paper-name {
+    grid-column: 2;
+    grid-row: 1;
+    font-weight: 600;
+    color: var(--gray-900);
+    font-size: 0.9375rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.newspaper-card .paper-rate {
+    grid-column: 2;
+    grid-row: 2;
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    white-space: nowrap;
+}
+
+.newspaper-card .sunday-badge {
+    grid-column: 3;
+    grid-row: 1 / 3;
+    background: var(--warning);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+/* ============================================
+   FIX: Newspaper Preview
+   ============================================ */
+#newspaperPreview {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: var(--radius-lg);
+    display: flex;
+    justify-content: center;
+}
+
+.newspaper-outline {
+    background: white;
+    border: 2px solid var(--gray-300);
+    border-radius: 4px;
+    position: relative;
+    box-shadow: var(--shadow-md);
+}
+
+.newspaper-header {
+    padding: 8px 10px;
+    border-bottom: 2px solid var(--gray-800);
+    text-align: center;
+}
+
+.newspaper-header .paper-title {
+    display: block;
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: var(--gray-900);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.newspaper-header .paper-size {
+    display: block;
+    font-size: 0.625rem;
+    color: var(--gray-500);
+    margin-top: 2px;
+}
+
+.ad-placement {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background: var(--primary-pale);
+    border: 2px dashed var(--primary);
+    border-radius: 2px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    min-width: 40px;
+    min-height: 30px;
+}
+
+.ad-placement .ad-label {
+    font-size: 0.5rem;
+    font-weight: 700;
+    color: var(--primary);
+    text-transform: uppercase;
+}
+
+.ad-placement .ad-size {
+    font-size: 0.5rem;
+    color: var(--primary-dark);
+    white-space: nowrap;
+}
+
+/* ============================================
+   FIX: Date Warning
+   ============================================ */
+#dateWarning {
+    display: none;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid var(--error);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1rem;
+    margin-top: 0.5rem;
+}
+
+#dateWarning p {
+    color: var(--error);
+    font-size: 0.8125rem;
+    margin: 0;
+}
+
+#dateWarning.warning {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: var(--warning);
+}
+
+#dateWarning.warning p {
+    color: #b45309;
+}
+
+/* File Upload Section */
+.file-upload-area {
+    border: 2px dashed var(--gray-300);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    background: var(--gray-50);
+}
+
+/* Upload Progress Bar */
+.upload-progress-container {
+    padding: 1.5rem;
+    background: white;
+    border-radius: var(--radius-lg);
+}
+
+.upload-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 99px;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+}
+
+.upload-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+    border-radius: 99px;
+    transition: width 0.3s ease;
+    position: relative;
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% { opacity: 1; }
+    50% { opacity: 0.8; }
+    100% { opacity: 1; }
+}
+
+.upload-progress-text {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.875rem;
+}
+
+.upload-progress-text #uploadProgressPercent {
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.upload-progress-text #uploadProgressStatus {
+    color: var(--gray-600);
+}
+
+.file-upload-area:hover {
+    border-color: var(--primary);
+    background: var(--primary-pale);
+}
+
+.upload-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.upload-placeholder svg {
+    width: 48px;
+    height: 48px;
+    color: var(--gray-400);
+}
+
+.upload-placeholder span {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+.upload-placeholder small {
+    font-size: 0.875rem;
+    color: var(--gray-500);
+}
+
+.upload-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.upload-preview img {
+    max-width: 200px;
+    max-height: 200px;
+    border-radius: var(--radius-md);
+    border: 2px solid var(--gray-200);
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: white;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--gray-200);
+}
+
+.file-info span {
+    font-size: 0.9375rem;
+    color: var(--gray-900);
+}
+
+.remove-file {
+    background: var(--error);
+    color: white;
+    border: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.125rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Newspaper Preview Section */
+.newspaper-preview-section {
+    margin: 1.5rem 0;
+    text-align: center;
+}
+
+.newspaper-preview {
+    display: inline-block;
+    margin: 0 auto;
+}
+
+.newspaper-outline {
+    border: 2px solid var(--gray-300);
+    background: white;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.newspaper-header {
+    background: var(--gray-100);
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--gray-300);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.paper-title {
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: var(--gray-900);
+}
+
+.paper-size {
+    font-size: 0.625rem;
+    color: var(--gray-600);
+}
+
+.ad-placement {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: rgba(107, 114, 128, 0.15);
+    border: 2px dashed var(--gray-500);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+/* Color ad preview - purple/blue */
+.ad-placement.color-ad {
+    background: rgba(139, 92, 246, 0.15);
+    border-color: #8b5cf6;
+}
+
+.ad-placement.color-ad .ad-label,
+.ad-placement.color-ad .ad-size {
+    color: #7c3aed;
+}
+
+.ad-label {
+    font-size: 0.625rem;
+    font-weight: 600;
+    color: var(--gray-700);
+    text-transform: uppercase;
+}
+
+.ad-size {
+    font-size: 0.5rem;
+    color: var(--gray-600);
+}
+
+/* Comparison Section */
+.comparison-section {
+    margin-top: 1.5rem;
+}
+
+.comparison-header {
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--gray-200);
+}
+
+.comparison-header h4 {
+    font-size: 1.125rem;
+    color: var(--gray-900);
+    margin: 0 0 0.5rem 0;
+}
+
+.comparison-header p {
+    font-size: 0.9375rem;
+    color: var(--gray-600);
+    margin: 0;
+}
+
+.comparison-table-wrapper {
+    overflow-x: auto;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--gray-200);
+}
+
+.comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+.comparison-table thead {
+    background: var(--gray-50);
+    border-bottom: 2px solid var(--gray-200);
+}
+
+.comparison-table th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--gray-700);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.comparison-table tbody tr {
+    border-bottom: 1px solid var(--gray-100);
+    transition: all var(--transition-fast);
+    cursor: pointer;
+}
+
+.comparison-table tbody tr:hover {
+    background: var(--gray-50);
+}
+
+.comparison-table tbody tr.selected {
+    background: var(--primary-pale);
+    border-left: 3px solid var(--primary);
+}
+
+.comparison-table td {
+    padding: 1rem;
+    font-size: 0.9375rem;
+}
+
+.newspaper-name {
+    font-weight: 600;
+    color: var(--gray-900);
+}
+
+.newspaper-frequency {
+    color: var(--gray-600);
+}
+
+.newspaper-language {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background: var(--primary-pale);
+    color: var(--primary);
+    border-radius: var(--radius-full);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.newspaper-price {
+    font-weight: 700;
+    font-size: 1.0625rem;
+    color: var(--primary);
+}
+
+.btn-add-to-cart {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    padding: 0.625rem 1.25rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+}
+
+.btn-add-to-cart:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
+}
+
+.btn-add-to-cart svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Publication Date Modal */
+.date-modal {
+    max-width: 500px;
+}
+
+.modal-desc {
+    color: var(--gray-600);
+    font-size: 0.9375rem;
+    margin-bottom: 1.5rem;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    justify-content: flex-end;
+}
+
+.modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--gray-400);
+    cursor: pointer;
+    transition: color var(--transition-fast);
+}
+
+.modal-close:hover {
+    color: var(--gray-900);
+}
+
+/* Step 2 Sidebar Cart Items */
+.cart-summary {
+    margin: 1rem 0;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.sidebar-cart-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--gray-200);
+    transition: background var(--transition-fast);
+}
+
+.sidebar-cart-item:hover {
+    background: var(--gray-50);
+}
+
+.sidebar-cart-item:last-child {
+    border-bottom: none;
+}
+
+.sidebar-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+}
+
+.sidebar-item-info strong {
+    font-size: 0.9375rem;
+    color: var(--gray-900);
+}
+
+.sidebar-item-info small {
+    font-size: 0.8125rem;
+    color: var(--gray-600);
+    display: block;
+}
+
+.sidebar-item-price {
+    font-weight: 700;
+    font-size: 0.9375rem;
+    color: var(--primary);
+    white-space: nowrap;
+}
+
 /* Responsive */
-@media (max-width: 768px) {
-    .publication-groups {
-        grid-template-columns: 1fr 1fr;
+@media (max-width: 1024px) {
+    .booking-container {
+        grid-template-columns: 1fr;
     }
-    
+
+    .price-sidebar {
+        position: sticky;
+        top: 80px;
+        width: 100%;
+        margin-top: 2rem;
+        z-index: 10;
+    }
+
+    .sample-popup {
+        width: 350px;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Mobile: Ensure form appears before sidebar */
+    .booking-container {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .booking-form-wrapper {
+        order: 1;
+    }
+
+    .price-sidebar {
+        position: static;
+        order: 2;
+        margin-top: 2rem;
+    }
+
+    /* Move help card to bottom on mobile */
+    .price-sidebar .price-card {
+        order: 1;
+    }
+
+    .price-sidebar .rates-card {
+        order: 2;
+    }
+
+    .price-sidebar .help-card {
+        order: 3;
+        margin-top: 1.5rem;
+    }
+
+    .language-select {
+        flex-direction: column;
+    }
+
+    .language-btn {
+        min-width: auto;
+        width: 100%;
+    }
+
+    .ad-type-select-compact {
+        flex-direction: column;
+    }
+
+    .ad-type-card-compact {
+        min-width: auto;
+        width: 100%;
+    }
+
+    .sample-popup {
+        width: 300px;
+        left: 0;
+        right: 0;
+        margin-left: auto;
+        margin-right: auto;
+        transform: translateX(0);
+    }
+
+    .sample-images {
+        grid-template-columns: 1fr;
+    }
+
+    .publication-groups {
+        grid-template-columns: 1fr;
+    }
+
     .newspaper-grid {
         grid-template-columns: 1fr;
     }
-    
-    .preview-info {
+
+    .newspaper-card .card-content {
         flex-direction: column;
-        gap: 0.5rem;
+        align-items: flex-start;
     }
-    
+
+    .newspaper-card .lang-badge {
+        align-self: flex-start;
+    }
+
+    .form-row.three-col {
+        grid-template-columns: 1fr;
+    }
+
+    /* Mobile Card Layout for Price Comparison */
+    .comparison-table-wrapper {
+        border: none;
+        overflow-x: visible;
+    }
+
+    .comparison-table {
+        display: block;
+        border: none;
+    }
+
+    .comparison-table thead {
+        display: none;
+    }
+
+    .comparison-table tbody {
+        display: block;
+    }
+
+    .comparison-table tbody tr {
+        display: block;
+        margin-bottom: 1rem;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-lg);
+        padding: 1rem;
+        background: white;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .comparison-table tbody tr:hover {
+        background: white;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .comparison-table tbody tr.selected {
+        background: var(--primary-pale);
+        border-left: 4px solid var(--primary);
+    }
+
+    .comparison-table td {
+        display: block;
+        padding: 0.5rem 0;
+        border: none;
+        text-align: left;
+    }
+
+    /* Add labels before each data cell */
+    .comparison-table td:nth-child(1)::before {
+        content: "Newspaper: ";
+        font-weight: 600;
+        color: var(--gray-700);
+        margin-right: 0.5rem;
+    }
+
+    .comparison-table td:nth-child(2)::before {
+        content: "Frequency: ";
+        font-weight: 600;
+        color: var(--gray-700);
+        margin-right: 0.5rem;
+    }
+
+    .comparison-table td:nth-child(3)::before {
+        content: "Language: ";
+        font-weight: 600;
+        color: var(--gray-700);
+        margin-right: 0.5rem;
+    }
+
+    .comparison-table td:nth-child(4) {
+        padding: 0.75rem 0;
+        margin: 0.5rem 0;
+        border-top: 1px solid var(--gray-200);
+        border-bottom: 1px solid var(--gray-200);
+    }
+
+    .comparison-table td:nth-child(4)::before {
+        content: "Price: ";
+        font-weight: 600;
+        color: var(--gray-700);
+        margin-right: 0.5rem;
+    }
+
+    .comparison-table td:nth-child(5) {
+        padding-top: 0.75rem;
+    }
+
+    .newspaper-name {
+        font-size: 1rem;
+        font-weight: 600;
+    }
+
+    .newspaper-price {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: var(--primary);
+    }
+
+    .btn-add-to-cart {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        font-size: 0.9375rem;
+        justify-content: center;
+    }
+
+    .newspaper-preview {
+        max-width: 100%;
+        overflow-x: auto;
+    }
+
+    .modal-content {
+        margin: 1rem;
+        max-width: calc(100% - 2rem);
+    }
+
+    .modal-actions {
+        flex-direction: column;
+    }
+
+    .modal-actions .btn {
+        width: 100%;
+    }
+
     .word-counter {
         flex-direction: column;
         align-items: flex-start;
     }
-    
+
     .cart-item {
         flex-wrap: wrap;
     }
-    
+
     .cart-item-price {
         width: 100%;
         text-align: right;
         margin-top: 0.5rem;
         padding-top: 0.5rem;
         border-top: 1px dashed var(--gray-200);
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .form-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .booking-progress {
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+    }
+
+    .progress-step .step-label {
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Mobile: Ensure proper stacking and spacing */
+
+    /* Prevent horizontal scroll */
+    .booking-main {
+        padding: 90px 0 var(--space-2xl);
+    }
+
+    .container {
+        padding: 0 var(--space-md);
+    }
+
+    .booking-progress {
+        padding: 1rem;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE and Edge */
+    }
+
+    .booking-progress::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
+    }
+
+    .progress-step {
+        padding: 0.5rem;
+        min-width: 80px;
+        flex-shrink: 0;
+    }
+
+    .progress-line {
+        flex-shrink: 0;
+    }
+
+    .step-header h2 {
+        font-size: 1.5rem;
+    }
+
+    .step-header p {
+        font-size: 0.875rem;
+    }
+
+    .form-section {
+        padding: 1rem;
+    }
+
+    .comparison-header h4 {
+        font-size: 1rem;
+    }
+
+    .detail-label,
+    .detail-value {
+        font-size: 0.875rem;
+    }
+
+    .detail-row.total-row .detail-label {
+        font-size: 1rem;
+    }
+
+    .detail-row.total-row .detail-value {
+        font-size: 1.125rem;
+    }
+
+    .btn-add-to-cart {
+        font-size: 0.9375rem;
+        padding: 0.875rem 1.25rem;
+    }
+
+    .sample-popup {
+        width: 280px;
+    }
+
+    .popup-header {
+        font-size: 0.875rem;
+    }
+
+    /* Mobile: Help card styling */
+    .help-card {
+        position: relative;
+        bottom: 0;
+        margin-bottom: 2rem;
+    }
+
+    .help-link {
+        font-size: 0.9375rem;
+        padding: 0.75rem 1rem;
+    }
+
+    /* Mobile: Price sidebar styling */
+    .price-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .price-card h3 {
+        font-size: 1.125rem;
+    }
+
+    .rates-card h4,
+    .help-card h4 {
+        font-size: 1rem;
+    }
+
+    /* Form inputs - prevent iOS zoom on focus */
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="number"],
+    input[type="date"],
+    input[type="password"],
+    textarea,
+    select {
+        font-size: 16px !important; /* Prevents iOS zoom on focus */
+    }
+
+    /* Ensure all buttons are touch-friendly */
+    .btn,
+    .language-btn,
+    .ad-type-card-compact,
+    .newspaper-card,
+    .pub-group-card {
+        min-height: 44px;
+    }
+
+    /* Form labels - better spacing on small screens */
+    .form-label {
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Step headers - more compact */
+    .step-header h2 {
+        font-size: 1.375rem;
+        line-height: 1.3;
+    }
+
+    .step-header p {
+        font-size: 0.875rem;
+    }
+
+    /* Price card - ensure readable */
+    .price-card h3 {
+        font-size: 1rem;
+    }
+
+    .price-details {
+        font-size: 0.875rem;
+    }
+
+    .total-amount {
+        font-size: 1.125rem;
     }
 }

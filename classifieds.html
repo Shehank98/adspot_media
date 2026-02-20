@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adspot Classifieds - Digital Advertising Marketplace</title>
+    <link rel="icon" type="image/x-icon" href="images/favicon.ico">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* Maintenance Mode Overlay */
+        #maintenanceOverlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #maintenanceOverlay.active {
+            display: flex;
+        }
+
+        .maintenance-content {
+            text-align: center;
+            color: white;
+            padding: 40px;
+            max-width: 600px;
+        }
+
+        .maintenance-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .maintenance-content h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .maintenance-content p {
+            font-size: 18px;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+
+        .maintenance-back-btn {
+            background: white;
+            color: #667eea;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .maintenance-back-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* Classifieds Page Styles */
+        .classifieds-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .admin-badge {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #10b981;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: none;
+        }
+
+        .admin-badge.show {
+            display: block;
+        }
+
+        .classifieds-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .classifieds-header h1 {
+            font-size: 42px;
+            margin-bottom: 10px;
+        }
+
+        .classifieds-header p {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+
+        .categories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .category-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .category-card:hover {
+            border-color: #667eea;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.1);
+        }
+
+        .category-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .category-card h3 {
+            color: #1f2937;
+            margin-bottom: 8px;
+            font-size: 20px;
+        }
+
+        .category-card p {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .featured-ads {
+            margin-top: 40px;
+        }
+
+        .featured-ads h2 {
+            font-size: 32px;
+            margin-bottom: 20px;
+            color: #1f2937;
+        }
+
+        .ads-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .ad-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .ad-card:hover {
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            transform: translateY(-3px);
+        }
+
+        .ad-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+        }
+
+        .ad-content {
+            padding: 20px;
+        }
+
+        .ad-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 10px;
+        }
+
+        .ad-description {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .ad-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ad-price {
+            font-size: 20px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .ad-date {
+            font-size: 12px;
+            color: #9ca3af;
+        }
+
+        .back-to-booking {
+            display: inline-block;
+            margin: 20px 0;
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .back-to-booking:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .coming-soon-badge {
+            background: #fbbf24;
+            color: #78350f;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Maintenance Mode Overlay (shown to non-admin users) -->
+    <div id="maintenanceOverlay">
+        <div class="maintenance-content">
+            <div class="maintenance-icon">🚧</div>
+            <h1>Under Maintenance</h1>
+            <p>We're working hard to bring you Adspot Classifieds - a revolutionary digital advertising marketplace!</p>
+            <p>This feature will be available soon. Thank you for your patience.</p>
+            <button class="maintenance-back-btn" onclick="window.location.href='book.html'">
+                ← Back to Booking
+            </button>
+        </div>
+    </div>
+
+    <!-- Admin Badge (shown when admin is logged in) -->
+    <div id="adminBadge" class="admin-badge">
+        🔑 Admin Preview Mode
+    </div>
+
+    <!-- Main Content (only visible to admins) -->
+    <div id="classifiedsContent" style="display: none;">
+        <div class="classifieds-container">
+            <a href="book.html" class="back-to-booking">← Back to Booking</a>
+
+            <div class="classifieds-header">
+                <h1>🎯 Adspot Classifieds</h1>
+                <p>Sri Lanka's Premier Digital Advertising Marketplace</p>
+                <span class="coming-soon-badge">COMING SOON</span>
+            </div>
+
+            <section class="categories">
+                <h2 style="font-size: 32px; margin-bottom: 20px; color: #1f2937;">Browse Categories</h2>
+                <div class="categories-grid">
+                    <div class="category-card">
+                        <div class="category-icon">📱</div>
+                        <h3>Social Media Ads</h3>
+                        <p>Facebook, Instagram, LinkedIn campaigns</p>
+                    </div>
+
+                    <div class="category-card">
+                        <div class="category-icon">🎥</div>
+                        <h3>Video Advertising</h3>
+                        <p>YouTube, TikTok, short-form videos</p>
+                    </div>
+
+                    <div class="category-card">
+                        <div class="category-icon">🌐</div>
+                        <h3>Display Ads</h3>
+                        <p>Banner ads, native advertising</p>
+                    </div>
+
+                    <div class="category-card">
+                        <div class="category-icon">📧</div>
+                        <h3>Email Marketing</h3>
+                        <p>Newsletter campaigns, promotions</p>
+                    </div>
+
+                    <div class="category-card">
+                        <div class="category-icon">🎨</div>
+                        <h3>Creative Services</h3>
+                        <p>Graphic design, copywriting</p>
+                    </div>
+
+                    <div class="category-card">
+                        <div class="category-icon">📊</div>
+                        <h3>Analytics & SEO</h3>
+                        <p>Campaign tracking, optimization</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="featured-ads">
+                <h2>Featured Advertising Services</h2>
+                <div class="ads-grid">
+                    <div class="ad-card">
+                        <div class="ad-image">📱</div>
+                        <div class="ad-content">
+                            <div class="ad-title">Premium Facebook Ad Campaign</div>
+                            <div class="ad-description">
+                                Professional Facebook advertising campaign with targeting, creative design, and analytics.
+                            </div>
+                            <div class="ad-footer">
+                                <div class="ad-price">Rs. 25,000</div>
+                                <div class="ad-date">Coming Soon</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ad-card">
+                        <div class="ad-image">🎥</div>
+                        <div class="ad-content">
+                            <div class="ad-title">YouTube Video Ad Package</div>
+                            <div class="ad-description">
+                                Complete YouTube advertising package with video production and targeted campaigns.
+                            </div>
+                            <div class="ad-footer">
+                                <div class="ad-price">Rs. 45,000</div>
+                                <div class="ad-date">Coming Soon</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ad-card">
+                        <div class="ad-image">🌐</div>
+                        <div class="ad-content">
+                            <div class="ad-title">Google Display Network</div>
+                            <div class="ad-description">
+                                Reach millions across Google's display network with banner and responsive ads.
+                            </div>
+                            <div class="ad-footer">
+                                <div class="ad-price">Rs. 35,000</div>
+                                <div class="ad-date">Coming Soon</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ad-card">
+                        <div class="ad-image">📧</div>
+                        <div class="ad-content">
+                            <div class="ad-title">Email Marketing Campaign</div>
+                            <div class="ad-description">
+                                Professional email marketing with design, copywriting, and analytics tracking.
+                            </div>
+                            <div class="ad-footer">
+                                <div class="ad-price">Rs. 18,000</div>
+                                <div class="ad-date">Coming Soon</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ad-card">
+                        <div class="ad-image">🎨</div>
+                        <div class="ad-content">
+                            <div class="ad-title">Social Media Content Package</div>
+                            <div class="ad-description">
+                                Monthly content creation for Instagram, Facebook with professional graphics.
+                            </div>
+                            <div class="ad-footer">
+                                <div class="ad-price">Rs. 30,000</div>
+                                <div class="ad-date">Coming Soon</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ad-card">
+                        <div class="ad-image">📊</div>
+                        <div class="ad-content">
+                            <div class="ad-title">SEO & Analytics Service</div>
+                            <div class="ad-description">
+                                Complete SEO audit, optimization, and monthly analytics reporting.
+                            </div>
+                            <div class="ad-footer">
+                                <div class="ad-price">Rs. 40,000</div>
+                                <div class="ad-date">Coming Soon</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Firebase and Auth -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/config.js"></script>
+
+    <script>
+        // Check if user is admin
+        const ADMIN_EMAILS = [
+            'shehan.k98@gmail.com',
+            'adspotmedia@gmail.com',
+            'info@adspotmedia.lk'
+        ];
+
+        function checkAdminAccess() {
+            firebase.auth().onAuthStateChanged(function(user) {
+                const maintenanceOverlay = document.getElementById('maintenanceOverlay');
+                const classifiedsContent = document.getElementById('classifiedsContent');
+                const adminBadge = document.getElementById('adminBadge');
+
+                if (user && ADMIN_EMAILS.includes(user.email)) {
+                    // User is admin - show content
+                    console.log('🔑 Admin access granted:', user.email);
+                    maintenanceOverlay.classList.remove('active');
+                    classifiedsContent.style.display = 'block';
+                    adminBadge.classList.add('show');
+                } else {
+                    // Regular user or not logged in - show maintenance
+                    console.log('🚧 Showing maintenance mode for non-admin user');
+                    maintenanceOverlay.classList.add('active');
+                    classifiedsContent.style.display = 'none';
+                    adminBadge.classList.remove('show');
+                }
+            });
+        }
+
+        // Wait for Firebase to initialize
+        if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+            checkAdminAccess();
+        } else {
+            window.addEventListener('firebaseReady', checkAdminAccess);
+        }
+
+        // Log page load
+        console.log('📋 Adspot Classifieds page loaded');
+    </script>
+</body>
+</html>

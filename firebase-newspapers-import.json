@@ -1,0 +1,101 @@
+{
+  "daily_news": {
+    "id": "daily_news",
+    "name": "Daily News",
+    "language": "english",
+    "frequency": "Daily",
+    "groupName": "Lake House",
+    "baseRate": 850,
+    "colorCharge": 200,
+    "active": true,
+    "isSundayPaper": false
+  },
+  "sunday_observer": {
+    "id": "sunday_observer",
+    "name": "Sunday Observer",
+    "language": "english",
+    "frequency": "Sunday",
+    "groupName": "Lake House",
+    "baseRate": 900,
+    "colorCharge": 250,
+    "active": true,
+    "isSundayPaper": true
+  },
+  "lankadeepa": {
+    "id": "lankadeepa",
+    "name": "Lankadeepa",
+    "language": "sinhala",
+    "frequency": "Daily",
+    "groupName": "Wijeya Newspapers",
+    "baseRate": 750,
+    "colorCharge": 180,
+    "active": true,
+    "isSundayPaper": false
+  },
+  "divaina": {
+    "id": "divaina",
+    "name": "Divaina",
+    "language": "sinhala",
+    "frequency": "Daily",
+    "groupName": "Upali Group",
+    "baseRate": 780,
+    "colorCharge": 190,
+    "active": true,
+    "isSundayPaper": false
+  },
+  "dinamina": {
+    "id": "dinamina",
+    "name": "Dinamina",
+    "language": "sinhala",
+    "frequency": "Daily",
+    "groupName": "Lake House",
+    "baseRate": 820,
+    "colorCharge": 200,
+    "active": true,
+    "isSundayPaper": false
+  },
+  "silumina": {
+    "id": "silumina",
+    "name": "Silumina",
+    "language": "sinhala",
+    "frequency": "Sunday",
+    "groupName": "Lake House",
+    "baseRate": 850,
+    "colorCharge": 220,
+    "active": true,
+    "isSundayPaper": true
+  },
+  "mawbima": {
+    "id": "mawbima",
+    "name": "Mawbima",
+    "language": "sinhala",
+    "frequency": "Daily",
+    "groupName": "Mawbima Group",
+    "baseRate": 700,
+    "colorCharge": 170,
+    "active": true,
+    "isSundayPaper": false
+  },
+  "thinakaran": {
+    "id": "thinakaran",
+    "name": "Thinakaran",
+    "language": "tamil",
+    "frequency": "Daily",
+    "groupName": "Express Newspapers",
+    "baseRate": 700,
+    "colorCharge": 170,
+    "active": true,
+    "isSundayPaper": false
+  },
+  "virakesari": {
+    "id": "virakesari",
+    "name": "Virakesari",
+    "language": "tamil",
+    "frequency": "Daily",
+    "groupName": "Express Newspapers",
+    "baseRate": 720,
+    "colorCharge": 175,
+    "active": true,
+    "isSundayPaper": false
+  }
+}

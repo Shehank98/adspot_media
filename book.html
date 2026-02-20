@@ -4,27 +4,141 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Book Your Ad | AdSpot Media Services</title>
+
+    <!-- ✅ SEO TAGS -->
+    <meta name="description" content="Book newspaper advertisements online in Sri Lanka. Box ads, classifieds & tender notices across 50+ newspapers. Instant pricing, easy checkout.">
+    <meta name="keywords" content="book newspaper ad Sri Lanka, place classified ad, newspaper advertising online, box ad booking, tender notice">
+    <meta name="author" content="AdSpot Media">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="Book Your Ad | AdSpot Media">
+    <meta property="og:description" content="Book newspaper ads online across Sri Lanka's leading publications. Instant pricing, easy checkout.">
+    <meta property="og:image" content="https://adspotmedia.lk/images/og-image.jpg">
+    <meta property="og:url" content="https://adspotmedia.lk/book.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="AdSpot Media">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Book Your Ad | AdSpot Media">
+    <meta name="twitter:description" content="Book newspaper ads online across Sri Lanka's leading publications.">
+    <meta name="twitter:image" content="https://adspotmedia.lk/images/og-image.jpg">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://adspotmedia.lk/book.html">
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
+    <meta name="theme-color" content="#1a56db">
+    <!-- ✅ END SEO TAGS -->
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600&family=Gemunu+Libre:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/booking.css">
-    <script src="https://js.stripe.com/v3/"></script>
+    <link rel="stylesheet" href="css/firebase-ui.css">
+    <!-- PayHere Payment Gateway -->
+    <script type="text/javascript" src="https://www.payhere.lk/lib/payhere.js"></script>
+    <!-- CryptoJS for PayHere hash generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+
+
+    <!-- Meta Pixel Code -->
+    <script>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '845167708579462');
+    fbq('track', 'PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none"
+    src="https://www.facebook.com/tr?id=845167708579462&ev=PageView&noscript=1"
+    /></noscript>
+
+    <!-- End Meta Pixel Code -->
 </head>
 <body class="booking-page">
     <!-- Navigation -->
     <nav class="navbar navbar-light">
         <div class="nav-container">
-            <a href="index.html" class="logo">
+            <a href="/" class="logo">
                 <span class="logo-icon">◈</span>
                 <span class="logo-text">AdSpot</span>
             </a>
-            <a href="index.html" class="back-link">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M19 12H5M12 19l-7-7 7-7"/>
-                </svg>
-                Back to Home
-            </a>
+            <div class="nav-actions">
+                <!-- Language Toggle -->
+                <button id="langToggle" class="lang-toggle-btn" onclick="toggleLanguage()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+                    </svg>
+                    <span id="currentLang">English</span>
+                </button>
+
+                <a href="/" class="back-link">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                    <span data-translate="booking.backHome">Back to Home</span>
+                </a>
+                <!-- Login Button (shown when not logged in) -->
+                <button id="loginBtn" class="btn btn-ghost btn-auth" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                    </svg>
+                    Sign In
+                </button>
+
+                <!-- User Menu (shown when logged in) -->
+                <div id="userMenu" class="user-menu" style="display: none;">
+                    <img id="userPhoto" class="user-avatar" src="" alt="">
+                    <div class="user-dropdown">
+                        <button class="user-toggle" id="userToggle">
+                            <span id="userName"></span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                <path d="M6 9l6 6 6-6"/>
+                            </svg>
+                        </button>
+                        <div class="dropdown-menu" id="dropdownMenu">
+                            <div class="user-info-dropdown">
+                                <span id="userEmail" class="user-email-dropdown">user@email.com</span>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <a href="/my-bookings" id="myBookingsLink" class="dropdown-item">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+                                </svg>
+                                My Bookings
+                            </a>
+                            <a href="/admin-bookings" id="adminLink" class="dropdown-item" style="display: none;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="7" height="7"/>
+                                    <rect x="14" y="3" width="7" height="7"/>
+                                    <rect x="14" y="14" width="7" height="7"/>
+                                    <rect x="3" y="14" width="7" height="7"/>
+                                </svg>
+                                Admin Dashboard
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <button class="dropdown-item" id="signOutBtn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+                                </svg>
+                                Sign Out
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </nav>
 
@@ -53,7 +167,7 @@
                 <!-- Booking Form -->
                 <div class="booking-form-wrapper">
                     <form id="bookingForm" class="booking-form">
-                        
+
                         <!-- Step 1: Ad Selection with Cart -->
                         <div class="form-step active" data-step="1">
                             <div class="step-header">
@@ -61,70 +175,77 @@
                                 <p>Select newspapers and configure your advertisements. You can add multiple papers!</p>
                             </div>
 
+                            <!-- Language Selection -->
+                            <div class="form-section">
+                                <label class="form-label">Select Language</label>
+                                <div class="language-select">
+                                    <button type="button" class="language-btn active" data-language="sinhala">Sinhala</button>
+                                    <button type="button" class="language-btn" data-language="tamil">Tamil</button>
+                                    <button type="button" class="language-btn" data-language="english">English</button>
+                                </div>
+                            </div>
+
                             <!-- Ad Type Selection -->
                             <div class="form-section">
                                 <label class="form-label">Ad Type</label>
-                                <div class="ad-type-select">
-                                    <label class="ad-type-card">
+                                <div class="ad-type-select-compact">
+                                    <label class="ad-type-card-compact">
                                         <input type="radio" name="adType" value="box" checked>
                                         <div class="card-content">
-                                            <div class="type-icon">
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                                    <rect x="3" y="3" width="18" height="18" rx="2"/>
-                                                    <path d="M3 9h18M9 21V9"/>
-                                                </svg>
-                                            </div>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                                <path d="M3 9h18M9 21V9"/>
+                                            </svg>
                                             <span class="type-name">Box Ad</span>
-                                            <span class="type-desc">Display ad with custom size</span>
+                                        </div>
+                                        <!-- Sample Preview Popup -->
+                                        <div class="sample-popup">
+                                            <div class="popup-header">Box Ad Samples</div>
+                                            <div class="sample-images" id="boxAdSamples">
+                                                <!-- Images will be populated here -->
+                                                <div class="sample-placeholder">Sample images will appear here</div>
+                                            </div>
                                         </div>
                                     </label>
-                                    <label class="ad-type-card">
+                                    <label class="ad-type-card-compact">
                                         <input type="radio" name="adType" value="classified">
                                         <div class="card-content">
-                                            <div class="type-icon">
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                                    <path d="M4 6h16M4 10h16M4 14h10M4 18h7"/>
-                                                </svg>
-                                            </div>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                                <path d="M4 6h16M4 10h16M4 14h10M4 18h7"/>
+                                            </svg>
                                             <span class="type-name">Classified</span>
-                                            <span class="type-desc">Text-based word pricing</span>
+                                        </div>
+                                        <!-- Sample Preview Popup -->
+                                        <div class="sample-popup">
+                                            <div class="popup-header">Classified Ad Samples</div>
+                                            <div class="sample-images" id="classifiedAdSamples">
+                                                <!-- Images will be populated here -->
+                                                <div class="sample-placeholder">Sample images will appear here</div>
+                                            </div>
                                         </div>
                                     </label>
-                                </div>
-                            </div>
-
-                            <!-- Publication Group Selection -->
-                            <div class="form-section">
-                                <label class="form-label">Publication Group</label>
-                                <div class="publication-groups" id="pubGroupSelect">
-                                    <!-- Populated by JavaScript -->
-                                </div>
-                            </div>
-
-                            <!-- Newspaper Selection -->
-                            <div class="form-section">
-                                <label class="form-label">Select Newspaper</label>
-                                <div class="newspaper-grid" id="newspaperSelect">
-                                    <!-- Populated by JavaScript -->
                                 </div>
                             </div>
 
                             <!-- Box Ad Configuration -->
                             <div id="boxAdConfig" class="ad-config-section">
                                 <div class="config-header">
-                                    <h3>📐 Configure Box Ad</h3>
-                                    <p>Formula: Height × Width × Rate (Max height: 40cm)</p>
+                                    <h3>Configure Box Ad</h3>
+                                    <p>Formula: Height (cm) x Column Width (cm) x Rate + 5% Commission</p>
                                 </div>
-                                
+
                                 <div class="form-row three-col">
                                     <div class="form-group">
-                                        <label class="form-label">Width (cm)</label>
-                                        <input type="number" id="adWidth" name="adWidth" value="10" min="1" max="30" step="0.5">
+                                        <label class="form-label">Columns</label>
+                                        <select id="adColumns" name="adColumns">
+                                            <option value="1">1 col (3.0 cm)</option>
+                                        </select>
+                                        <span class="input-hint">Width varies by language</span>
                                     </div>
                                     <div class="form-group">
                                         <label class="form-label">Height (cm)</label>
                                         <input type="number" id="adHeight" name="adHeight" value="10" min="1" max="40" step="0.5">
-                                        <span class="input-hint">Max: 40cm</span>
+                                        <span class="input-hint">Max: 50cm</span>
                                     </div>
                                     <div class="form-group">
                                         <label class="form-label">Color Option</label>
@@ -148,24 +269,86 @@
                                     </div>
                                 </div>
 
-                                <div class="ad-preview">
-                                    <div class="preview-label">Preview</div>
-                                    <div class="preview-box" id="adPreview">
-                                        <span id="previewDimensions">10 × 10 cm</span>
+                                <!-- Newspaper Preview Visualization -->
+                                <div class="newspaper-preview-section">
+                                    <div class="preview-label">Newspaper Preview (52cm x 38cm)</div>
+                                    <div id="newspaperPreview" class="newspaper-preview">
+                                        <!-- Populated by JavaScript -->
                                     </div>
-                                    <div class="preview-info">
-                                        <div><span>Area:</span> <strong id="previewArea">100</strong> sq cm</div>
-                                        <div><span>Rate:</span> <strong id="previewRate">Rs. 0</strong>/sq cm</div>
-                                        <div><span>Total:</span> <strong id="previewTotal">Rs. 0</strong></div>
+                                </div>
+
+                                <!-- Price Comparison Table -->
+                                <div class="comparison-section">
+                                    <div class="comparison-header">
+                                        <h4>Price Comparison - Select Newspapers</h4>
+                                        <p>Your ad size: <strong id="adSizeDisplay">-</strong></p>
                                     </div>
+                                    <div class="comparison-table-wrapper">
+                                        <table class="comparison-table" id="comparisonTable">
+                                            <thead>
+                                                <tr>
+                                                    <th>Newspaper</th>
+                                                    <th>Frequency</th>
+                                                    <th>Language</th>
+                                                    <th>Price</th>
+                                                    <th>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="comparisonTableBody">
+                                                <!-- Populated by JavaScript -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- File Upload Section -->
+                                <div class="form-group">
+                                    <label class="form-label">Upload Your Ad Artwork</label>
+                                    <div class="file-upload-area" id="fileUploadArea">
+                                        <input type="file" id="adFile" name="adFile" accept="image/*,.pdf" hidden>
+                                        <div class="upload-placeholder" id="uploadPlaceholder">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                                            </svg>
+                                            <span>Click to upload or drag & drop</span>
+                                            <small>PNG, JPG, PDF up to 10MB</small>
+                                        </div>
+                                        <!-- Upload Progress Bar -->
+                                        <div class="upload-progress-container" id="uploadProgressContainer" style="display: none;">
+                                            <div class="upload-progress-bar">
+                                                <div class="upload-progress-fill" id="uploadProgressFill" style="width: 0%"></div>
+                                            </div>
+                                            <div class="upload-progress-text">
+                                                <span id="uploadProgressPercent">0%</span>
+                                                <span id="uploadProgressStatus">Uploading...</span>
+                                            </div>
+                                        </div>
+                                        <!-- Upload Preview -->
+                                        <div class="upload-preview" id="uploadPreview" style="display: none;">
+                                            <img id="previewImage" src="" alt="Preview" style="display: none;">
+                                            <div class="file-info">
+                                                <span id="fileName"></span>
+                                                <button type="button" class="remove-file" id="removeFile">&times;</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <span class="input-hint">Upload your ad design. We'll use this for placement in the newspapers.</span>
                                 </div>
                             </div>
 
                             <!-- Classified Ad Configuration -->
                             <div id="classifiedConfig" class="ad-config-section" style="display: none;">
                                 <div class="config-header">
-                                    <h3>📝 Configure Classified Ad</h3>
+                                    <h3>Configure Classified Ad</h3>
                                     <p>Enter your ad text below</p>
+                                </div>
+
+                                <!-- Newspaper Selection for Classified -->
+                                <div class="form-group">
+                                    <label class="form-label">Select Newspaper</label>
+                                    <div class="newspaper-grid" id="classifiedNewspaperSelect">
+                                        <!-- Populated by JavaScript -->
+                                    </div>
                                 </div>
 
                                 <div class="form-group">
@@ -194,8 +377,12 @@
                                             <strong id="basePrice">Rs. 0</strong>
                                         </div>
                                         <div class="breakdown-row extra" id="extraWordsRow" style="display: none;">
-                                            <span>Extra Words (<span id="extraWordCount">0</span> × Rs. <span id="extraWordRate">0</span>):</span>
+                                            <span>Extra Words (<span id="extraWordCount">0</span> x Rs. <span id="extraWordRate">0</span>):</span>
                                             <strong id="extraPrice">Rs. 0</strong>
+                                        </div>
+                                        <div class="breakdown-row" id="serviceChargeRow" style="display: none;">
+                                            <span>Service Charge:</span>
+                                            <strong id="serviceChargeAmount">Rs. 100.00</strong>
                                         </div>
                                         <div class="breakdown-total">
                                             <span>Classified Total:</span>
@@ -205,23 +392,25 @@
                                 </div>
                             </div>
 
-                            <!-- Publication Date -->
-                            <div class="form-group">
+                            <!-- Publication Date for Classified Ads -->
+                            <div id="classifiedPubDate" class="form-group" style="display: none;">
                                 <label class="form-label">Publication Date</label>
-                                <input type="date" id="pubDate" name="pubDate" required>
+                                <input type="date" id="classifiedDate" name="classifiedDate">
+                                <div id="classifiedDateWarning" class="date-warning" style="display: none;"></div>
+                                <span class="input-hint">Ads must be booked at least 2 days in advance. Sunday papers must be booked by Friday.</span>
                             </div>
 
-                            <!-- Add to Cart Button -->
-                            <button type="button" id="addToCartBtn" class="btn btn-primary btn-xl btn-full add-to-cart-btn">
+                            <!-- Add to Cart Button for Classified -->
+                            <button type="button" id="addClassifiedToCartBtn" class="btn btn-primary btn-lg add-to-cart-btn" style="display: none;">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <circle cx="9" cy="21" r="1"/>
                                     <circle cx="20" cy="21" r="1"/>
                                     <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>
                                 </svg>
-                                Add This Newspaper to Cart
+                                Add Classified to Cart
                             </button>
 
-                            <p class="cart-hint">💡 You can add multiple newspapers to your cart!</p>
+                            <p class="cart-hint" id="classifiedCartHint" style="display: none;">You can add multiple newspapers to your cart</p>
 
                             <!-- Ad Cart -->
                             <div id="adCart" class="ad-cart" style="display: none;">
@@ -241,12 +430,12 @@
                                 </div>
                                 <div class="cart-total">
                                     <span>Cart Total:</span>
-                                    <span class="total-amount" id="cartTotal">LKR 0.00</span>
+                                    <span class="total-amount" id="cartTotal">Rs. 0.00</span>
                                 </div>
                             </div>
 
-                            <!-- Continue Button - Big and prominent -->
-                            <button type="button" id="continueBtn" class="btn btn-success btn-xxl btn-full continue-btn" style="display: none;">
+                            <!-- Continue Button -->
+                            <button type="button" id="continueBtn" class="btn btn-success btn-lg continue-btn" style="display: none;">
                                 <span>Continue to Your Details</span>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M5 12h14M12 5l7 7-7 7"/>
@@ -258,7 +447,7 @@
                         <div class="form-step" data-step="2">
                             <div class="step-header">
                                 <h2>Your Information</h2>
-                                <p>We'll send the quotation and invoice to these details</p>
+                                <p>We will send the quotation and invoice to these details</p>
                             </div>
 
                             <div class="form-row">
@@ -279,7 +468,8 @@
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label">Phone Number *</label>
-                                    <input type="tel" id="customerPhone" name="customerPhone" required placeholder="+94 77 123 4567">
+                                    <input type="tel" id="customerPhone" name="customerPhone" required placeholder="07X XXX XXXX" pattern="[0-9]{10}" maxlength="10">
+                                    <span class="input-hint">Enter 10 digits (e.g., 0771234567)</span>
                                 </div>
                             </div>
 
@@ -294,13 +484,13 @@
                             </div>
 
                             <div class="form-actions">
-                                <button type="button" class="btn btn-ghost btn-lg prev-step">
+                                <button type="button" class="btn btn-ghost prev-step">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M19 12H5M12 19l-7-7 7-7"/>
                                     </svg>
                                     Back
                                 </button>
-                                <button type="button" class="btn btn-success btn-xxl next-step continue-btn">
+                                <button type="button" class="btn btn-success btn-lg next-step continue-btn">
                                     Review & Pay
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M5 12h14M12 5l7 7-7 7"/>
@@ -318,9 +508,31 @@
 
                             <!-- Order Summary -->
                             <div class="order-summary-card">
-                                <h3>📋 Order Summary</h3>
+                                <h3>Order Summary</h3>
                                 <div id="orderSummary">
                                     <!-- Populated by JavaScript -->
+                                </div>
+                            </div>
+
+                            <!-- Promo Code -->
+                            <div class="form-section promo-code-section">
+                                <label class="form-label">Have a Promo Code?</label>
+                                <div class="promo-code-input-group">
+                                    <input type="text" id="promoCode" name="promoCode" placeholder="Enter promo code" maxlength="20">
+                                    <button type="button" id="applyPromoBtn" class="btn btn-secondary">
+                                        <span id="applyPromoText">Apply</span>
+                                        <span id="applyPromoLoader" class="btn-loader" style="display: none;"></span>
+                                    </button>
+                                </div>
+                                <div id="promoMessage" class="promo-message" style="display: none;"></div>
+                                <div id="promoDiscount" class="promo-discount" style="display: none;">
+                                    <div class="discount-applied">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        <span id="promoDiscountText"></span>
+                                    </div>
+                                    <button type="button" id="removePromoBtn" class="btn-link-danger">Remove</button>
                                 </div>
                             </div>
 
@@ -335,8 +547,8 @@
                                                 <rect x="1" y="4" width="22" height="16" rx="2"/>
                                                 <path d="M1 10h22"/>
                                             </svg>
-                                            <span>Credit/Debit Card</span>
-                                            <span class="method-note">Powered by Stripe</span>
+                                            <span>Pay Online (PayHere)</span>
+                                            <span class="method-note">Visa / Mastercard / Online Banking</span>
                                         </div>
                                     </label>
                                     <label class="payment-method">
@@ -352,52 +564,38 @@
                                 </div>
                             </div>
 
-                            <!-- Card Payment Form -->
+                            <!-- PayHere Online Payment -->
                             <div id="cardPayment" class="payment-form">
-                                <div class="form-group">
-                                    <label class="form-label">Card Details</label>
-                                    <div id="card-element" class="stripe-element"></div>
-                                    <div id="card-errors" class="form-error"></div>
+                                <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 18px 20px; display: flex; align-items: flex-start; gap: 14px;">
+                                    <svg style="width:28px;height:28px;flex-shrink:0;margin-top:2px;" viewBox="0 0 24 24" fill="none" stroke="#1a56db" stroke-width="1.8">
+                                        <rect x="1" y="4" width="22" height="16" rx="2"/>
+                                        <path d="M1 10h22"/>
+                                    </svg>
+                                    <div>
+                                        <p style="font-weight:600;color:#1e40af;margin:0 0 4px;">Secure Payment via PayHere</p>
+                                        <p style="font-size:13px;color:#475569;margin:0;">After clicking <strong>"Complete Payment"</strong>, a secure PayHere popup will open. You can pay using Visa, Mastercard, Amex, or Online Banking. Your card details are entered directly on PayHere's secure, PCI DSS certified platform — we never see or store your card information.</p>
+                                    </div>
                                 </div>
                             </div>
 
                             <!-- Bank Transfer Details -->
                             <div id="bankPayment" class="payment-form" style="display: none;">
                                 <div class="bank-details">
-                                    <h4>🏦 Bank Transfer Details</h4>
-                                    <div class="bank-info">
-                                        <div class="info-row">
-                                            <span>Bank:</span>
-                                            <strong>Sampath Bank PLC</strong>
-                                        </div>
-                                        <div class="info-row">
-                                            <span>Account Name:</span>
-                                            <strong>P S Kavishka</strong>
-                                        </div>
-                                        <div class="info-row">
-                                            <span>Account Number:</span>
-                                            <strong>1210 5770 0812</strong>
-                                        </div>
-                                        <div class="info-row">
-                                            <span>Branch:</span>
-                                            <strong>Karagampitiya</strong>
-                                        </div>
-                                    </div>
                                     <p class="bank-note">
-                                        📌 Please use your quotation number as the payment reference. 
-                                        We'll process your ad once payment is confirmed.
+                                        Bank transfer details will be provided in your confirmation email after you submit your booking.
+                                        Please use your quotation number as the payment reference.
                                     </p>
                                 </div>
                             </div>
 
                             <div class="form-actions">
-                                <button type="button" class="btn btn-ghost btn-lg prev-step">
+                                <button type="button" class="btn btn-ghost prev-step">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M19 12H5M12 19l-7-7 7-7"/>
                                     </svg>
                                     Back
                                 </button>
-                                <button type="submit" id="submitBtn" class="btn btn-success btn-xxl">
+                                <button type="submit" id="submitBtn" class="btn btn-success btn-lg">
                                     <span id="submitText">Complete Payment</span>
                                     <span id="submitLoader" class="loader" style="display: none;"></span>
                                 </button>
@@ -409,7 +607,7 @@
                 <!-- Price Calculator Sidebar -->
                 <div class="price-sidebar">
                     <div class="price-card">
-                        <h3>💰 Current Ad Price</h3>
+                        <h3>Current Ad Price</h3>
                         <div class="price-details" id="priceDetails">
                             <div class="price-row">
                                 <span>Select options to see pricing</span>
@@ -417,13 +615,13 @@
                         </div>
                         <div class="price-total">
                             <span>Ad Total</span>
-                            <span class="total-amount" id="currentAdTotal">LKR 0.00</span>
+                            <span class="total-amount" id="currentAdTotal">Rs. 0.00</span>
                         </div>
                     </div>
 
                     <!-- Quick Rates Reference -->
                     <div class="rates-card" id="ratesCard">
-                        <h4>📊 Rates</h4>
+                        <h4>Rates</h4>
                         <div id="quickRates">
                             <p class="loading">Select a newspaper to see rates</p>
                         </div>
@@ -450,11 +648,38 @@
                             </svg>
                             Email Us
                         </a>
+                        <a href="classifieds.html" class="help-link classifieds-link" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: 600;">
+                            <svg viewBox="0 0 24 24" fill="currentColor" style="width: 20px; height: 20px;">
+                                <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V7.89l7-3.11v8.2z"/>
+                            </svg>
+                            Digital Ad - Adspot Classified 🎯
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
     </main>
+
+    <!-- Publication Date Modal -->
+    <div id="pubDateModal" class="modal">
+        <div class="modal-content date-modal">
+            <button class="modal-close" onclick="closePubDateModal()">&times;</button>
+            <h3>Select Publication Date</h3>
+            <p class="modal-desc">Choose when you want this ad to be published</p>
+
+            <div class="form-group">
+                <label class="form-label">Publication Date *</label>
+                <input type="date" id="pubDate" name="pubDate" required>
+                <div id="dateWarning" class="date-warning" style="display: none;"></div>
+                <span class="input-hint">Ads must be booked at least 2 days in advance. Sunday papers must be booked by Friday.</span>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-ghost" onclick="closePubDateModal()">Cancel</button>
+                <button type="button" id="confirmAddToCart" class="btn btn-primary">Add to Cart</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Success Modal -->
     <div id="successModal" class="modal">
@@ -471,7 +696,7 @@
                 Quotation #: <strong id="quotationNumber"></strong>
             </div>
             <p class="modal-note" id="paymentNote"></p>
-            <a href="index.html" class="btn btn-primary">Back to Home</a>
+            <a href="/" class="btn btn-primary">Back to Home</a>
         </div>
     </div>
 
@@ -479,9 +704,9 @@
     <div id="contactModal" class="modal">
         <div class="modal-content">
             <button class="modal-close" onclick="closeContactModal()">&times;</button>
-            <h2>📰 Full Page Advertisement</h2>
+            <h2>Full Page Advertisement</h2>
             <p>For full page advertisements, please contact us directly for special rates and premium placement options.</p>
-            
+
             <form id="fullPageContactForm" class="contact-form">
                 <div class="form-group">
                     <label class="form-label">Your Name *</label>
@@ -489,7 +714,8 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Phone Number *</label>
-                    <input type="tel" id="fpPhone" required placeholder="+94 77 123 4567">
+                    <input type="tel" id="fpPhone" required placeholder="07X XXX XXXX" pattern="[0-9]{10}" maxlength="10">
+                    <span class="input-hint">Enter 10 digits (e.g., 0771234567)</span>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Email *</label>
@@ -503,19 +729,169 @@
                     <label class="form-label">Message</label>
                     <textarea id="fpMessage" rows="3" placeholder="Tell us about your advertisement requirements..."></textarea>
                 </div>
-                <button type="submit" class="btn btn-primary btn-full">Send Enquiry</button>
+                <button type="submit" class="btn btn-primary">Send Enquiry</button>
             </form>
-            
+
             <div class="contact-direct">
                 <p>Or contact us directly:</p>
-                <a href="tel:+94706421998" class="btn btn-ghost">📞 070 642 1998</a>
-                <a href="https://wa.me/94706421998" class="btn btn-success" target="_blank">💬 WhatsApp</a>
+                <a href="tel:+94706421998" class="btn btn-ghost">070 642 1998</a>
+                <a href="https://wa.me/94706421998" class="btn btn-success" target="_blank">WhatsApp</a>
             </div>
         </div>
     </div>
 
+    <!-- Login Warning Modal -->
+    <div id="loginWarningModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="40" height="40">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                    </svg>
+                </div>
+                <h2 style="margin: 0 0 0.5rem 0; color: var(--gray-900);">Continue Without Login?</h2>
+                <p style="color: var(--gray-600); margin: 0; line-height: 1.6;">
+                    You're about to place your order as a guest. Please note:
+                </p>
+            </div>
+
+            <div style="background: var(--gray-50); padding: 1.25rem; border-radius: var(--radius-lg); margin-bottom: 1.5rem;">
+                <div style="display: flex; gap: 0.75rem; margin-bottom: 0.75rem;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" width="24" height="24" style="flex-shrink: 0;">
+                        <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <div>
+                        <strong style="color: var(--gray-900); display: block; margin-bottom: 0.25rem;">Without logging in:</strong>
+                        <ul style="margin: 0; padding-left: 1.25rem; color: var(--gray-600); line-height: 1.6;">
+                            <li>You won't be able to track your booking history</li>
+                            <li>You can't view past invoices or orders</li>
+                            <li>No dashboard access to manage your ads</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 0.75rem;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" width="24" height="24" style="flex-shrink: 0;">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div>
+                        <strong style="color: var(--gray-900); display: block; margin-bottom: 0.25rem;">With login:</strong>
+                        <ul style="margin: 0; padding-left: 1.25rem; color: var(--gray-600); line-height: 1.6;">
+                            <li>Access all your bookings anytime</li>
+                            <li>Download invoices whenever needed</li>
+                            <li>Faster checkout for future orders</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <button type="button" class="btn btn-ghost" onclick="closeLoginWarning()" style="width: 100%;">
+                    Continue as Guest
+                </button>
+                <button type="button" class="btn btn-primary" onclick="loginFromWarning()" style="width: 100%;">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" style="margin-right: 0.5rem;">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                    </svg>
+                    Login / Sign Up
+                </button>
+            </div>
+
+            <p style="text-align: center; color: var(--gray-500); font-size: 0.875rem; margin: 1rem 0 0 0;">
+                You'll receive booking confirmation via email regardless
+            </p>
+        </div>
+    </div>
+
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+
+    <!-- Firebase Configuration -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase-db.js"></script>
+    <script src="js/auth.js"></script>
+
+    <!-- App Scripts -->
     <script src="js/config.js"></script>
-    <script src="js/supabase.js"></script>
+    <script src="js/translations.js"></script>
+    <script src="js/invoice-pdf.js"></script>
     <script src="js/booking.js"></script>
+
+    <!-- Language Support -->
+    <script>
+        // Initialize language on booking page
+        let currentLanguage = localStorage.getItem('adspot_language') || 'en';
+
+        function toggleLanguage() {
+            currentLanguage = currentLanguage === 'en' ? 'si' : 'en';
+            localStorage.setItem('adspot_language', currentLanguage);
+            updateLanguage();
+        }
+
+        function updateLanguage() {
+            const langCode = currentLanguage;
+
+            // Update toggle button
+            const langBtn = document.getElementById('currentLang');
+            if (langBtn) {
+                langBtn.textContent = langCode === 'en' ? 'English' : 'සිංහල';
+            }
+
+            // Add/remove language class on body for font switching
+            document.body.classList.remove('lang-en', 'lang-si');
+            document.body.classList.add(`lang-${langCode}`);
+
+            // Update HTML lang attribute
+            document.documentElement.lang = langCode;
+
+            // Update all elements with data-translate attribute
+            if (typeof translations !== 'undefined') {
+                document.querySelectorAll('[data-translate]').forEach(element => {
+                    const key = element.getAttribute('data-translate');
+                    const translation = translations[langCode][key];
+
+                    // Only update if translation exists and is not empty
+                    if (translation && translation.trim() !== '') {
+                        // Handle different element types
+                        if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+                            element.placeholder = translation;
+                        } else if (element.tagName === 'SELECT') {
+                            // Skip select elements (they have options to translate separately)
+                        } else {
+                            const textNode = Array.from(element.childNodes).find(node => node.nodeType === 3);
+                            if (textNode) {
+                                textNode.textContent = translation;
+                            } else {
+                                element.textContent = translation;
+                            }
+                        }
+                    }
+                });
+
+                console.log(`✅ Booking page language updated to: ${langCode === 'en' ? 'English' : 'Sinhala'}`);
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                updateLanguage();
+            }, 100);
+        });
+
+        // Export for global use
+        window.toggleLanguage = toggleLanguage;
+        window.updateLanguage = updateLanguage;
+    </script>
+
+    <!-- Maintenance Mode -->
+    <script src="js/maintenance-config.js"></script>
+    <script src="js/maintenance-check.js"></script>
 </body>
 </html>

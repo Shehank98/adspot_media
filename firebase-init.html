@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Database Initializer - AdSpot Media</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 100%;
+            padding: 40px;
+        }
+        h1 {
+            color: #1e293b;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #64748b;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .status {
+            background: #f1f5f9;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            min-height: 400px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .log-item {
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+        }
+        .log-item.info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .log-item.success {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .log-item.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .log-item.warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 32px;
+            font-weight: 700;
+            color: #667eea;
+        }
+        .stat-label {
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 Firebase Complete Database Initializer</h1>
+        <p class="subtitle">One-click setup for entire AdSpot Media database structure</p>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="newspaperCount">24</div>
+                <div class="stat-label">Newspapers</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">4</div>
+                <div class="stat-label">Collections</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="successCount">0</div>
+                <div class="stat-label">Initialized</div>
+            </div>
+        </div>
+
+        <div class="status" id="statusLog">
+            <div class="log-item info">Ready to initialize complete database...</div>
+            <div class="log-item warning">⚠️ This will create: newspapers, users, bookings, invoices collections</div>
+            <div class="log-item warning">⚠️ Make sure Firestore security rules are configured!</div>
+        </div>
+
+        <button class="btn" id="initBtn" onclick="initializeCompleteDatabase()">
+            🚀 Initialize Complete Database
+        </button>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Initialize Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyC-3O50ecypPkYwp6bOt8qfjegvBjDmQpQ",
+            authDomain: "adspot-b44ef.firebaseapp.com",
+            projectId: "adspot-b44ef",
+            storageBucket: "adspot-b44ef.firebasestorage.app",
+            messagingSenderId: "810904997217",
+            appId: "1:810904997217:web:3a85856521cac0177dc920"
+        };
+
+        try {
+            firebase.initializeApp(firebaseConfig);
+            console.log('✅ Firebase initialized');
+        } catch (error) {
+            console.error('❌ Firebase init error:', error);
+        }
+
+        const db = firebase.firestore();
+        window.db = db;
+
+        // Complete newspaper data
+        const newspapersData = [
+            // Lake House (ANCL)
+            { id: 'daily-news', name: 'Daily News', language: 'english', groupId: 'lake-house', groupName: 'Lake House (ANCL)', bwRate: 400, colorRate: 560, classifiedBase: 1000, classifiedFreeWords: 20, classifiedExtraRate: 45, isSundayPaper: false, active: true },
+            { id: 'sunday-observer', name: 'Sunday Observer', language: 'english', groupId: 'lake-house', groupName: 'Lake House (ANCL)', bwRate: 550, colorRate: 730, classifiedBase: 2200, classifiedFreeWords: 20, classifiedExtraRate: 55, isSundayPaper: true, active: true },
+            { id: 'dinamina', name: 'Dinamina', language: 'sinhala', groupId: 'lake-house', groupName: 'Lake House (ANCL)', bwRate: 450, colorRate: 575, classifiedBase: 1500, classifiedFreeWords: 20, classifiedExtraRate: 40, isSundayPaper: false, active: true },
+            { id: 'silumina', name: 'Silumina', language: 'sinhala', groupId: 'lake-house', groupName: 'Lake House (ANCL)', bwRate: 910, colorRate: 1195, classifiedBase: 2000, classifiedFreeWords: 25, classifiedExtraRate: 50, isSundayPaper: true, active: true },
+            { id: 'thinakaran', name: 'Daily Thinakaran', language: 'tamil', groupId: 'lake-house', groupName: 'Lake House (ANCL)', bwRate: 360, colorRate: 445, classifiedBase: 1400, classifiedFreeWords: 20, classifiedExtraRate: 35, isSundayPaper: false, active: true },
+            { id: 'thinakaran-varamanjari', name: 'Sunday Thinakaran', language: 'tamil', groupId: 'lake-house', groupName: 'Lake House (ANCL)', bwRate: 450, colorRate: 540, classifiedBase: 1600, classifiedFreeWords: 25, classifiedExtraRate: 40, isSundayPaper: true, active: true },
+
+            // Wijeya Newspapers
+            { id: 'sunday-times', name: 'Sunday Times', language: 'english', groupId: 'wijeya', groupName: 'Wijeya Newspapers', bwRate: 650, colorRate: 790, classifiedBase: 500, classifiedFreeWords: 15, classifiedExtraRate: 20, isSundayPaper: true, active: true },
+            { id: 'daily-mirror', name: 'Daily Mirror', language: 'english', groupId: 'wijeya', groupName: 'Wijeya Newspapers', bwRate: 490, colorRate: 580, classifiedBase: 200, classifiedFreeWords: 15, classifiedExtraRate: 15, isSundayPaper: false, active: true },
+            { id: 'lankadeepa', name: 'Daily Lankadeepa', language: 'sinhala', groupId: 'wijeya', groupName: 'Wijeya Newspapers', bwRate: 650, colorRate: 770, classifiedBase: 525, classifiedFreeWords: 15, classifiedExtraRate: 25, isSundayPaper: false, active: true },
+            { id: 'lankadeepa-irida', name: 'Sunday Lankadeepa', language: 'sinhala', groupId: 'wijeya', groupName: 'Wijeya Newspapers', bwRate: 1120, colorRate: 1310, classifiedBase: 2200, classifiedFreeWords: 15, classifiedExtraRate: 50, isSundayPaper: true, active: true },
+            { id: 'daily-ft', name: 'Daily FT', language: 'english', groupId: 'wijeya', groupName: 'Wijeya Newspapers', bwRate: 420, colorRate: 500, classifiedBase: 0, classifiedFreeWords: 0, classifiedExtraRate: 0, isSundayPaper: false, active: true },
+
+            // Upali Newspapers
+            { id: 'the-island', name: 'Daily Island', language: 'english', groupId: 'upali', groupName: 'Upali Newspapers', bwRate: 220, colorRate: 352, classifiedBase: 115, classifiedFreeWords: 20, classifiedExtraRate: 12, isSundayPaper: false, active: true },
+            { id: 'sunday-island', name: 'Sunday Island', language: 'english', groupId: 'upali', groupName: 'Upali Newspapers', bwRate: 285, colorRate: 456, classifiedBase: 160, classifiedFreeWords: 20, classifiedExtraRate: 12, isSundayPaper: true, active: true },
+            { id: 'divaina', name: 'Daily Divaina', language: 'sinhala', groupId: 'upali', groupName: 'Upali Newspapers', bwRate: 350, colorRate: 560, classifiedBase: 200, classifiedFreeWords: 20, classifiedExtraRate: 12, isSundayPaper: false, active: true },
+            { id: 'irida-divaina', name: 'Sunday Divaina', language: 'sinhala', groupId: 'upali', groupName: 'Upali Newspapers', bwRate: 650, colorRate: 1040, classifiedBase: 500, classifiedFreeWords: 20, classifiedExtraRate: 20, isSundayPaper: true, active: true },
+            { id: 'navaliya', name: 'Navaliya', language: 'sinhala', groupId: 'upali', groupName: 'Upali Newspapers', bwRate: 280, colorRate: 448, classifiedBase: 120, classifiedFreeWords: 20, classifiedExtraRate: 6, isSundayPaper: false, active: true },
+
+            // Express Newspapers
+            { id: 'virakesari', name: 'Daily Virakesari', language: 'tamil', groupId: 'express', groupName: 'Express Newspapers', bwRate: 400, colorRate: 600, classifiedBase: 500, classifiedFreeWords: 20, classifiedExtraRate: 10, isSundayPaper: false, active: true },
+            { id: 'virakesari-sunday', name: 'Sunday Virakesari', language: 'tamil', groupId: 'express', groupName: 'Express Newspapers', bwRate: 600, colorRate: 900, classifiedBase: 900, classifiedFreeWords: 20, classifiedExtraRate: 20, isSundayPaper: true, active: true },
+
+            // Mawbima Group
+            { id: 'mawbima', name: 'Daily Mawbima', language: 'sinhala', groupId: 'mawbima', groupName: 'Mawbima Group', bwRate: 400, colorRate: 640, classifiedBase: 0, classifiedFreeWords: 0, classifiedExtraRate: 0, isSundayPaper: false, active: true },
+            { id: 'sunday-mawbima', name: 'Sunday Mawbima', language: 'sinhala', groupId: 'mawbima', groupName: 'Mawbima Group', bwRate: 750, colorRate: 1150, classifiedBase: 0, classifiedFreeWords: 0, classifiedExtraRate: 0, isSundayPaper: true, active: true },
+            { id: 'ceylon-today', name: 'Daily Ceylon Today', language: 'english', groupId: 'mawbima', groupName: 'Mawbima Group', bwRate: 300, colorRate: 450, classifiedBase: 0, classifiedFreeWords: 0, classifiedExtraRate: 0, isSundayPaper: false, active: true },
+            { id: 'sunday-ceylon-today', name: 'Sunday Ceylon Today', language: 'english', groupId: 'mawbima', groupName: 'Mawbima Group', bwRate: 450, colorRate: 600, classifiedBase: 0, classifiedFreeWords: 0, classifiedExtraRate: 0, isSundayPaper: false, active: true },
+
+            // Liberty Publication
+            { id: 'sunday-aruna', name: 'Sathi aga Aruna', language: 'sinhala', groupId: 'liberty', groupName: 'Liberty Publication', bwRate: 780, colorRate: 1260, classifiedBase: 990, classifiedFreeWords: 15, classifiedExtraRate: 50, isSundayPaper: true, active: true },
+            { id: 'the-morning', name: 'The Morning', language: 'english', groupId: 'liberty', groupName: 'Liberty Publication', bwRate: 510, colorRate: 620, classifiedBase: 0, classifiedFreeWords: 0, classifiedExtraRate: 0, isSundayPaper: false, active: true }
+        ];
+
+        function log(message, type = 'info') {
+            const statusLog = document.getElementById('statusLog');
+            const logItem = document.createElement('div');
+            logItem.className = `log-item ${type}`;
+            logItem.textContent = message;
+            statusLog.appendChild(logItem);
+            statusLog.scrollTop = statusLog.scrollHeight;
+        }
+
+        async function initializeCompleteDatabase() {
+            const btn = document.getElementById('initBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Initializing...';
+
+            let totalSuccess = 0;
+
+            try {
+                if (typeof firebase === 'undefined') {
+                    throw new Error('Firebase SDK not loaded');
+                }
+
+                const db = window.db;
+                if (!db) {
+                    throw new Error('Firebase not configured!');
+                }
+
+                log('🔥 Connected to Firebase', 'success');
+                log('', 'info');
+
+                // ============================================
+                // 1. NEWSPAPERS COLLECTION
+                // ============================================
+                log('📰 Initializing NEWSPAPERS collection...', 'info');
+                let newspaperSuccess = 0;
+
+                for (const newspaper of newspapersData) {
+                    try {
+                        await db.collection('newspapers').doc(newspaper.id).set({
+                            ...newspaper,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        newspaperSuccess++;
+                    } catch (error) {
+                        log(`❌ Failed: ${newspaper.name} - ${error.message}`, 'error');
+                    }
+                }
+
+                log(`✅ Newspapers: ${newspaperSuccess}/${newspapersData.length} added`, 'success');
+                totalSuccess += newspaperSuccess;
+                log('', 'info');
+
+                // ============================================
+                // 2. COLLECTION METADATA (for reference)
+                // ============================================
+                log('📋 Creating collection metadata...', 'info');
+
+                await db.collection('_metadata').doc('collections').set({
+                    newspapers: {
+                        count: newspapersData.length,
+                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                    },
+                    bookings: {
+                        description: 'Customer bookings and orders',
+                        fields: ['bookingId', 'quotationNumber', 'customerId', 'items', 'totalAmount', 'status']
+                    },
+                    users: {
+                        description: 'User accounts and profiles',
+                        fields: ['uid', 'email', 'role', 'bookings']
+                    },
+                    invoices: {
+                        description: 'Generated invoices with PDF links',
+                        fields: ['invoiceNumber', 'bookingId', 'pdfUrl', 'total']
+                    }
+                });
+
+                log('✅ Collection metadata created', 'success');
+                log('', 'info');
+
+                // ============================================
+                // SUMMARY
+                // ============================================
+                log('🎉 Database initialization complete!', 'success');
+                log(`✅ Total records created: ${totalSuccess}`, 'success');
+                log('', 'info');
+                log('📝 Collections created:', 'info');
+                log('  • newspapers (with all data)', 'info');
+                log('  • users (structure ready)', 'info');
+                log('  • bookings (structure ready)', 'info');
+                log('  • invoices (structure ready)', 'info');
+                log('', 'info');
+                log('💡 Next steps:', 'warning');
+                log('  1. Bookings will be created automatically when users place orders', 'warning');
+                log('  2. User profiles created automatically on first sign-in', 'warning');
+                log('  3. Invoices generated automatically with each booking', 'warning');
+
+                document.getElementById('successCount').textContent = totalSuccess;
+                btn.textContent = '✅ Initialization Complete';
+                btn.style.background = '#10b981';
+
+            } catch (error) {
+                log(`❌ Fatal Error: ${error.message}`, 'error');
+                log('', 'info');
+                log('🔍 Troubleshooting:', 'warning');
+                log('1. Check Firestore security rules', 'warning');
+                log('2. Verify Firebase project exists', 'warning');
+                log('3. Check browser console for details', 'warning');
+
+                btn.textContent = '❌ Initialization Failed';
+                btn.style.background = '#ef4444';
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
