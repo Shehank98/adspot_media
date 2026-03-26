@@ -36,6 +36,8 @@ function doPost(e) {
       case 'contact_message':
       case 'sendContactForm':
         return sendContactMessage(data);
+      case 'send_to_publication':
+        return sendToPublicationEmail(data);
       default:
         return ContentService.createTextOutput(JSON.stringify({
           success: false,
@@ -307,6 +309,49 @@ Received: ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Colombo' })}
 
   } catch (error) {
     Logger.log('❌ Error sending contact message: ' + error);
+    throw error;
+  }
+}
+
+/**
+ * Send booking details + payment slip to a publication house
+ */
+function sendToPublicationEmail(data) {
+  try {
+    const toEmail = data.toEmail;
+    const subject = data.subject || 'Classified Ad Booking';
+    const body = data.body || '';
+    const attachmentBase64 = data.attachmentBase64 || '';
+    const attachmentName = data.attachmentName || 'payment_slip';
+    const attachmentMimeType = data.attachmentMimeType || 'application/octet-stream';
+
+    const mailOptions = {
+      to: toEmail,
+      subject: subject,
+      body: body,
+      name: 'AdSpot Media Services',
+      replyTo: 'adspot77@gmail.com',
+      cc: 'adspot77@gmail.com'
+    };
+
+    // Attach payment slip if provided
+    if (attachmentBase64) {
+      const bytes = Utilities.base64Decode(attachmentBase64);
+      const blob = Utilities.newBlob(bytes, attachmentMimeType, attachmentName);
+      mailOptions.attachments = [blob];
+    }
+
+    MailApp.sendEmail(mailOptions);
+
+    Logger.log('✅ Publication email sent to: ' + toEmail);
+
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: 'Publication email sent to ' + toEmail
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (error) {
+    Logger.log('❌ Error sending publication email: ' + error);
     throw error;
   }
 }

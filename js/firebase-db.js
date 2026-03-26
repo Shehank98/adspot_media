@@ -467,6 +467,34 @@ async function sendFileUploadNotification(bookingData, fileUrl) {
 }
 
 /**
+ * Send booking email to a publication with payment slip attachment
+ * @param {Object} data - { toEmail, subject, body, quotationNumber, attachmentBase64, attachmentName, attachmentMimeType }
+ */
+async function sendToPublicationEmail(data) {
+    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
+        console.warn('⚠️ Apps Script URL not configured. Cannot send publication email.');
+        throw new Error('Email service not configured');
+    }
+
+    const response = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            action: 'send_to_publication',
+            toEmail: data.toEmail,
+            subject: data.subject,
+            body: data.body,
+            quotationNumber: data.quotationNumber,
+            attachmentBase64: data.attachmentBase64,
+            attachmentName: data.attachmentName,
+            attachmentMimeType: data.attachmentMimeType
+        })
+    });
+    console.log('✅ Publication email dispatched to Apps Script');
+}
+
+/**
  * Generate unique booking ID
  */
 function generateBookingId() {

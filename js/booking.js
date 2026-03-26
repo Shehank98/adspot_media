@@ -917,6 +917,7 @@ function addToCart() {
         newspaperId: selectedNewspaper.id,
         newspaperName: selectedNewspaper.name,
         newspaperLanguage: selectedNewspaper.language,
+        groupId: selectedGroup,
         groupName: selectedNewspaper.groupName || (CONFIG.PUBLICATIONS[selectedGroup]?.name || 'Unknown'),
         adType: adType,
         pubDate: pubDate,
@@ -1821,6 +1822,9 @@ function showSuccessModal(quotationNumber, email, paymentMethod) {
     const modal = document.getElementById('successModal');
     const content = modal.querySelector('.modal-content') || modal;
 
+    // Snapshot cart before it gets cleared so publication send panels can use it
+    const cartSnapshot = adCart.slice();
+
     const total = adCart.reduce((sum, item) => sum + item.price, 0);
     const itemsList = adCart.map(item => `
         <div class="confirmation-item">
@@ -1887,6 +1891,8 @@ function showSuccessModal(quotationNumber, email, paymentMethod) {
                 <button class="btn btn-ghost" onclick="printBookingConfirmation()">Print Confirmation</button>
             </div>
 
+            ${buildSendToPublicationSection(cartSnapshot, quotationNumber)}
+
             <p class="contact-info">
                 Questions? Contact us at <a href="mailto:${CONFIG.COMPANY.email}">${CONFIG.COMPANY.email}</a>
                 or call <a href="tel:${CONFIG.COMPANY.phone.replace(/\s/g, '')}">${CONFIG.COMPANY.phone}</a>
@@ -1899,6 +1905,277 @@ function showSuccessModal(quotationNumber, email, paymentMethod) {
     // Clear cart after successful submission
     adCart = [];
 }
+
+/**
+ * Get publication email from localStorage or config fallback
+ */
+function getPublicationEmail(groupId) {
+    const saved = JSON.parse(localStorage.getItem('adspot_pub_emails') || '{}');
+    return saved[groupId] || CONFIG.PUBLICATIONS[groupId]?.contactEmail || '';
+}
+
+/**
+ * Build the "Send to Publication" grouped panels for the success modal
+ */
+function buildSendToPublicationSection(cartItems, quotationNumber) {
+    // Group items by publication group
+    const groups = {};
+    cartItems.forEach(item => {
+        const gid = item.groupId || 'unknown';
+        if (!groups[gid]) {
+            groups[gid] = {
+                groupId: gid,
+                groupName: item.groupName || 'Unknown Publication',
+                items: [],
+                total: 0
+            };
+        }
+        groups[gid].items.push(item);
+        groups[gid].total += item.price;
+    });
+
+    const groupEntries = Object.values(groups);
+    if (groupEntries.length === 0) return '';
+
+    const panelsHtml = groupEntries.map(group => {
+        const savedEmail = getPublicationEmail(group.groupId);
+        const itemRows = group.items.map(item => `
+            <div class="pub-send-item">
+                <span class="pub-send-item-name">${item.newspaperName}</span>
+                <span class="pub-send-item-date">${formatDate(item.pubDate)}</span>
+                <span class="pub-send-item-price">${formatCurrency(item.price)}</span>
+            </div>
+        `).join('');
+
+        // Build subject and body
+        const paperNames = group.items.map(i => i.newspaperName).join(', ');
+        const dates = [...new Set(group.items.map(i => formatDate(i.pubDate)))].join(', ');
+        const defaultSubject = `Classified Ad – ${paperNames} | Publication Date: ${dates} | Ref: ${quotationNumber}`;
+
+        const itemLines = group.items.map(i =>
+            `  • ${i.newspaperName} | ${formatDate(i.pubDate)} | ${formatCurrency(i.price)}`
+        ).join('\n');
+        const defaultBody =
+`Dear All,
+
+Please find attached the payment slip for the following classified advertisement(s).
+
+Publication Group : ${group.groupName}
+Quotation Ref     : ${quotationNumber}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ADVERTISEMENT DETAILS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${itemLines}
+
+Total Amount : ${formatCurrency(group.total)}
+
+Payment has been made via Bank Transfer to AdSpot Media Services.
+Please process the above advertisement(s) as requested.
+
+Kind regards,
+AdSpot Media Services
+${CONFIG.COMPANY.email} | ${CONFIG.COMPANY.phone}`;
+
+        return `
+        <div class="pub-send-panel" id="pub-panel-${group.groupId}">
+            <div class="pub-send-panel-header">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:18px;height:18px;flex-shrink:0;">
+                    <path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"/>
+                </svg>
+                <strong>${group.groupName}</strong>
+                <span class="pub-send-status" id="pub-status-${group.groupId}">Pending</span>
+            </div>
+
+            <div class="pub-send-items">
+                ${itemRows}
+                <div class="pub-send-total">
+                    <span>Total for this publication:</span>
+                    <strong>${formatCurrency(group.total)}</strong>
+                </div>
+            </div>
+
+            <div class="pub-send-fields">
+                <div class="pub-send-field">
+                    <label>Publication Email</label>
+                    <input type="email" id="pub-email-${group.groupId}"
+                        value="${savedEmail}"
+                        placeholder="publication@example.com"
+                        class="pub-send-input">
+                </div>
+                <div class="pub-send-field">
+                    <label>Subject</label>
+                    <input type="text" id="pub-subject-${group.groupId}"
+                        value="${defaultSubject.replace(/"/g, '&quot;')}"
+                        class="pub-send-input">
+                </div>
+                <div class="pub-send-field">
+                    <label>Email Body</label>
+                    <textarea id="pub-body-${group.groupId}" class="pub-send-input pub-send-textarea" rows="10">${defaultBody}</textarea>
+                </div>
+                <div class="pub-send-field">
+                    <label>Payment Slip <span style="color:#ef4444;">*</span></label>
+                    <div class="pub-slip-upload" id="pub-slip-zone-${group.groupId}"
+                        onclick="document.getElementById('pub-slip-${group.groupId}').click()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:24px;height:24px;color:#6b7280;">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        <span id="pub-slip-label-${group.groupId}">Click to upload payment slip (JPG, PNG, PDF)</span>
+                    </div>
+                    <input type="file" id="pub-slip-${group.groupId}"
+                        accept="image/jpeg,image/png,application/pdf"
+                        style="display:none;"
+                        onchange="handleSlipFileSelect('${group.groupId}')">
+                </div>
+                <button class="btn pub-send-btn" id="pub-send-btn-${group.groupId}"
+                    onclick="sendToPublication('${group.groupId}', '${quotationNumber}')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
+                        <line x1="22" y1="2" x2="11" y2="13"/>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                    </svg>
+                    Send to ${group.groupName.split(' ')[0]}
+                </button>
+            </div>
+        </div>
+        `;
+    }).join('');
+
+    const sendAllBtn = groupEntries.length > 1 ? `
+        <button class="btn pub-send-all-btn" id="pub-send-all-btn" onclick="sendAllPublications('${quotationNumber}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
+                <line x1="22" y1="2" x2="11" y2="13"/>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+            Send to All Publications (${groupEntries.length})
+        </button>
+    ` : '';
+
+    return `
+    <div class="pub-send-section">
+        <h4 class="pub-send-heading">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;">
+                <line x1="22" y1="2" x2="11" y2="13"/>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+            Send to Publications
+        </h4>
+        <p class="pub-send-intro">Upload your payment slip(s) and send booking details to each publication.</p>
+        ${panelsHtml}
+        ${sendAllBtn}
+    </div>
+    `;
+}
+
+/**
+ * Handle payment slip file selection — show filename in upload zone
+ */
+function handleSlipFileSelect(groupId) {
+    const input = document.getElementById(`pub-slip-${groupId}`);
+    const label = document.getElementById(`pub-slip-label-${groupId}`);
+    const zone = document.getElementById(`pub-slip-zone-${groupId}`);
+    if (input.files && input.files[0]) {
+        label.textContent = input.files[0].name;
+        zone.classList.add('has-file');
+    }
+}
+window.handleSlipFileSelect = handleSlipFileSelect;
+
+/**
+ * Read file as base64 string
+ */
+function readFileAsBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+/**
+ * Send booking to a single publication
+ */
+async function sendToPublication(groupId, quotationNumber) {
+    const emailInput = document.getElementById(`pub-email-${groupId}`);
+    const subjectInput = document.getElementById(`pub-subject-${groupId}`);
+    const bodyInput = document.getElementById(`pub-body-${groupId}`);
+    const slipInput = document.getElementById(`pub-slip-${groupId}`);
+    const btn = document.getElementById(`pub-send-btn-${groupId}`);
+    const statusBadge = document.getElementById(`pub-status-${groupId}`);
+
+    const toEmail = emailInput?.value.trim();
+    const subject = subjectInput?.value.trim();
+    const body = bodyInput?.value.trim();
+    const slipFile = slipInput?.files[0];
+
+    if (!toEmail) {
+        showNotification('Please enter the publication email address', 'warning');
+        emailInput?.focus();
+        return;
+    }
+    if (!slipFile) {
+        showNotification('Please upload the payment slip for this publication', 'warning');
+        return;
+    }
+
+    // Save email to localStorage for future use
+    const saved = JSON.parse(localStorage.getItem('adspot_pub_emails') || '{}');
+    saved[groupId] = toEmail;
+    localStorage.setItem('adspot_pub_emails', JSON.stringify(saved));
+
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+    statusBadge.textContent = 'Sending...';
+    statusBadge.className = 'pub-send-status sending';
+
+    try {
+        const base64 = await readFileAsBase64(slipFile);
+        await sendToPublicationEmail({
+            toEmail,
+            subject,
+            body,
+            quotationNumber,
+            attachmentBase64: base64,
+            attachmentName: slipFile.name,
+            attachmentMimeType: slipFile.type
+        });
+
+        btn.textContent = 'Sent';
+        btn.style.background = '#16a34a';
+        statusBadge.textContent = 'Sent';
+        statusBadge.className = 'pub-send-status sent';
+        showNotification(`Email sent to ${toEmail}`, 'success');
+    } catch (err) {
+        console.error('Send to publication failed:', err);
+        btn.disabled = false;
+        btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Retry`;
+        statusBadge.textContent = 'Failed';
+        statusBadge.className = 'pub-send-status failed';
+        showNotification('Failed to send email. Please try again.', 'error');
+    }
+}
+window.sendToPublication = sendToPublication;
+
+/**
+ * Send to all publications one by one
+ */
+async function sendAllPublications(quotationNumber) {
+    const allBtn = document.getElementById('pub-send-all-btn');
+    const panels = document.querySelectorAll('.pub-send-panel');
+    if (allBtn) { allBtn.disabled = true; allBtn.textContent = 'Sending...'; }
+
+    for (const panel of panels) {
+        const groupId = panel.id.replace('pub-panel-', '');
+        const statusEl = document.getElementById(`pub-status-${groupId}`);
+        if (statusEl?.textContent === 'Sent') continue; // skip already sent
+        await sendToPublication(groupId, quotationNumber);
+    }
+
+    if (allBtn) { allBtn.textContent = 'All Sent'; }
+}
+window.sendAllPublications = sendAllPublications;
 
 /**
  * Show contact form for full page ads

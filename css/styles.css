@@ -2995,6 +2995,218 @@ html, body {
     color: var(--primary);
 }
 
+/* ============================================
+   Send to Publication Section
+   ============================================ */
+.pub-send-section {
+    margin-top: var(--space-xl);
+    border-top: 2px dashed var(--gray-200);
+    padding-top: var(--space-lg);
+    text-align: left;
+}
+
+.pub-send-heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 4px;
+}
+
+.pub-send-intro {
+    font-size: 0.8125rem;
+    color: var(--gray-500);
+    margin-bottom: var(--space-md);
+}
+
+.pub-send-panel {
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-md);
+    overflow: hidden;
+}
+
+.pub-send-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.pub-send-panel-header strong {
+    flex: 1;
+    font-size: 0.9375rem;
+    color: var(--gray-900);
+}
+
+.pub-send-status {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: var(--gray-100);
+    color: var(--gray-500);
+}
+
+.pub-send-status.sent {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.pub-send-status.sending {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.pub-send-status.failed {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.pub-send-items {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.pub-send-item {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 8px;
+    align-items: center;
+    padding: 4px 0;
+    font-size: 0.875rem;
+    color: var(--gray-700);
+}
+
+.pub-send-item-name { font-weight: 500; }
+.pub-send-item-date { color: var(--gray-500); font-size: 0.8125rem; }
+.pub-send-item-price { font-weight: 600; color: var(--gray-900); }
+
+.pub-send-total {
+    display: flex;
+    justify-content: space-between;
+    padding-top: 8px;
+    margin-top: 6px;
+    border-top: 1px solid var(--gray-100);
+    font-size: 0.875rem;
+}
+
+.pub-send-total strong { color: var(--primary); font-size: 1rem; }
+
+.pub-send-fields {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.pub-send-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.pub-send-field label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+.pub-send-input {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-family: inherit;
+    color: var(--gray-900);
+    background: var(--white);
+    box-sizing: border-box;
+    transition: border-color 0.15s;
+}
+
+.pub-send-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.pub-send-textarea {
+    resize: vertical;
+    min-height: 180px;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+}
+
+.pub-slip-upload {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    border: 2px dashed var(--gray-300);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 0.875rem;
+    color: var(--gray-500);
+}
+
+.pub-slip-upload:hover {
+    border-color: var(--primary);
+    background: var(--primary-pale);
+    color: var(--primary);
+}
+
+.pub-slip-upload.has-file {
+    border-color: #16a34a;
+    background: #f0fdf4;
+    color: #166534;
+}
+
+.pub-send-btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    align-self: flex-start;
+    transition: background 0.15s;
+}
+
+.pub-send-btn:hover:not(:disabled) { background: var(--primary-dark); }
+.pub-send-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.pub-send-all-btn {
+    width: 100%;
+    background: var(--gray-800);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: var(--radius-md);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 4px;
+    transition: background 0.15s;
+}
+
+.pub-send-all-btn:hover:not(:disabled) { background: #111827; }
+.pub-send-all-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
 /* Notification Improvements */
 .notification {
     position: fixed;

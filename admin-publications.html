@@ -272,6 +272,16 @@
         </div>
 
         <div id="publicationsGrid" class="publications-grid"></div>
+
+        <!-- Publication Contact Emails -->
+        <div style="margin-top: 48px;">
+            <h2 style="font-size: 22px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">Publication Contact Emails</h2>
+            <p style="color: #6b7280; font-size: 14px; margin-bottom: 24px;">
+                Set the email address for each publication group. These are used when sending ad bookings and payment slips after a customer completes payment.
+            </p>
+            <div id="pubEmailsTable" style="display:flex; flex-direction:column; gap:12px; max-width:700px;"></div>
+            <button class="btn btn-primary" style="margin-top:20px;" onclick="saveAllPublicationEmails()">Save All Emails</button>
+        </div>
     </main>
 
     <!-- Add/Edit Modal -->
@@ -637,6 +647,47 @@
             document.getElementById('publicationModal').classList.remove('active');
         }
 
+        // ── Publication Contact Emails ─────────────────────────────────
+        const PUB_EMAIL_KEY = 'adspot_pub_emails';
+
+        function loadPublicationEmails() {
+            const saved = JSON.parse(localStorage.getItem(PUB_EMAIL_KEY) || '{}');
+            const container = document.getElementById('pubEmailsTable');
+            if (!container) return;
+
+            // Use publication groups from config (loaded via js/config.js on this page? No —
+            // admin-publications.html doesn't load config.js, so we hard-code the group list here)
+            const groups = [
+                { id: 'lake-house', name: 'Lake House (ANCL)' },
+                { id: 'wijeya',     name: 'Wijeya Newspapers' },
+                { id: 'upali',      name: 'Upali Newspapers' },
+                { id: 'express',    name: 'Express Newspapers' },
+                { id: 'mawbima',    name: 'Mawbima Group' },
+                { id: 'Liberty',    name: 'Liberty Publication' }
+            ];
+
+            container.innerHTML = groups.map(g => `
+                <div style="display:grid; grid-template-columns:220px 1fr; align-items:center; gap:16px; background:white; padding:14px 16px; border-radius:10px; border:1px solid #e5e7eb;">
+                    <label for="pub-email-admin-${g.id}" style="font-weight:600; font-size:14px; color:#111827;">${g.name}</label>
+                    <input type="email" id="pub-email-admin-${g.id}"
+                        value="${saved[g.id] || ''}"
+                        placeholder="contact@publication.lk"
+                        style="width:100%; padding:9px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; box-sizing:border-box;">
+                </div>
+            `).join('');
+        }
+
+        function saveAllPublicationEmails() {
+            const groups = ['lake-house', 'wijeya', 'upali', 'express', 'mawbima', 'Liberty'];
+            const saved = {};
+            groups.forEach(gid => {
+                const val = document.getElementById(`pub-email-admin-${gid}`)?.value.trim();
+                if (val) saved[gid] = val;
+            });
+            localStorage.setItem(PUB_EMAIL_KEY, JSON.stringify(saved));
+            alert('Publication emails saved successfully.');
+        }
+
         // Check auth and load
         firebase.auth().onAuthStateChanged(async user => {
             if (user) {
@@ -644,6 +695,7 @@
                 const userDoc = await db.collection('users').doc(user.uid).get();
                 if (userDoc.exists && userDoc.data().role === 'admin') {
                     loadPublications();
+                    loadPublicationEmails();
                 } else {
                     alert('Access denied. Admin only.');
                     window.location.href = 'index.html';

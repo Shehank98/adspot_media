@@ -120,6 +120,7 @@ const CONFIG = {
     PUBLICATIONS: {
         'lake-house': {
             name: 'Lake House (ANCL) ලේක් හව්ස්',
+            contactEmail: '',
             newspapers: [
                 {
                     id: 'daily-news',
@@ -191,6 +192,7 @@ const CONFIG = {
         },
         'wijeya': {
             name: 'Wijeya Newspapers විජය',
+            contactEmail: '',
             newspapers: [
                 {
                     id: 'sunday-times',
@@ -251,6 +253,7 @@ const CONFIG = {
         },
         'upali': {
             name: 'Upali Newspapers',
+            contactEmail: '',
             newspapers: [
                 {
                     id: 'the-island',
@@ -311,6 +314,7 @@ const CONFIG = {
         },
         'express': {
             name: 'Express Newspapers',
+            contactEmail: '',
             newspapers: [
                 {
                     id: 'virakesari',
@@ -338,6 +342,7 @@ const CONFIG = {
         },
         'mawbima': {
             name: 'Mawbima Group',
+            contactEmail: '',
             newspapers: [
                 {
                     id: 'mawbima',
@@ -388,6 +393,7 @@ const CONFIG = {
         },
         'Liberty': {
             name: 'Liberty Publication',
+            contactEmail: '',
             newspapers: [
                 {
                     id: 'Sunday-aruna',

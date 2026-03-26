@@ -880,9 +880,9 @@
     font-weight: 600;
     color: var(--gray-900);
     font-size: 0.9375rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 
 .newspaper-card .paper-rate {
@@ -936,9 +936,9 @@
     font-weight: 700;
     font-size: 0.75rem;
     color: var(--gray-900);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 
 .newspaper-header .paper-size {
