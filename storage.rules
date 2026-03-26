@@ -1,0 +1,47 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper: check if the signed-in user is an admin via Firestore
+    function isAdmin() {
+      return request.auth != null &&
+             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Ad artwork uploads (customers upload during booking)
+    // Path: ad-artworks/{year}/{month}/{day}/{quotationNumber}/{filename}
+    match /ad-artworks/{year}/{month}/{day}/{quotationNumber}/{filename} {
+      // Any authenticated user can upload their own artwork
+      allow create: if request.auth != null
+                    && request.resource.size < 20 * 1024 * 1024  // 20 MB max
+                    && request.resource.contentType.matches('image/.*|application/pdf');
+
+      // Anyone can read (needed for thumbnail previews in admin panel)
+      allow read: if request.auth != null;
+
+      // Only admins can delete (for the auto-cleanup function)
+      allow delete: if isAdmin();
+
+      // Admins can update metadata
+      allow update: if isAdmin();
+    }
+
+    // Newspaper logos (uploaded via admin panel)
+    match /newspaper-logos/{filename} {
+      allow read:   if true;           // Public — shown on booking page
+      allow write:  if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Payment slips (uploaded via admin Send to Publication)
+    match /payment-slips/{filename} {
+      allow read, write, delete: if isAdmin();
+    }
+
+    // Catch-all: deny everything else
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
