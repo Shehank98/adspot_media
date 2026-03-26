@@ -804,9 +804,14 @@
                 const dates = [...new Set(group.items.map(i => fmtPubDate(i.pubDate)))].join(', ');
                 const subject = `Classified Ad – ${paperNames} | Publication Date: ${dates} | Ref: ${booking.quotationNumber}`;
 
-                const itemLines = group.items.map(i =>
-                    `  • ${i.newspaperName} | ${fmtPubDate(i.pubDate)} | ${fmtPubAmt(i)}`
-                ).join('\n');
+                const itemLines = group.items.map(i => {
+                    const adText   = i.details?.text || '';
+                    const wordCount = i.details?.wordCount || (adText ? adText.trim().split(/\s+/).filter(Boolean).length : 0);
+                    const textBlock = adText
+                        ? `\n     Ad Text   : ${adText}\n     Word Count : ${wordCount} words`
+                        : '';
+                    return `  • ${i.newspaperName} | ${fmtPubDate(i.pubDate)} | ${fmtPubAmt(i)}${textBlock}`;
+                }).join('\n\n');
 
                 const totalFmt = `LKR ${parseFloat(group.total).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
