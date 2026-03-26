@@ -1407,6 +1407,17 @@ select:focus {
     color: var(--gray-500);
 }
 
+.payment-method--disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.payment-method--disabled .method-content {
+    background: var(--gray-50);
+    border-color: var(--gray-200);
+    pointer-events: none;
+}
+
 /* Stripe Element */
 .stripe-element {
     padding: 0.875rem 1rem;

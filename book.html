@@ -540,19 +540,19 @@
                             <div class="form-section">
                                 <label class="form-label">Payment Method</label>
                                 <div class="payment-methods">
-                                    <label class="payment-method">
-                                        <input type="radio" name="paymentMethod" value="card" checked>
+                                    <label class="payment-method payment-method--disabled" title="Card payment coming soon">
+                                        <input type="radio" name="paymentMethod" value="card" disabled>
                                         <div class="method-content">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                                 <rect x="1" y="4" width="22" height="16" rx="2"/>
                                                 <path d="M1 10h22"/>
                                             </svg>
                                             <span>Pay Online (PayHere)</span>
-                                            <span class="method-note">Visa / Mastercard / Online Banking</span>
+                                            <span class="method-note">Coming soon — we're still working on this</span>
                                         </div>
                                     </label>
                                     <label class="payment-method">
-                                        <input type="radio" name="paymentMethod" value="bank">
+                                        <input type="radio" name="paymentMethod" value="bank" checked>
                                         <div class="method-content">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                                 <path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"/>
@@ -564,22 +564,22 @@
                                 </div>
                             </div>
 
-                            <!-- PayHere Online Payment -->
-                            <div id="cardPayment" class="payment-form">
-                                <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 18px 20px; display: flex; align-items: flex-start; gap: 14px;">
-                                    <svg style="width:28px;height:28px;flex-shrink:0;margin-top:2px;" viewBox="0 0 24 24" fill="none" stroke="#1a56db" stroke-width="1.8">
-                                        <rect x="1" y="4" width="22" height="16" rx="2"/>
-                                        <path d="M1 10h22"/>
+                            <!-- PayHere Online Payment (disabled - coming soon) -->
+                            <div id="cardPayment" class="payment-form" style="display: none;">
+                                <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 18px 20px; display: flex; align-items: flex-start; gap: 14px;">
+                                    <svg style="width:28px;height:28px;flex-shrink:0;margin-top:2px;" viewBox="0 0 24 24" fill="none" stroke="#c2410c" stroke-width="1.8">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <path d="M12 8v4M12 16h.01"/>
                                     </svg>
                                     <div>
-                                        <p style="font-weight:600;color:#1e40af;margin:0 0 4px;">Secure Payment via PayHere</p>
-                                        <p style="font-size:13px;color:#475569;margin:0;">After clicking <strong>"Complete Payment"</strong>, a secure PayHere popup will open. You can pay using Visa, Mastercard, Amex, or Online Banking. Your card details are entered directly on PayHere's secure, PCI DSS certified platform — we never see or store your card information.</p>
+                                        <p style="font-weight:600;color:#9a3412;margin:0 0 4px;">Card Payment Coming Soon</p>
+                                        <p style="font-size:13px;color:#475569;margin:0;">We're still working on online card payments. Please use <strong>Bank Transfer</strong> for now.</p>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Bank Transfer Details -->
-                            <div id="bankPayment" class="payment-form" style="display: none;">
+                            <div id="bankPayment" class="payment-form">
                                 <div class="bank-details">
                                     <p class="bank-note">
                                         Bank transfer details will be provided in your confirmation email after you submit your booking.
