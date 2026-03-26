@@ -499,6 +499,18 @@
                 </div>
             </div>
 
+            <!-- Send to Publication -->
+            <div style="margin-top: 20px; padding: 20px; background: #f0fdf4; border-radius: 8px; border: 1px solid #bbf7d0;">
+                <h3 style="margin: 0 0 4px 0; font-size: 16px; color: #166534; display:flex; align-items:center; gap:8px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;">
+                        <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                    </svg>
+                    Send to Publication(s)
+                </h3>
+                <p style="margin: 0 0 16px 0; font-size: 13px; color: #4b7c56;">Upload the payment slip and send booking details to each publication group.</p>
+                <div id="pubSendPanels"></div>
+            </div>
+
             <div class="modal-actions" style="margin-top: 24px; justify-content: flex-end;">
                 <button class="btn btn-secondary" onclick="closeModal()">Close</button>
             </div>
@@ -731,11 +743,237 @@
                     checkFileSize(item.adFileUrl, item.pubDate);
                 }
             });
+
+            // Build Send to Publication panels
+            renderPubSendPanels(booking);
         }
 
         // Close modal
         function closeModal() {
             document.getElementById('bookingModal').classList.remove('active');
+        }
+
+        // ── Send to Publication ──────────────────────────────────────────
+
+        function fmtPubDate(dateStr) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr + 'T00:00:00');
+            return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        function fmtPubAmt(item) {
+            // Use adTotal (publication amount without platform fee) if available
+            const amt = item.details?.adTotal ?? item.price;
+            return `LKR ${parseFloat(amt).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+
+        function getPubEmail(groupId) {
+            const saved = JSON.parse(localStorage.getItem('adspot_pub_emails') || '{}');
+            return saved[groupId] || '';
+        }
+
+        function renderPubSendPanels(booking) {
+            const container = document.getElementById('pubSendPanels');
+            if (!container) return;
+
+            // Group items by publication group
+            const groups = {};
+            (booking.items || []).forEach(item => {
+                const gid = item.groupId || 'unknown';
+                if (!groups[gid]) {
+                    groups[gid] = {
+                        groupId: gid,
+                        groupName: item.groupName || 'Unknown Publication',
+                        items: [],
+                        total: 0
+                    };
+                }
+                groups[gid].items.push(item);
+                groups[gid].total += item.details?.adTotal ?? item.price;
+            });
+
+            const entries = Object.values(groups);
+            if (entries.length === 0) {
+                container.innerHTML = '<p style="color:#6b7280;font-size:13px;">No items found.</p>';
+                return;
+            }
+
+            const panelsHtml = entries.map(group => {
+                const savedEmail = getPubEmail(group.groupId);
+                const paperNames = group.items.map(i => i.newspaperName).join(', ');
+                const dates = [...new Set(group.items.map(i => fmtPubDate(i.pubDate)))].join(', ');
+                const subject = `Classified Ad – ${paperNames} | Publication Date: ${dates} | Ref: ${booking.quotationNumber}`;
+
+                const itemLines = group.items.map(i =>
+                    `  • ${i.newspaperName} | ${fmtPubDate(i.pubDate)} | ${fmtPubAmt(i)}`
+                ).join('\n');
+
+                const totalFmt = `LKR ${parseFloat(group.total).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+                const body =
+`Dear All,
+
+Please find attached the payment slip for the following classified advertisement(s).
+
+Publication Group : ${group.groupName}
+Quotation Ref     : ${booking.quotationNumber}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ADVERTISEMENT DETAILS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${itemLines}
+
+Total Amount : ${totalFmt}
+
+Kind regards,
+AdSpot Media Services
+adspot77@gmail.com | 070 642 1998`;
+
+                const itemRowsHtml = group.items.map(i => `
+                    <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:5px 0;font-size:13px;border-bottom:1px solid #f3f4f6;">
+                        <span style="font-weight:500;">${i.newspaperName}</span>
+                        <span style="color:#6b7280;">${fmtPubDate(i.pubDate)}</span>
+                        <span style="font-weight:600;">${fmtPubAmt(i)}</span>
+                    </div>`).join('');
+
+                return `
+                <div style="border:1px solid #d1fae5;border-radius:8px;margin-bottom:14px;overflow:hidden;" id="admin-pub-panel-${group.groupId}">
+                    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#ecfdf5;border-bottom:1px solid #d1fae5;">
+                        <strong style="flex:1;font-size:14px;">${group.groupName}</strong>
+                        <span id="admin-pub-status-${group.groupId}" style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:#e5e7eb;color:#6b7280;">Pending</span>
+                    </div>
+                    <div style="padding:12px 14px;border-bottom:1px solid #f0fdf4;">
+                        ${itemRowsHtml}
+                        <div style="display:flex;justify-content:space-between;padding-top:8px;margin-top:4px;font-size:13px;font-weight:600;">
+                            <span>Total (publication amount):</span>
+                            <span style="color:#166534;">${totalFmt}</span>
+                        </div>
+                    </div>
+                    <div style="padding:14px;display:flex;flex-direction:column;gap:10px;">
+                        <div>
+                            <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Publication Email</label>
+                            <input type="email" id="admin-pub-email-${group.groupId}"
+                                value="${savedEmail}"
+                                placeholder="contact@publication.lk"
+                                style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Subject</label>
+                            <input type="text" id="admin-pub-subject-${group.groupId}"
+                                value="${subject.replace(/"/g, '&quot;')}"
+                                style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Email Body</label>
+                            <textarea id="admin-pub-body-${group.groupId}" rows="9"
+                                style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;font-family:monospace;box-sizing:border-box;resize:vertical;">${body}</textarea>
+                        </div>
+                        <div>
+                            <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Payment Slip <span style="color:#ef4444;">*</span></label>
+                            <div id="admin-slip-zone-${group.groupId}"
+                                onclick="document.getElementById('admin-slip-${group.groupId}').click()"
+                                style="display:flex;align-items:center;gap:10px;padding:12px;border:2px dashed #d1d5db;border-radius:6px;cursor:pointer;font-size:13px;color:#6b7280;transition:all 0.15s;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:20px;height:20px;flex-shrink:0;">
+                                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                                    <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                                </svg>
+                                <span id="admin-slip-label-${group.groupId}">Click to upload payment slip (JPG, PNG, PDF)</span>
+                            </div>
+                            <input type="file" id="admin-slip-${group.groupId}"
+                                accept="image/jpeg,image/png,application/pdf" style="display:none;"
+                                onchange="adminSlipSelected('${group.groupId}')">
+                        </div>
+                        <button onclick="adminSendToPublication('${group.groupId}', '${booking.quotationNumber}')"
+                            id="admin-pub-btn-${group.groupId}"
+                            style="background:#16a34a;color:white;border:none;padding:10px 18px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;align-self:flex-start;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;">
+                                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                            </svg>
+                            Send to ${group.groupName.split(' ')[0]}
+                        </button>
+                    </div>
+                </div>`;
+            }).join('');
+
+            const sendAllHtml = entries.length > 1 ? `
+                <button onclick="adminSendAll('${booking.quotationNumber}')" id="admin-pub-send-all"
+                    style="width:100%;background:#1f2937;color:white;border:none;padding:11px;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:4px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;">
+                        <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                    </svg>
+                    Send to All Publications (${entries.length})
+                </button>` : '';
+
+            container.innerHTML = panelsHtml + sendAllHtml;
+        }
+
+        function adminSlipSelected(groupId) {
+            const input = document.getElementById(`admin-slip-${groupId}`);
+            const label = document.getElementById(`admin-slip-label-${groupId}`);
+            const zone  = document.getElementById(`admin-slip-zone-${groupId}`);
+            if (input.files && input.files[0]) {
+                label.textContent = input.files[0].name;
+                zone.style.borderColor = '#16a34a';
+                zone.style.background  = '#f0fdf4';
+                zone.style.color       = '#166534';
+            }
+        }
+
+        function readAsBase64(file) {
+            return new Promise((res, rej) => {
+                const reader = new FileReader();
+                reader.onload  = e => res(e.target.result.split(',')[1]);
+                reader.onerror = rej;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function adminSendToPublication(groupId, quotationNumber) {
+            const toEmail  = document.getElementById(`admin-pub-email-${groupId}`)?.value.trim();
+            const subject  = document.getElementById(`admin-pub-subject-${groupId}`)?.value.trim();
+            const body     = document.getElementById(`admin-pub-body-${groupId}`)?.value.trim();
+            const slipFile = document.getElementById(`admin-slip-${groupId}`)?.files[0];
+            const btn      = document.getElementById(`admin-pub-btn-${groupId}`);
+            const status   = document.getElementById(`admin-pub-status-${groupId}`);
+
+            if (!toEmail) { alert('Please enter the publication email address.'); return; }
+            if (!slipFile) { alert('Please upload the payment slip for this publication.'); return; }
+
+            // Save email to localStorage
+            const saved = JSON.parse(localStorage.getItem('adspot_pub_emails') || '{}');
+            saved[groupId] = toEmail;
+            localStorage.setItem('adspot_pub_emails', JSON.stringify(saved));
+
+            btn.disabled = true; btn.textContent = 'Sending…';
+            status.textContent = 'Sending…'; status.style.background = '#dbeafe'; status.style.color = '#1e40af';
+
+            try {
+                const base64 = await readAsBase64(slipFile);
+                await sendToPublicationEmail({ toEmail, subject, body, quotationNumber,
+                    attachmentBase64: base64, attachmentName: slipFile.name, attachmentMimeType: slipFile.type });
+
+                btn.textContent = '✓ Sent';
+                status.textContent = 'Sent ✓'; status.style.background = '#dcfce7'; status.style.color = '#166534';
+                alert(`Email sent to ${toEmail}`);
+            } catch (err) {
+                console.error(err);
+                btn.disabled = false; btn.textContent = 'Retry';
+                status.textContent = 'Failed'; status.style.background = '#fee2e2'; status.style.color = '#991b1b';
+                alert('Failed to send. Check the console for details.');
+            }
+        }
+
+        async function adminSendAll(quotationNumber) {
+            const allBtn = document.getElementById('admin-pub-send-all');
+            const panels = document.querySelectorAll('[id^="admin-pub-panel-"]');
+            if (allBtn) { allBtn.disabled = true; allBtn.textContent = 'Sending…'; }
+            for (const panel of panels) {
+                const gid = panel.id.replace('admin-pub-panel-', '');
+                const statusEl = document.getElementById(`admin-pub-status-${gid}`);
+                if (statusEl?.textContent.includes('Sent')) continue;
+                await adminSendToPublication(gid, quotationNumber);
+            }
+            if (allBtn) allBtn.textContent = '✓ All Sent';
         }
 
         // Update booking status
