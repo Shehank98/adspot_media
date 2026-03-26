@@ -1891,6 +1891,17 @@ function showSuccessModal(quotationNumber, email, paymentMethod) {
                 <button class="btn btn-ghost" onclick="printBookingConfirmation()">Print Confirmation</button>
             </div>
 
+            <div style="display:flex;align-items:center;gap:8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 16px;margin:16px 0 0;cursor:pointer;" onclick="document.getElementById('pub-send-anchor').scrollIntoView({behavior:'smooth'})">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" stroke-width="2" style="width:18px;height:18px;flex-shrink:0;">
+                    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+                <span style="font-size:0.875rem;font-weight:600;color:#1d4ed8;flex:1;">Send booking to publication(s) with payment slip</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" stroke-width="2" style="width:16px;height:16px;flex-shrink:0;">
+                    <polyline points="6 9 12 15 18 9"/>
+                </svg>
+            </div>
+
+            <div id="pub-send-anchor"></div>
             ${buildSendToPublicationSection(cartSnapshot, quotationNumber)}
 
             <p class="contact-info">

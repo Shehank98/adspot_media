@@ -1755,6 +1755,7 @@ select:focus {
 
 .success-modal {
     text-align: center;
+    max-width: 720px !important;
 }
 
 .success-icon {

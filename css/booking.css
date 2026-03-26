@@ -883,6 +883,7 @@
     white-space: normal;
     overflow-wrap: break-word;
     word-break: break-word;
+    min-width: 0;
 }
 
 .newspaper-card .paper-rate {
@@ -939,6 +940,8 @@
     white-space: normal;
     overflow-wrap: break-word;
     word-break: break-word;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .newspaper-header .paper-size {
