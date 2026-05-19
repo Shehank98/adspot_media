@@ -1,0 +1,377 @@
+/* PWA & Mobile Admin Styles */
+
+/* Safe area insets for notched phones */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --bottom-nav-height: 64px;
+}
+
+/* ─── Install Banner ─────────────────────────────── */
+#pwa-install-banner {
+  display: none;
+  position: fixed;
+  bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 12px);
+  left: 12px;
+  right: 12px;
+  background: #0f172a;
+  border: 1px solid rgba(26, 86, 219, 0.4);
+  border-radius: 16px;
+  padding: 14px 16px;
+  z-index: 9999;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  animation: slideUp 0.3s ease;
+  align-items: center;
+  gap: 12px;
+}
+
+#pwa-install-banner.visible {
+  display: flex;
+}
+
+#pwa-install-banner .install-icon {
+  width: 44px;
+  height: 44px;
+  background: #1a56db;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+#pwa-install-banner .install-icon svg {
+  width: 22px;
+  height: 22px;
+  color: white;
+  stroke: white;
+}
+
+#pwa-install-banner .install-text {
+  flex: 1;
+  min-width: 0;
+}
+
+#pwa-install-banner .install-text strong {
+  display: block;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Sora', sans-serif;
+}
+
+#pwa-install-banner .install-text span {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+#pwa-install-banner .install-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+#pwa-install-btn {
+  background: #1a56db;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Sora', sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+#pwa-install-btn:active {
+  opacity: 0.85;
+}
+
+#pwa-dismiss-btn {
+  background: transparent;
+  color: #64748b;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 6px;
+  line-height: 1;
+  font-size: 16px;
+}
+
+/* ─── iOS Install Instruction Banner ──────────────── */
+#ios-install-banner {
+  display: none;
+  position: fixed;
+  bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 12px);
+  left: 12px;
+  right: 12px;
+  background: #0f172a;
+  border: 1px solid rgba(26, 86, 219, 0.3);
+  border-radius: 16px;
+  padding: 14px 16px;
+  z-index: 9999;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  animation: slideUp 0.3s ease;
+}
+
+#ios-install-banner.visible {
+  display: block;
+}
+
+#ios-install-banner .ios-banner-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+#ios-install-banner .ios-banner-header strong {
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Sora', sans-serif;
+}
+
+#ios-dismiss-btn {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px;
+}
+
+#ios-install-banner .ios-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#ios-install-banner .ios-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #cbd5e1;
+  font-size: 13px;
+}
+
+#ios-install-banner .step-num {
+  width: 22px;
+  height: 22px;
+  background: #1a56db;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+#ios-install-banner .ios-share-icon {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+}
+
+/* ─── PWA Status Indicator (top of sidebar) ───────── */
+.pwa-status {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 20px;
+  font-size: 11px;
+  color: #10b981;
+  font-weight: 500;
+  margin: 0 12px 8px;
+}
+
+.pwa-status.visible {
+  display: flex;
+}
+
+.pwa-status .dot {
+  width: 6px;
+  height: 6px;
+  background: #10b981;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+/* ─── Mobile Bottom Navigation ─────────────────────── */
+.mobile-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--bottom-nav-height) + var(--safe-bottom));
+  background: #0f172a;
+  border-top: 1px solid #1e293b;
+  z-index: 1000;
+  padding-bottom: var(--safe-bottom);
+}
+
+.bottom-nav-inner {
+  display: flex;
+  height: var(--bottom-nav-height);
+  align-items: stretch;
+}
+
+.bottom-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #475569;
+  padding: 4px 0;
+  transition: color 0.15s ease;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bottom-nav-item svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+}
+
+.bottom-nav-item span {
+  font-size: 10px;
+  font-weight: 500;
+  font-family: 'DM Sans', sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.bottom-nav-item.active {
+  color: #1a56db;
+}
+
+.bottom-nav-item:active {
+  color: #3b82f6;
+}
+
+/* ─── Adjust admin layout for bottom nav on mobile ── */
+@media (max-width: 768px) {
+  .mobile-bottom-nav {
+    display: block;
+  }
+
+  /* Push main content above bottom nav */
+  .admin-main {
+    padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 8px) !important;
+  }
+
+  /* Hide sidebar on mobile (use bottom nav instead) */
+  .admin-sidebar {
+    transform: translateX(-100%);
+  }
+
+  .admin-sidebar.open {
+    transform: translateX(0);
+  }
+
+  /* Top bar safe area */
+  .admin-topbar {
+    padding-top: calc(12px + var(--safe-top));
+  }
+
+  /* Stat cards: 2 columns */
+  .stats-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+
+  .stat-card {
+    padding: 14px !important;
+  }
+
+  .stat-value {
+    font-size: 20px !important;
+  }
+
+  /* Table overflow on mobile */
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Section headers */
+  .section-header {
+    padding: 16px 16px 0 !important;
+  }
+}
+
+/* ─── Standalone PWA mode adjustments ───────────────── */
+@media (display-mode: standalone) {
+  /* Extra top padding for status bar */
+  .admin-topbar {
+    padding-top: calc(16px + var(--safe-top));
+  }
+
+  /* Hide browser chrome elements we replicate */
+  .back-home {
+    display: none;
+  }
+
+  /* Login page in standalone: center vertically accounting for safe areas */
+  .login-container {
+    padding-top: calc(20px + var(--safe-top));
+    padding-bottom: calc(20px + var(--safe-bottom));
+  }
+}
+
+/* ─── Offline indicator ──────────────────────────────── */
+#offline-toast {
+  display: none;
+  position: fixed;
+  top: calc(16px + var(--safe-top));
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e293b;
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 24px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 10000;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  gap: 6px;
+  align-items: center;
+}
+
+#offline-toast.visible {
+  display: flex;
+}
+
+#offline-toast svg {
+  width: 14px;
+  height: 14px;
+  stroke: #f59e0b;
+}
+
+/* ─── Animations ──────────────────────────────────────── */
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}

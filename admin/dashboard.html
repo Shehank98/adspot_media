@@ -2,12 +2,28 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Dashboard | AdSpot Admin</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="../manifest.json">
+    <meta name="theme-color" content="#1a56db">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <!-- iOS PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AdSpot">
+    <link rel="apple-touch-icon" href="../images/apple-touch-icon.png">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="../images/favicon.svg">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="../css/pwa.css">
 </head>
 <body class="admin-page">
     <!-- Admin Sidebar -->
@@ -567,10 +583,165 @@
     <!-- Toast Notifications -->
     <div id="toastContainer" class="toast-container"></div>
 
+    <!-- Offline indicator -->
+    <div id="offline-toast">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0119 12.55M5 12.55a10.94 10.94 0 015.17-2.39M10.71 5.05A16 16 0 0122.56 9M1.42 9a15.91 15.91 0 014.7-2.88M8.53 16.11a6 6 0 016.95 0M12 20h.01"/></svg>
+        Offline — showing cached data
+    </div>
+
+    <!-- PWA Install Banner -->
+    <div id="pwa-install-banner">
+        <div class="install-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 2v13M8 11l4 4 4-4M4 17v1a2 2 0 002 2h12a2 2 0 002-2v-1"/></svg>
+        </div>
+        <div class="install-text">
+            <strong>Install AdSpot Admin</strong>
+            <span>Quick access from home screen</span>
+        </div>
+        <div class="install-actions">
+            <button id="pwa-install-btn">Install</button>
+            <button id="pwa-dismiss-btn">✕</button>
+        </div>
+    </div>
+
+    <!-- iOS Install Instructions -->
+    <div id="ios-install-banner">
+        <div class="ios-banner-header">
+            <strong>Install AdSpot Admin</strong>
+            <button id="ios-dismiss-btn">✕</button>
+        </div>
+        <div class="ios-steps">
+            <div class="ios-step"><span class="step-num">1</span><span>Tap the <strong style="color:#3b82f6">Share</strong> button in Safari</span></div>
+            <div class="ios-step"><span class="step-num">2</span><span>Tap <strong style="color:#3b82f6">Add to Home Screen</strong></span></div>
+            <div class="ios-step"><span class="step-num">3</span><span>Tap <strong style="color:#3b82f6">Add</strong> to confirm</span></div>
+        </div>
+    </div>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-bottom-nav" id="mobileBottomNav">
+        <div class="bottom-nav-inner">
+            <button class="bottom-nav-item active" data-section="dashboard" onclick="switchSectionMobile('dashboard')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                    <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                </svg>
+                <span>Dashboard</span>
+            </button>
+            <button class="bottom-nav-item" data-section="quotations" onclick="switchSectionMobile('quotations')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                <span>Quotes</span>
+            </button>
+            <button class="bottom-nav-item" data-section="payments" onclick="switchSectionMobile('payments')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="1" y="4" width="22" height="16" rx="2"/>
+                    <line x1="1" y1="10" x2="23" y2="10"/>
+                </svg>
+                <span>Payments</span>
+            </button>
+            <button class="bottom-nav-item" data-section="customers" onclick="switchSectionMobile('customers')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                </svg>
+                <span>Customers</span>
+            </button>
+            <button class="bottom-nav-item" data-section="publications" onclick="switchSectionMobile('publications')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
+                </svg>
+                <span>Pubs</span>
+            </button>
+        </div>
+    </nav>
+
     <!-- jsPDF for PDF generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <script src="../js/config.js"></script>
     <script src="../js/admin.js"></script>
+
+    <script>
+    // ── Service Worker ─────────────────────────────────────
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('../sw.js', { scope: '/' })
+            .catch((e) => console.warn('SW failed:', e));
+    }
+
+    // ── Offline indicator ───────────────────────────────────
+    const offlineToast = document.getElementById('offline-toast');
+    window.addEventListener('offline', () => offlineToast.classList.add('visible'));
+    window.addEventListener('online',  () => offlineToast.classList.remove('visible'));
+    if (!navigator.onLine) offlineToast.classList.add('visible');
+
+    // ── Mobile bottom nav section switcher ─────────────────
+    function switchSectionMobile(section) {
+        // Reuse existing sidebar nav click logic
+        const navItem = document.querySelector(`.nav-item[data-section="${section}"]`);
+        if (navItem) navItem.click();
+
+        // Update bottom nav active state
+        document.querySelectorAll('.bottom-nav-item').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.section === section);
+        });
+
+        // Scroll to top
+        document.querySelector('.admin-main')?.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Sync bottom nav with sidebar clicks
+    document.querySelectorAll('.nav-item[data-section]').forEach(item => {
+        item.addEventListener('click', () => {
+            const section = item.dataset.section;
+            document.querySelectorAll('.bottom-nav-item').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.section === section);
+            });
+        });
+    });
+
+    // ── PWA Install prompt ─────────────────────────────────
+    let deferredPrompt = null;
+    const installBanner = document.getElementById('pwa-install-banner');
+    const iosBanner     = document.getElementById('ios-install-banner');
+    const DISMISS_KEY   = 'adspot_pwa_dismissed';
+
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                      || window.navigator.standalone === true;
+    const isDismissed  = localStorage.getItem(DISMISS_KEY);
+    const isIOS        = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+
+    if (!isStandalone && !isDismissed) {
+        if (isIOS) {
+            setTimeout(() => iosBanner.classList.add('visible'), 3000);
+        } else {
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                setTimeout(() => installBanner.classList.add('visible'), 2000);
+            });
+        }
+    }
+
+    document.getElementById('pwa-install-btn')?.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        installBanner.classList.remove('visible');
+    });
+
+    document.getElementById('pwa-dismiss-btn')?.addEventListener('click', () => {
+        installBanner.classList.remove('visible');
+        localStorage.setItem(DISMISS_KEY, '1');
+    });
+
+    document.getElementById('ios-dismiss-btn')?.addEventListener('click', () => {
+        iosBanner.classList.remove('visible');
+        localStorage.setItem(DISMISS_KEY, '1');
+    });
+    </script>
 </body>
 </html>

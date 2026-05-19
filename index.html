@@ -33,6 +33,14 @@
     <link rel="icon" type="image/png" sizes="32x32" href="images/favicon.png">
     <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
     <meta name="theme-color" content="#1a56db">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="AdSpot">
     <!-- ✅ END SEO TAGS -->
 
     
@@ -677,5 +685,12 @@ src="https://www.facebook.com/tr?id=845167708579462&ev=PageView&noscript=1"
     <!-- Maintenance Mode -->
     <script src="js/maintenance-config.js"></script>
     <script src="js/maintenance-check.js"></script>
+
+    <script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' })
+            .catch((e) => console.warn('SW registration failed:', e));
+    }
+    </script>
 </body>
 </html>

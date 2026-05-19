@@ -2,12 +2,29 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Admin Login | AdSpot</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="../manifest.json">
+    <meta name="theme-color" content="#1a56db">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <!-- iOS PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AdSpot">
+    <link rel="apple-touch-icon" href="../images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="../images/icon-192.svg">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="../images/favicon.svg">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="../css/pwa.css">
 </head>
 <body class="admin-login-page">
     <div class="login-container">
@@ -57,6 +74,49 @@
             <div class="deco-circle c2"></div>
             <div class="deco-circle c3"></div>
         </div>
+    </div>
+
+    <!-- PWA install banner (for Android/Desktop) -->
+    <div id="pwa-install-banner">
+        <div class="install-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 2v13M8 11l4 4 4-4M4 17v1a2 2 0 002 2h12a2 2 0 002-2v-1"/></svg>
+        </div>
+        <div class="install-text">
+            <strong>Install AdSpot Admin</strong>
+            <span>Add to home screen for quick access</span>
+        </div>
+        <div class="install-actions">
+            <button id="pwa-install-btn">Install</button>
+            <button id="pwa-dismiss-btn">✕</button>
+        </div>
+    </div>
+
+    <!-- iOS install instructions -->
+    <div id="ios-install-banner">
+        <div class="ios-banner-header">
+            <strong>Install AdSpot Admin</strong>
+            <button id="ios-dismiss-btn">✕</button>
+        </div>
+        <div class="ios-steps">
+            <div class="ios-step">
+                <span class="step-num">1</span>
+                <span>Tap the <strong style="color:#3b82f6">Share</strong> button in Safari toolbar</span>
+            </div>
+            <div class="ios-step">
+                <span class="step-num">2</span>
+                <span>Scroll down and tap <strong style="color:#3b82f6">Add to Home Screen</strong></span>
+            </div>
+            <div class="ios-step">
+                <span class="step-num">3</span>
+                <span>Tap <strong style="color:#3b82f6">Add</strong> to install</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Offline toast -->
+    <div id="offline-toast">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0119 12.55M5 12.55a10.94 10.94 0 015.17-2.39M10.71 5.05A16 16 0 0122.56 9M1.42 9a15.91 15.91 0 014.7-2.88M8.53 16.11a6 6 0 016.95 0M12 20h.01"/></svg>
+        Offline — cached data shown
     </div>
 
     <script src="../js/config.js"></script>
@@ -130,6 +190,63 @@
         if (session && session.loggedIn) {
             window.location.href = 'dashboard.html';
         }
+
+        // ── Service Worker ──────────────────────────────
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('../sw.js', { scope: '/' })
+                .catch((err) => console.warn('SW registration failed:', err));
+        }
+
+        // ── Offline indicator ────────────────────────────
+        const offlineToast = document.getElementById('offline-toast');
+        window.addEventListener('offline', () => offlineToast.classList.add('visible'));
+        window.addEventListener('online',  () => offlineToast.classList.remove('visible'));
+        if (!navigator.onLine) offlineToast.classList.add('visible');
+
+        // ── PWA Install prompt ───────────────────────────
+        let deferredPrompt = null;
+        const installBanner  = document.getElementById('pwa-install-banner');
+        const installBtn     = document.getElementById('pwa-install-btn');
+        const dismissBtn     = document.getElementById('pwa-dismiss-btn');
+        const iosBanner      = document.getElementById('ios-install-banner');
+        const iosDismissBtn  = document.getElementById('ios-dismiss-btn');
+        const DISMISS_KEY    = 'adspot_pwa_dismissed';
+
+        const isStandalone   = window.matchMedia('(display-mode: standalone)').matches
+                            || window.navigator.standalone === true;
+        const isDismissed    = localStorage.getItem(DISMISS_KEY);
+        const isIOS          = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+
+        if (!isStandalone && !isDismissed) {
+            if (isIOS) {
+                // Show iOS instructions after short delay
+                setTimeout(() => iosBanner.classList.add('visible'), 2000);
+            } else {
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    deferredPrompt = e;
+                    installBanner.classList.add('visible');
+                });
+            }
+        }
+
+        installBtn?.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            deferredPrompt = null;
+            installBanner.classList.remove('visible');
+        });
+
+        dismissBtn?.addEventListener('click', () => {
+            installBanner.classList.remove('visible');
+            localStorage.setItem(DISMISS_KEY, '1');
+        });
+
+        iosDismissBtn?.addEventListener('click', () => {
+            iosBanner.classList.remove('visible');
+            localStorage.setItem(DISMISS_KEY, '1');
+        });
     </script>
 </body>
 </html>
