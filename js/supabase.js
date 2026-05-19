@@ -116,9 +116,17 @@ const QuotationDB = {
             .update({ status, updated_at: new Date().toISOString() })
             .eq('id', id)
             .select();
-        
+
         if (error) throw error;
         return data[0];
+    },
+
+    async updateStatusByNumber(quotationNumber, status) {
+        const { error } = await supabase
+            .from('quotations')
+            .update({ status, updated_at: new Date().toISOString() })
+            .eq('quotation_number', quotationNumber);
+        if (error) throw error;
     },
     
     async getStats() {

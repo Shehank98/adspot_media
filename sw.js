@@ -98,3 +98,31 @@ self.addEventListener('message', (event) => {
     event.source?.postMessage({ type: 'VERSION', version: CACHE_VERSION });
   }
 });
+
+// Push notification from Netlify Function (payment confirmed)
+self.addEventListener('push', (event) => {
+  const data = event.data?.json() || {};
+  const title = data.title || 'AdSpot Admin';
+  const options = {
+    body: data.body || 'New activity',
+    icon: '/images/icon-192.svg',
+    badge: '/images/icon-72.svg',
+    tag: 'adspot-payment',
+    renotify: true,
+    data: { url: data.url || '/admin/dashboard.html' }
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Tap on notification → open admin dashboard
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || '/admin/dashboard.html';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      const existing = list.find((c) => c.url.includes('/admin/'));
+      if (existing) return existing.focus();
+      return clients.openWindow(url);
+    })
+  );
+});

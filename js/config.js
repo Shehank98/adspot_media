@@ -453,6 +453,27 @@ const CONFIG = {
         code: 'LKR',
         symbol: 'Rs.',
         name: 'Sri Lankan Rupee'
+    },
+
+    // HelaPay QR Payment
+    HELAPAY: {
+        FUNCTIONS_URL: '/api/helapay',
+        WEBHOOK_URL: '/api/helapay-webhook',
+        PUSH_REGISTER_URL: '/api/push-register',
+        // Generate with: npx web-push generate-vapid-keys
+        // Then set VAPID_PUBLIC_KEY in Netlify env vars and paste the public key here
+        VAPID_PUBLIC_KEY: 'REPLACE_WITH_YOUR_VAPID_PUBLIC_KEY'
+    },
+
+    // Publication contact emails for "Send to Publication"
+    // Replace with real publication email addresses
+    PUBLICATION_EMAILS: {
+        'lake-house': '',
+        'wijeya':     '',
+        'upali':      '',
+        'express':    '',
+        'mawbima':    '',
+        'Liberty':    ''
     }
 };
 

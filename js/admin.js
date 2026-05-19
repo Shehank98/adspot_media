@@ -1047,6 +1047,15 @@ async function viewQuotation(id, source = 'database') {
                         Mark as Paid
                     </button>
                 ` : ''}
+                ${(quotation.status === 'paid' || quotation.status === 'published') ? `
+                    <button class="btn btn-secondary" onclick="openSendToPublicationModal('${quotation.id}')">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:5px">
+                            <path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4"/>
+                            <path d="M14 2v4a2 2 0 0 0 2 2h4M2 15h10M9 18l3-3-3-3"/>
+                        </svg>
+                        Send to Publication
+                    </button>
+                ` : ''}
             </div>
         `;
 
@@ -1991,3 +2000,150 @@ window.editPublication = editPublication;
 window.viewCustomer = viewCustomer;
 window.downloadInvoice = downloadInvoice;
 window.previewInvoice = previewInvoice;
+window.openSendToPublicationModal = openSendToPublicationModal;
+window.markAsPaid = markAsPaid;
+
+// ─── Send to Publication ─────────────────────────────────────────────────────
+
+async function openSendToPublicationModal(quotationId) {
+    let orderData = null;
+
+    // Load from Supabase if available
+    if (typeof QuotationDB !== 'undefined' && typeof isSupabaseAvailable === 'function' && isSupabaseAvailable()) {
+        try { orderData = await QuotationDB.getById(quotationId); } catch { /* fall through */ }
+    }
+    // Fallback to localStorage
+    if (!orderData) {
+        const orders = JSON.parse(localStorage.getItem('adspot_orders') || '[]');
+        orderData = orders.find(o =>
+            String(o.id) === String(quotationId) || o.quotation_number === quotationId
+        );
+    }
+    if (!orderData) { showToast('Quotation not found', 'error'); return; }
+
+    const quotation = extractQuotationFromOrder ? extractQuotationFromOrder(orderData) : orderData;
+    const pubGroup = orderData.publication_group
+        || orderData.items?.[0]?.publicationGroup
+        || orderData.items?.[0]?.groupId
+        || 'other';
+
+    const savedEmail = localStorage.getItem(`adspot_pub_email_${pubGroup}`)
+        || CONFIG.PUBLICATION_EMAILS?.[pubGroup]
+        || '';
+
+    document.getElementById('pubSendContent').innerHTML = buildSendToPublicationPanel(quotation, pubGroup, savedEmail);
+    document.getElementById('sendToPublicationModal').classList.add('active');
+
+    document.getElementById('confirmSendToPublicationBtn').onclick = () =>
+        handleSendToPublication(quotationId, quotation, pubGroup);
+}
+
+function buildSendToPublicationPanel(quotation, pubGroup, savedEmail) {
+    const groupName = pubGroup.charAt(0).toUpperCase() + pubGroup.slice(1).replace('-', ' ');
+    const items = quotation.items || [];
+    const itemLines = items.map(i =>
+        `  • ${i.newspaperName || ''} | ${i.pubDate || ''} | Rs. ${parseFloat(i.price || 0).toFixed(2)}`
+    ).join('\n');
+    const defaultBody = `Dear All,
+
+Please find attached the payment slip for the following advertisement(s).
+
+Publication Group: ${groupName}
+Quotation Ref: ${quotation.quotation_number}
+${itemLines}
+Total Amount: Rs. ${parseFloat(quotation.total_amount || 0).toFixed(2)}
+
+Regards,
+AdSpot Media`;
+
+    return `
+        <div class="form-group">
+            <label class="form-label">Publication Email <span style="color:#ef4444">*</span></label>
+            <input type="email" id="pubEmailInput" class="form-input"
+                value="${savedEmail}" placeholder="ads@publication.lk" required>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Subject</label>
+            <input type="text" id="pubSubject" class="form-input"
+                value="Payment Slip – ${quotation.quotation_number}">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Message</label>
+            <textarea id="pubBody" class="form-input" rows="8"
+                style="font-family:monospace;font-size:13px;">${defaultBody}</textarea>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Attach Payment Slip <span style="color:#64748b;font-weight:400;">(optional)</span></label>
+            <input type="file" id="pubSlipFile" class="form-input" accept=".jpg,.jpeg,.png,.pdf">
+        </div>`;
+}
+
+async function handleSendToPublication(quotationId, quotation, pubGroup) {
+    const emailInput = document.getElementById('pubEmailInput');
+    const subject    = document.getElementById('pubSubject').value.trim();
+    const body       = document.getElementById('pubBody').value.trim();
+    const fileInput  = document.getElementById('pubSlipFile');
+
+    if (!emailInput.value.trim()) {
+        showToast('Please enter the publication email address', 'error');
+        emailInput.focus();
+        return;
+    }
+
+    const toEmail = emailInput.value.trim();
+    localStorage.setItem(`adspot_pub_email_${pubGroup}`, toEmail);
+
+    const btn = document.getElementById('confirmSendToPublicationBtn');
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+
+    let attachmentBase64 = '';
+    let attachmentName   = '';
+    let attachmentMime   = '';
+
+    if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        attachmentName = file.name;
+        attachmentMime = file.type;
+        attachmentBase64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result.split(',')[1]);
+            reader.readAsDataURL(file);
+        });
+    }
+
+    try {
+        if (typeof sendToPublicationEmail !== 'function') {
+            throw new Error('Email service not available. Please ensure firebase-db.js is loaded.');
+        }
+        await sendToPublicationEmail({
+            toEmail,
+            subject,
+            body,
+            quotationNumber: quotation.quotation_number,
+            attachmentBase64,
+            attachmentName,
+            attachmentMimeType: attachmentMime
+        });
+
+        // Mark as published in DB
+        if (typeof QuotationDB !== 'undefined' && typeof isSupabaseAvailable === 'function' && isSupabaseAvailable()) {
+            try { await QuotationDB.updateStatus(quotationId, 'published'); } catch { /* non-fatal */ }
+        }
+        // Update localStorage
+        const orders = JSON.parse(localStorage.getItem('adspot_orders') || '[]');
+        const idx = orders.findIndex(o =>
+            String(o.id) === String(quotationId) || o.quotation_number === quotationId
+        );
+        if (idx !== -1) { orders[idx].status = 'published'; localStorage.setItem('adspot_orders', JSON.stringify(orders)); }
+
+        showToast('Sent to publication successfully!', 'success');
+        document.getElementById('sendToPublicationModal').classList.remove('active');
+        loadQuotations();
+    } catch (e) {
+        showToast('Failed to send: ' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px"><path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z"/></svg>Send to Publication`;
+    }
+}

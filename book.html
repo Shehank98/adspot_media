@@ -541,15 +541,16 @@
                             <div class="form-section">
                                 <label class="form-label">Payment Method</label>
                                 <div class="payment-methods">
-                                    <label class="payment-method payment-method--disabled" title="Card payment coming soon">
-                                        <input type="radio" name="paymentMethod" value="card" disabled>
+                                    <label class="payment-method" id="helapayOption">
+                                        <input type="radio" name="paymentMethod" value="helapay">
                                         <div class="method-content">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                                <rect x="1" y="4" width="22" height="16" rx="2"/>
-                                                <path d="M1 10h22"/>
+                                                <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                                                <rect x="3" y="14" width="7" height="7" rx="1"/>
+                                                <path d="M14 14h2v2h-2zM18 14h3M14 18h3M18 18h3M18 21v-3"/>
                                             </svg>
-                                            <span>Pay Online (PayHere)</span>
-                                            <span class="method-note">Coming soon — we're still working on this</span>
+                                            <span>Pay with HelaPay QR</span>
+                                            <span class="method-note">Scan &amp; pay instantly</span>
                                         </div>
                                     </label>
                                     <label class="payment-method">
@@ -565,16 +566,17 @@
                                 </div>
                             </div>
 
-                            <!-- PayHere Online Payment (disabled - coming soon) -->
-                            <div id="cardPayment" class="payment-form" style="display: none;">
-                                <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 18px 20px; display: flex; align-items: flex-start; gap: 14px;">
-                                    <svg style="width:28px;height:28px;flex-shrink:0;margin-top:2px;" viewBox="0 0 24 24" fill="none" stroke="#c2410c" stroke-width="1.8">
-                                        <circle cx="12" cy="12" r="10"/>
-                                        <path d="M12 8v4M12 16h.01"/>
+                            <!-- HelaPay QR Payment hint -->
+                            <div id="helapayPayment" class="payment-form" style="display: none;">
+                                <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 16px 18px; display: flex; align-items: flex-start; gap: 14px;">
+                                    <svg style="width:26px;height:26px;flex-shrink:0;margin-top:2px;" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" stroke-width="1.8">
+                                        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                                        <rect x="3" y="14" width="7" height="7" rx="1"/>
+                                        <path d="M14 14h2v2h-2zM18 14h3M14 18h3M18 18h3M18 21v-3"/>
                                     </svg>
                                     <div>
-                                        <p style="font-weight:600;color:#9a3412;margin:0 0 4px;">Card Payment Coming Soon</p>
-                                        <p style="font-size:13px;color:#475569;margin:0;">We're still working on online card payments. Please use <strong>Bank Transfer</strong> for now.</p>
+                                        <p style="font-weight:600;color:#1e40af;margin:0 0 4px;">HelaPay QR Code</p>
+                                        <p style="font-size:13px;color:#475569;margin:0;">A QR code will appear after you submit. Open your HelaPay app and scan to complete payment instantly.</p>
                                     </div>
                                 </div>
                             </div>
@@ -804,8 +806,45 @@
         </div>
     </div>
 
+    <!-- HelaPay QR Modal -->
+    <div id="helapayModal" class="modal" role="dialog" aria-modal="true" aria-label="HelaPay QR Payment">
+        <div class="modal-content helapay-modal">
+            <!-- Loading state -->
+            <div id="qrLoading" class="qr-state">
+                <div class="qr-spinner"></div>
+                <p style="color:#64748b;margin:0;">Generating QR code...</p>
+            </div>
+            <!-- QR ready state -->
+            <div id="qrReady" class="qr-state" style="display:none">
+                <div class="qr-header">
+                    <h2 style="margin:0 0 6px;font-size:1.25rem;">Scan to Pay</h2>
+                    <div class="qr-amount" id="qrAmount"></div>
+                    <div class="qr-timer" id="qrTimer">05:00</div>
+                </div>
+                <canvas id="qrCanvas"></canvas>
+                <p class="qr-hint">Open your HelaPay app and scan the QR code</p>
+                <p class="qr-ref" id="qrRef"></p>
+            </div>
+            <!-- Success state -->
+            <div id="qrSuccess" class="qr-state" style="display:none">
+                <div class="qr-success-icon">&#10003;</div>
+                <h2 style="margin:0;">Payment Successful!</h2>
+                <p style="color:#64748b;margin:4px 0 0;">Your booking is confirmed.</p>
+            </div>
+            <!-- Failed / expired state -->
+            <div id="qrFailed" class="qr-state" style="display:none">
+                <div class="qr-fail-icon">&#10007;</div>
+                <h2 id="qrFailTitle" style="margin:0;">Payment Failed</h2>
+                <p id="qrFailMsg" style="color:#64748b;margin:4px 0 16px;">Please try again or use Bank Transfer.</p>
+                <button class="btn btn-ghost" onclick="closeHelapayModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- jsPDF for PDF generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- QR code renderer for HelaPay -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>

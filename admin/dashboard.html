@@ -681,6 +681,45 @@
             .catch((e) => console.warn('SW failed:', e));
     }
 
+    // ── Push Notifications ──────────────────────────────────
+    function urlBase64ToUint8Array(base64) {
+        const padding = '='.repeat((4 - base64.length % 4) % 4);
+        const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/');
+        return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    }
+
+    async function registerPushNotifications() {
+        if (!('PushManager' in window) || !('serviceWorker' in navigator)) return;
+        if (!CONFIG.HELAPAY?.VAPID_PUBLIC_KEY || CONFIG.HELAPAY.VAPID_PUBLIC_KEY.startsWith('REPLACE')) return;
+        try {
+            const perm = await Notification.requestPermission();
+            if (perm !== 'granted') return;
+            const reg = await navigator.serviceWorker.ready;
+            const sub = await reg.pushManager.getSubscription()
+                     || await reg.pushManager.subscribe({
+                            userVisibleOnly: true,
+                            applicationServerKey: urlBase64ToUint8Array(CONFIG.HELAPAY.VAPID_PUBLIC_KEY)
+                        });
+            await fetch(CONFIG.HELAPAY.PUSH_REGISTER_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    endpoint: sub.endpoint,
+                    keys: {
+                        p256dh: btoa(String.fromCharCode(...new Uint8Array(sub.getKey('p256dh')))),
+                        auth:   btoa(String.fromCharCode(...new Uint8Array(sub.getKey('auth'))))
+                    },
+                    deviceLabel: /mobile|android|iphone/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop'
+                })
+            });
+        } catch (e) {
+            console.warn('[Push] Registration failed:', e.message);
+        }
+    }
+
+    // Delay push opt-in slightly for better UX (after initial page load)
+    setTimeout(registerPushNotifications, 4000);
+
     // ── Offline indicator ───────────────────────────────────
     const offlineToast = document.getElementById('offline-toast');
     window.addEventListener('offline', () => offlineToast.classList.add('visible'));
@@ -753,5 +792,25 @@
         localStorage.setItem(DISMISS_KEY, '1');
     });
     </script>
+
+    <!-- Send to Publication Modal -->
+    <div id="sendToPublicationModal" class="modal" role="dialog" aria-modal="true">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2 class="modal-title">Send to Publication</h2>
+                <button class="modal-close" onclick="document.getElementById('sendToPublicationModal').classList.remove('active')">&times;</button>
+            </div>
+            <div id="pubSendContent" style="padding: 0 0 16px;"></div>
+            <div class="form-actions" style="padding-top:8px;border-top:1px solid #1e293b;">
+                <button class="btn btn-ghost" onclick="document.getElementById('sendToPublicationModal').classList.remove('active')">Cancel</button>
+                <button class="btn btn-primary" id="confirmSendToPublicationBtn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px">
+                        <path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z"/>
+                    </svg>
+                    Send to Publication
+                </button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

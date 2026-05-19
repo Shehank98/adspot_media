@@ -240,3 +240,34 @@ FROM quotations q
 WHERE q.status IN ('paid', 'published')
 GROUP BY q.newspaper_name, q.ad_type
 ORDER BY total_revenue DESC;
+
+
+-- ============================================
+-- PUSH SUBSCRIPTIONS TABLE
+-- Stores admin Web Push subscriptions for
+-- real-time payment notifications via PWA.
+-- Run this in Supabase SQL editor.
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+    id          UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    endpoint    TEXT UNIQUE NOT NULL,
+    p256dh      TEXT NOT NULL,
+    auth        TEXT NOT NULL,
+    device_label VARCHAR(100) DEFAULT 'Admin Device',
+    created_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
+
+-- Admin devices can register subscriptions (public insert)
+CREATE POLICY "push_subs_insert" ON push_subscriptions
+    FOR INSERT WITH CHECK (true);
+
+-- Only service role can read (used by Netlify webhook function)
+CREATE POLICY "push_subs_select" ON push_subscriptions
+    FOR SELECT USING (false);
+
+-- Service role can delete stale subscriptions
+CREATE POLICY "push_subs_delete" ON push_subscriptions
+    FOR DELETE USING (false);

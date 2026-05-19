@@ -1313,8 +1313,11 @@ function updateOrderSummary() {
  */
 function togglePaymentMethod() {
     const method = document.querySelector('input[name="paymentMethod"]:checked')?.value;
-    document.getElementById('cardPayment').style.display = method === 'card' ? 'block' : 'none';
+    const cardEl = document.getElementById('cardPayment');
+    if (cardEl) cardEl.style.display = method === 'card' ? 'block' : 'none';
     document.getElementById('bankPayment').style.display = method === 'bank' ? 'block' : 'none';
+    const helaEl = document.getElementById('helapayPayment');
+    if (helaEl) helaEl.style.display = method === 'helapay' ? 'block' : 'none';
     updateOrderSummary();
 }
 
@@ -1789,7 +1792,7 @@ async function handleSubmit(e) {
         // Small delay for UX
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        // Show success or trigger PayHere payment
+        // Show success or trigger payment flow
         if (paymentMethod === 'card') {
             // Trigger PayHere popup for online payment
             sessionStorage.setItem('lastQuotationNumber', quotationNumber);
@@ -1800,6 +1803,13 @@ async function handleSubmit(e) {
             submitText.style.display = 'block';
             submitLoader.style.display = 'none';
             return; // Don't fall through to finally block reset
+        } else if (paymentMethod === 'helapay') {
+            // HelaPay QR — show QR modal, reset button so user can interact
+            submitBtn.disabled = false;
+            submitText.style.display = 'block';
+            submitLoader.style.display = 'none';
+            startHelapayPayment(quotationNumber, finalTotal, formData);
+            return;
         } else {
             // Bank transfer — show success modal immediately
             showSuccessModal(quotationNumber, formData.customer_email, paymentMethod);
@@ -2382,3 +2392,152 @@ function showPromoMessage(message, type) {
 window.showLoginWarning = showLoginWarning;
 window.closeLoginWarning = closeLoginWarning;
 window.loginFromWarning = loginFromWarning;
+
+// ─── HelaPay QR Payment ──────────────────────────────────────────────────────
+
+let helapayQrReference = null;
+let qrCountdownInterval = null;
+let qrPollTimeout = null;
+
+async function startHelapayPayment(quotationNumber, amount, formData) {
+    showHelapayModal();
+    setQrState('loading');
+
+    try {
+        const res = await fetch(CONFIG.HELAPAY.FUNCTIONS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'generateQR', referenceId: quotationNumber, amount })
+        });
+
+        if (!res.ok) throw new Error(`Server error ${res.status}`);
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        if (!data.qr_data) throw new Error('No QR data returned');
+
+        helapayQrReference = data.qr_reference;
+
+        // Render QR code onto canvas
+        await QRCode.toCanvas(document.getElementById('qrCanvas'), data.qr_data, {
+            width: 240,
+            margin: 2,
+            color: { dark: '#0f172a', light: '#ffffff' }
+        });
+
+        document.getElementById('qrAmount').textContent = `Rs. ${parseFloat(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        document.getElementById('qrRef').textContent = `Ref: ${quotationNumber}`;
+        setQrState('ready');
+        startQrCountdown(5 * 60);
+        pollHelapayStatus(data.qr_reference, quotationNumber, formData, amount);
+    } catch (err) {
+        console.error('[HelaPay] QR generation failed:', err.message);
+        setQrState('failed', 'QR Generation Failed', err.message);
+    }
+}
+
+async function pollHelapayStatus(qrReference, quotationNumber, formData, amount) {
+    let attempts = 0;
+    const maxAttempts = 60; // 5 minutes at 5s intervals
+
+    const poll = async () => {
+        if (attempts++ >= maxAttempts) {
+            setQrState('failed', 'Payment Expired', 'QR code has expired. Please try again.');
+            return;
+        }
+        try {
+            const res = await fetch(CONFIG.HELAPAY.FUNCTIONS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'checkStatus', qrReference })
+            });
+            if (!res.ok) throw new Error(`Status ${res.status}`);
+            const data = await res.json();
+            const status = data.payment_status ?? data.sale?.payment_status;
+
+            if (status === 2 || status === '2') {
+                clearQrCountdown();
+                setQrState('success');
+                await markQuotationPaidFromBooking(quotationNumber);
+                setTimeout(() => {
+                    closeHelapayModal();
+                    showSuccessModal(quotationNumber, formData.customer_email, 'helapay');
+                }, 2000);
+            } else if (status === -1 || status === '-1') {
+                setQrState('failed', 'Payment Failed', 'The payment was declined. Please try again or use Bank Transfer.');
+            } else {
+                qrPollTimeout = setTimeout(poll, 5000);
+            }
+        } catch {
+            qrPollTimeout = setTimeout(poll, 5000);
+        }
+    };
+
+    qrPollTimeout = setTimeout(poll, 5000);
+}
+
+async function markQuotationPaidFromBooking(quotationNumber) {
+    // Update in Supabase if available
+    if (typeof QuotationDB !== 'undefined' && typeof isSupabaseAvailable === 'function' && isSupabaseAvailable()) {
+        try {
+            await QuotationDB.updateStatusByNumber(quotationNumber, 'paid');
+        } catch (e) {
+            console.warn('[HelaPay] DB update failed:', e.message);
+        }
+    }
+    // Also update localStorage fallback
+    try {
+        const orders = JSON.parse(localStorage.getItem('adspot_orders') || '[]');
+        const idx = orders.findIndex(o => o.quotation_number === quotationNumber);
+        if (idx !== -1) {
+            orders[idx].status = 'paid';
+            orders[idx].payment_status = 'paid';
+            orders[idx].payment_method = 'helapay';
+            localStorage.setItem('adspot_orders', JSON.stringify(orders));
+        }
+    } catch {/* ignore */}
+}
+
+// Modal helpers
+function showHelapayModal() {
+    document.getElementById('helapayModal')?.classList.add('active');
+}
+
+function closeHelapayModal() {
+    document.getElementById('helapayModal')?.classList.remove('active');
+    clearQrCountdown();
+    if (qrPollTimeout) { clearTimeout(qrPollTimeout); qrPollTimeout = null; }
+}
+
+function setQrState(state, title, msg) {
+    ['qrLoading', 'qrReady', 'qrSuccess', 'qrFailed'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+    const map = { loading: 'qrLoading', ready: 'qrReady', success: 'qrSuccess', failed: 'qrFailed' };
+    const el = document.getElementById(map[state]);
+    if (el) el.style.display = 'flex';
+    if (state === 'failed') {
+        const titleEl = document.getElementById('qrFailTitle');
+        const msgEl = document.getElementById('qrFailMsg');
+        if (title && titleEl) titleEl.textContent = title;
+        if (msg && msgEl) msgEl.textContent = msg;
+    }
+}
+
+function startQrCountdown(seconds) {
+    const el = document.getElementById('qrTimer');
+    let rem = seconds;
+    qrCountdownInterval = setInterval(() => {
+        if (rem <= 0) { clearInterval(qrCountdownInterval); return; }
+        rem--;
+        const m = String(Math.floor(rem / 60)).padStart(2, '0');
+        const s = String(rem % 60).padStart(2, '0');
+        if (el) el.textContent = `${m}:${s}`;
+    }, 1000);
+}
+
+function clearQrCountdown() {
+    if (qrCountdownInterval) { clearInterval(qrCountdownInterval); qrCountdownInterval = null; }
+}
+
+window.closeHelapayModal = closeHelapayModal;
