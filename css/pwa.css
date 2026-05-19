@@ -375,3 +375,210 @@
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.4; }
 }
+
+/* ═══════════════════════════════════════════════════════
+   MOBILE RESPONSIVENESS FIXES
+   ═══════════════════════════════════════════════════════ */
+
+/* ─── Scrollable table wrapper ───────────────────────── */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+/* Give wide tables a min-width so they actually scroll instead of cramming */
+.data-table {
+  min-width: 560px;
+}
+
+.data-table.compact {
+  min-width: 380px;
+}
+
+/* overflow: clip clips visually (border-radius intact) but doesn't block child scroll containers.
+   Replaces overflow: hidden so .table-scroll inside can show its scrollbar on mobile. */
+.data-card,
+.dashboard-card {
+  overflow: clip;
+}
+
+/* ─── Admin section: reduce padding on mobile ─────────── */
+@media (max-width: 768px) {
+  .admin-section {
+    padding: 16px !important;
+  }
+
+  /* Section toolbar: stack vertically */
+  .section-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .toolbar-filters {
+    flex-wrap: wrap;
+  }
+
+  .toolbar-filters select,
+  .toolbar-filters input[type="date"] {
+    flex: 1;
+    min-width: 130px;
+  }
+
+  .toolbar-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-actions .btn,
+  .section-toolbar > .btn {
+    flex: 1;
+    justify-content: center;
+    min-height: 42px;
+  }
+
+  .toolbar-search {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  /* Topbar: collapse search to icon on small screens */
+  .topbar-search {
+    max-width: 160px;
+  }
+
+  /* Dashboard grid: single column */
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Stats: 2 columns on tablet */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Modal full-width on mobile */
+  .modal-content {
+    padding: 20px 16px;
+    border-radius: 16px 16px 0 0;
+    max-height: 85vh;
+    width: 100%;
+    max-width: 100%;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    margin: 0;
+    transform: none;
+    animation: slideUp 0.3s ease;
+  }
+
+  .modal {
+    align-items: flex-end;
+  }
+}
+
+/* ─── 480px and below ────────────────────────────────── */
+@media (max-width: 480px) {
+  /* Stats: single column on very small phones */
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .stat-card {
+    flex-direction: row;
+    gap: 12px;
+  }
+
+  /* Section header compact */
+  .admin-section .section-header h1 {
+    font-size: 1.375rem;
+  }
+
+  /* Topbar: hide search entirely, just show toggle + name */
+  .topbar-search {
+    display: none;
+  }
+
+  .topbar-actions #adminName {
+    font-size: 13px;
+  }
+
+  /* Table cells more compact */
+  .data-table th,
+  .data-table td {
+    padding: 8px 10px;
+    font-size: 0.8125rem;
+  }
+
+  /* Admin section less padding */
+  .admin-section {
+    padding: 12px !important;
+  }
+}
+
+/* ─── my-bookings: booking-details grid fix ──────────── */
+@media (max-width: 480px) {
+  .booking-details {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .dashboard-container {
+    padding: 90px 16px 30px !important;
+  }
+
+  .booking-card {
+    padding: 16px !important;
+  }
+
+  .booking-id {
+    font-size: 16px !important;
+  }
+}
+
+/* ─── Classifieds: featured ads grid ────────────────── */
+@media (max-width: 600px) {
+  /* Force single column for wide min-width grids */
+  .featured-ads-grid,
+  .classifieds-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ─── book.html / classifieds.html: viewport meta ────── */
+/* Ensure buttons in booking form are touch-friendly */
+@media (max-width: 768px) {
+  .btn-add-to-cart,
+  .payment-btn,
+  .btn-next-step,
+  .btn-prev-step {
+    min-height: 48px;
+    font-size: 15px;
+  }
+
+  /* Price comparison table scrolls */
+  .comparison-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ─── maintenance.html: 480px breakpoint ────────────── */
+@media (max-width: 480px) {
+  .maintenance-container {
+    padding: 24px 16px !important;
+  }
+
+  .maintenance-card {
+    padding: 24px 16px !important;
+  }
+}
+
+/* ─── index.html: trust grid fix at 480px ───────────── */
+@media (max-width: 480px) {
+  .trust-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
