@@ -3,10 +3,15 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Helper: check if the signed-in user is an admin via Firestore
+    // Helper: check if the signed-in user is an admin
+    // Primary: email match (reliable — no Firestore document dependency)
+    // Fallback: Firestore role check (for future multi-admin support)
     function isAdmin() {
-      return request.auth != null &&
-             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      return request.auth != null && (
+        request.auth.token.email == 'adspot77@gmail.com' ||
+        (exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+         firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get('role', '') == 'admin')
+      );
     }
 
     // Ad artwork uploads (customers upload during booking)
