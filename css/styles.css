@@ -1815,6 +1815,7 @@ select:focus {
     align-items: center;
     justify-content: center;
     background: linear-gradient(135deg, var(--gray-900) 0%, var(--gray-800) 100%);
+    overflow: hidden;
 }
 
 .login-container {

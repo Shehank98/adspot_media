@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Privacy Policy | AdSpot Media</title>
 
     <meta name="description" content="AdSpot Media's privacy policy — how we collect, use, and protect your personal information.">
@@ -17,6 +17,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/pwa.css">
 
     <style>
         .policy-hero {
@@ -134,8 +135,19 @@
                 <li><a href="index.html#contact">Contact</a></li>
             </ul>
             <a href="book.html" class="btn btn-primary">Book Your Ad</a>
+            <button class="mobile-menu-btn" aria-label="Menu">
+                <span></span><span></span><span></span>
+            </button>
         </div>
     </nav>
+    <div class="mobile-menu">
+        <div class="mobile-menu-content">
+            <a href="index.html#services">Services</a>
+            <a href="index.html#publications">Publications</a>
+            <a href="index.html#contact">Contact</a>
+            <a href="book.html" class="btn btn-primary">Book Your Ad</a>
+        </div>
+    </div>
 
     <div class="policy-hero">
         <h1>Privacy Policy</h1>
@@ -181,6 +193,7 @@
         <div class="policy-section">
             <h2>How We Use Your Information</h2>
 
+            <div class="table-scroll">
             <table class="data-table">
                 <tr>
                     <th>Purpose</th>
@@ -215,6 +228,7 @@
                     <td>All data as required by law</td>
                 </tr>
             </table>
+            </div>
 
             <p>We will not use your personal data for any purpose other than what is described in this policy without your explicit consent.</p>
         </div>
@@ -267,6 +281,7 @@
             <h2>Cookies and Tracking Technologies</h2>
             <p>Our website uses cookies and similar technologies to enhance your experience. Here is what we use:</p>
 
+            <div class="table-scroll">
             <table class="data-table">
                 <tr>
                     <th>Cookie / Tool</th>
@@ -294,6 +309,7 @@
                     <td>Cleared automatically when browser is closed</td>
                 </tr>
             </table>
+            </div>
 
             <p>You can disable cookies through your browser settings, but this may affect the functionality of our website (e.g., you may not be able to log in).</p>
         </div>
@@ -338,6 +354,26 @@
             </p>
         </div>
     </div>
+    <script>
+    (function() {
+        var btn = document.querySelector('.mobile-menu-btn');
+        var menu = document.querySelector('.mobile-menu');
+        if (btn && menu) {
+            btn.addEventListener('click', function() {
+                btn.classList.toggle('active');
+                menu.classList.toggle('active');
+                document.body.style.overflow = menu.classList.contains('active') ? 'hidden' : '';
+            });
+            menu.querySelectorAll('a').forEach(function(a) {
+                a.addEventListener('click', function() {
+                    btn.classList.remove('active');
+                    menu.classList.remove('active');
+                    document.body.style.overflow = '';
+                });
+            });
+        }
+    })();
+    </script>
 
 </body>
 </html>

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Refund Policy | AdSpot Media</title>
 
     <meta name="description" content="AdSpot Media's refund and cancellation policy for newspaper advertising services.">
@@ -18,6 +18,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/pwa.css">
 
     <style>
         .policy-hero {
@@ -177,8 +178,19 @@
                 <li><a href="index.html#contact">Contact</a></li>
             </ul>
             <a href="book.html" class="btn btn-primary">Book Your Ad</a>
+            <button class="mobile-menu-btn" aria-label="Menu">
+                <span></span><span></span><span></span>
+            </button>
         </div>
     </nav>
+    <div class="mobile-menu">
+        <div class="mobile-menu-content">
+            <a href="index.html#services">Services</a>
+            <a href="index.html#publications">Publications</a>
+            <a href="index.html#contact">Contact</a>
+            <a href="book.html" class="btn btn-primary">Book Your Ad</a>
+        </div>
+    </div>
 
     <!-- Hero -->
     <div class="policy-hero">
@@ -297,6 +309,26 @@
             </p>
         </div>
     </div>
+    <script>
+    (function() {
+        var btn = document.querySelector(".mobile-menu-btn");
+        var menu = document.querySelector(".mobile-menu");
+        if (btn && menu) {
+            btn.addEventListener("click", function() {
+                btn.classList.toggle("active");
+                menu.classList.toggle("active");
+                document.body.style.overflow = menu.classList.contains("active") ? "hidden" : "";
+            });
+            menu.querySelectorAll("a").forEach(function(a) {
+                a.addEventListener("click", function() {
+                    btn.classList.remove("active");
+                    menu.classList.remove("active");
+                    document.body.style.overflow = "";
+                });
+            });
+        }
+    })();
+    </script>
 
 </body>
 </html>

@@ -698,3 +698,36 @@
     font-size: 12px;
   }
 }
+
+/* ─── Legal pages (privacy, terms, refund): mobile fixes ── */
+.policy-body {
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+}
+
+@media (max-width: 600px) {
+  .policy-hero h1 {
+    font-size: 1.75rem !important;
+  }
+  .policy-hero {
+    padding: 80px 16px 40px !important;
+  }
+  .policy-body {
+    padding: 32px 16px 60px !important;
+  }
+}
+
+/* Ensure footer links in policy pages are touch-friendly */
+.policy-footer a {
+  display: inline-block;
+  padding: 6px 4px;
+  min-height: 44px;
+  line-height: 32px;
+}
+
+/* Touch-friendly contact links (email, phone) inside policy pages */
+.policy-body a[href^="mailto:"],
+.policy-body a[href^="tel:"] {
+  display: inline-block;
+  padding: 4px 0;
+}

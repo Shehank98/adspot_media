@@ -267,6 +267,11 @@
                 <li><a href="index.html#publications">Publications</a></li>
                 <li><a href="index.html#contact">Contact</a></li>
             </ul>
+            <button class="mobile-menu-btn" aria-label="Menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
             <div class="nav-actions">
                 <a href="/book" class="btn btn-primary">Book Your Ad</a>
 
@@ -538,5 +543,37 @@
     <!-- Maintenance Mode -->
     <script src="js/maintenance-config.js"></script>
     <script src="js/maintenance-check.js"></script>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu">
+        <div class="mobile-menu-content">
+            <a href="index.html#services">Services</a>
+            <a href="index.html#publications">Publications</a>
+            <a href="index.html#contact">Contact</a>
+            <a href="/book" class="btn btn-primary">Book Your Ad</a>
+        </div>
+    </div>
+
+    <script>
+    // Mobile menu toggle
+    (function() {
+        const menuBtn = document.querySelector('.mobile-menu-btn');
+        const mobileMenu = document.querySelector('.mobile-menu');
+        if (menuBtn && mobileMenu) {
+            menuBtn.addEventListener('click', function() {
+                this.classList.toggle('active');
+                mobileMenu.classList.toggle('active');
+                document.body.style.overflow = mobileMenu.classList.contains('active') ? 'hidden' : '';
+            });
+            mobileMenu.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', function() {
+                    menuBtn.classList.remove('active');
+                    mobileMenu.classList.remove('active');
+                    document.body.style.overflow = '';
+                });
+            });
+        }
+    })();
+    </script>
 </body>
 </html>
