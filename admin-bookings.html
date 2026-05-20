@@ -154,6 +154,16 @@
             background: var(--primary-dark);
         }
 
+        .btn-delete {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .btn-delete:hover {
+            background: #dc2626;
+            color: white;
+        }
+
         .modal {
             display: none;
             position: fixed;
@@ -511,7 +521,10 @@
                 <div id="pubSendPanels"></div>
             </div>
 
-            <div class="modal-actions" style="margin-top: 24px; justify-content: flex-end;">
+            <div class="modal-actions" style="margin-top: 24px; justify-content: space-between;">
+                <button class="btn" onclick="deleteBooking(currentBooking?.id, true)" style="background:#fee2e2;color:#dc2626;border:1px solid #fecaca;">
+                    🗑️ Delete Booking
+                </button>
                 <button class="btn btn-secondary" onclick="closeModal()">Close</button>
             </div>
         </div>
@@ -634,11 +647,28 @@
                     <td>
                         <div class="action-buttons">
                             <button class="btn-sm btn-view" onclick="event.stopPropagation(); viewBooking(${JSON.stringify(booking).replace(/"/g, '&quot;')})">View</button>
+                            <button class="btn-sm btn-delete" onclick="event.stopPropagation(); deleteBooking('${booking.id}')">Delete</button>
                         </div>
                     </td>
                 `;
                 tbody.appendChild(row);
             });
+        }
+
+        // Delete a booking from Firestore and the local list
+        async function deleteBooking(bookingId, closeAfter = false) {
+            if (!bookingId) return;
+            if (!confirm('Permanently delete this booking? This cannot be undone.')) return;
+
+            try {
+                await db.collection('bookings').doc(bookingId).delete();
+                allBookings = allBookings.filter(b => b.id !== bookingId);
+                if (closeAfter) closeModal();
+                renderBookings();
+            } catch (error) {
+                console.error('Error deleting booking:', error);
+                alert('Failed to delete booking: ' + error.message);
+            }
         }
 
         // View booking details
