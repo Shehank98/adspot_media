@@ -1,484 +1,631 @@
 /**
- * Invoice PDF Generator — AdSpot Media
- * Matches the reference Invoice.html design: masthead header, receipt/invoice layout,
- * rubber PAID stamp, newspaper-style items table.
+ * Invoice PDF Generator — Variant C · Stamped Classified
+ * Exact faithful port of adspot-2/project/invoice-c-stamped.jsx + invoice.css
  */
 
-function buildInvoiceHTML(inv) {
-    const fmtLKR = n => `Rs. ${parseFloat(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    const fmtDateShort = d => {
-        try { return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, ' '); }
-        catch (e) { return d || ''; }
-    };
-    const fmtDateUpper = d => {
-        try { return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase(); }
-        catch (e) { return (d || '').toUpperCase(); }
-    };
+function buildInvoiceHTML(inv, isPaid) {
+  const fmtLKR = n => 'Rs. ' + Number(n || 0).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtShort = n => 'Rs. ' + Number(n || 0).toLocaleString('en-LK');
+  const fmtDate = d => { try { return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); } catch(e) { return d || ''; } };
+  const fmtDateUp = d => fmtDate(d).toUpperCase();
 
-    // PAID stamp SVG (rubber-stamp circle look)
-    const paidStamp = inv.paymentStatus === 'paid' ? `
-        <div style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;
-                    width:100px;height:100px;border-radius:50%;border:3px solid #1a6b3a;
-                    transform:rotate(-8deg);padding:4px;color:#1a6b3a;text-align:center;
-                    font-family:Georgia,'Times New Roman',serif;">
-            <div style="font-size:8px;font-weight:700;letter-spacing:2px;border-top:1.5px solid #1a6b3a;
-                        padding-top:3px;width:72px;text-align:center;">PAID</div>
-            <div style="font-size:18px;font-weight:900;letter-spacing:1px;line-height:1.1;">PAID</div>
-            <div style="font-size:7.5px;font-weight:600;letter-spacing:1.5px;">IN FULL</div>
-            <div style="font-size:7px;letter-spacing:0.5px;margin-top:2px;">${fmtDateUpper(inv.date)}</div>
-            <div style="font-size:8px;font-weight:700;letter-spacing:2px;border-bottom:1.5px solid #1a6b3a;
-                        padding-bottom:3px;width:72px;text-align:center;">PAID</div>
-        </div>` : `
-        <div style="font-size:11px;color:#888;font-style:italic;">Awaiting payment</div>`;
+  const itemRows = inv.items.map(it => `
+    <div class="st-item">
+      <div class="st-item-desc" style="padding:10px 12px;border-right:1px solid var(--rule);">
+        <div class="st-item-desc-name">${it.paper} — ${it.adType}</div>
+        <div class="st-item-desc-sub">${it.spec}${it.lang ? ' · ' + it.lang : ''}</div>
+      </div>
+      <span class="st-item-pub">${fmtDate(it.pubDate)}</span>
+      <span class="st-item-qty">${it.qty}</span>
+      <span class="st-item-unit">${fmtShort(it.unitPrice)}</span>
+      <span class="st-item-amt">${fmtShort(it.qty * it.unitPrice)}</span>
+    </div>`).join('');
 
-    // Item rows — each item shows ad specs if available
-    const itemRows = inv.items.map(item => {
-        const specs = item.specs ? `<div style="font-size:10.5px;color:#666;margin-top:2px;">${item.specs}</div>` : '';
-        return `
-        <tr>
-            <td style="padding:10px 12px;border-bottom:1px solid #ddd;vertical-align:top;">
-                <div style="font-weight:600;font-size:13px;color:#1a1a1a;">${item.description}</div>
-                ${specs}
-            </td>
-            <td style="padding:10px 12px;border-bottom:1px solid #ddd;text-align:center;vertical-align:top;white-space:nowrap;font-size:12px;color:#333;">${item.pubDate}</td>
-            <td style="padding:10px 12px;border-bottom:1px solid #ddd;text-align:center;vertical-align:top;font-size:12px;color:#333;">${item.qty}</td>
-            <td style="padding:10px 12px;border-bottom:1px solid #ddd;text-align:right;vertical-align:top;font-size:12px;color:#333;white-space:nowrap;">${fmtLKR(item.unitPrice)}</td>
-            <td style="padding:10px 12px;border-bottom:1px solid #ddd;text-align:right;vertical-align:top;font-size:12px;font-weight:600;color:#1a1a1a;white-space:nowrap;">${fmtLKR(item.amount)}</td>
-        </tr>`;
-    }).join('');
+  const totals = (() => {
+    const subtotal = inv.items.reduce((s, i) => s + i.qty * i.unitPrice, 0);
+    const commission = Math.round(subtotal * (inv.commissionPct || 0) / 100);
+    const discount = inv.promo ? Math.round(subtotal * (inv.promo.pct / 100)) : 0;
+    const afterDiscount = subtotal - discount + commission;
+    const vat = Math.round(afterDiscount * (inv.vatPct || 0) / 100);
+    const service = inv.serviceCharge || 0;
+    const total = afterDiscount + vat + service;
+    return { subtotal, commission, discount, vat, service, total };
+  })();
 
-    // Totals rows
-    const totalsRows = [];
-    totalsRows.push(`
-        <tr>
-            <td style="padding:7px 16px;font-size:12.5px;color:#555;text-align:right;border-bottom:1px solid #e8e8e8;">Subtotal</td>
-            <td style="padding:7px 16px;font-size:12.5px;text-align:right;border-bottom:1px solid #e8e8e8;white-space:nowrap;">${fmtLKR(inv.subtotal)}</td>
-        </tr>`);
-    if (inv.commission > 0) totalsRows.push(`
-        <tr>
-            <td style="padding:7px 16px;font-size:12.5px;color:#555;text-align:right;border-bottom:1px solid #e8e8e8;">Platform Commission (10%)</td>
-            <td style="padding:7px 16px;font-size:12.5px;text-align:right;border-bottom:1px solid #e8e8e8;white-space:nowrap;">${fmtLKR(inv.commission)}</td>
-        </tr>`);
-    if (inv.vat > 0) totalsRows.push(`
-        <tr>
-            <td style="padding:7px 16px;font-size:12.5px;color:#555;text-align:right;border-bottom:1px solid #e8e8e8;">VAT (18%)</td>
-            <td style="padding:7px 16px;font-size:12.5px;text-align:right;border-bottom:1px solid #e8e8e8;white-space:nowrap;">${fmtLKR(inv.vat)}</td>
-        </tr>`);
-    if (inv.serviceCharge > 0) totalsRows.push(`
-        <tr>
-            <td style="padding:7px 16px;font-size:12.5px;color:#555;text-align:right;border-bottom:1px solid #e8e8e8;">Service Charge</td>
-            <td style="padding:7px 16px;font-size:12.5px;text-align:right;border-bottom:1px solid #e8e8e8;white-space:nowrap;">${fmtLKR(inv.serviceCharge)}</td>
-        </tr>`);
-    if (inv.promoDiscount > 0) totalsRows.push(`
-        <tr>
-            <td style="padding:7px 16px;font-size:12.5px;color:#1a6b3a;text-align:right;border-bottom:1px solid #e8e8e8;">Discount&nbsp;·&nbsp;${inv.promoCode}</td>
-            <td style="padding:7px 16px;font-size:12.5px;color:#1a6b3a;font-weight:600;text-align:right;border-bottom:1px solid #e8e8e8;white-space:nowrap;">−&nbsp;${fmtLKR(inv.promoDiscount)}</td>
-        </tr>`);
+  // Override total with the one passed in (already computed in booking.js)
+  const displayTotal = inv.total || totals.total;
 
-    const docLabel = inv.paymentStatus === 'paid' ? 'TAX INVOICE · RECEIPT' : 'QUOTATION · PAYMENT DUE';
-    const docTitle = inv.paymentStatus === 'paid' ? 'Invoice' : 'Quotation';
-    const bg = '#F5F2EA';
+  const totalRows = [
+    `<div class="st-tr"><span>Subtotal</span><span class="v">${fmtLKR(totals.subtotal)}</span></div>`,
+    totals.commission > 0 ? `<div class="st-tr"><span>Commission (${inv.commissionPct}%)</span><span class="v">${fmtLKR(totals.commission)}</span></div>` : '',
+    totals.discount > 0 ? `<div class="st-tr discount"><span>Discount · ${inv.promo.code}</span><span class="v">− ${fmtLKR(totals.discount)}</span></div>` : '',
+    totals.vat > 0 ? `<div class="st-tr"><span>VAT (${inv.vatPct}%)</span><span class="v">${fmtLKR(totals.vat)}</span></div>` : '',
+    totals.service > 0 ? `<div class="st-tr"><span>Service charge</span><span class="v">${fmtLKR(totals.service)}</span></div>` : '',
+  ].filter(Boolean).join('');
 
-    return `<!DOCTYPE html>
-<html>
+  const stampHTML = isPaid ? `
+    <div class="st-stamp">
+      <div class="st-stamp-inner">
+        <div class="st-stamp-text">PAID</div>
+        <div class="st-stamp-sub">In Full</div>
+        <div class="st-stamp-date">${fmtDateUp(inv.paidAt || new Date())}</div>
+      </div>
+    </div>` : '';
+
+  return `<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400;1,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500;1,6..72,600;1,6..72,700&family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: ${bg}; }
-  .page {
-    background: ${bg};
-    font-family: 'Inter', system-ui, sans-serif;
-    color: #1a1a1a;
-    width: 794px;
-    min-height: 1050px;
-    padding: 0;
-  }
-  /* Masthead */
-  .masthead {
-    display: flex;
-    align-items: center;
-    padding: 18px 32px;
-    border-bottom: 2px solid #1a1a1a;
-  }
-  .masthead-logo {
-    font-family: 'Playfair Display', Georgia, serif;
-    font-style: italic;
-    font-weight: 700;
-    font-size: 24px;
-    letter-spacing: -0.5px;
-    color: #1a1a1a;
-    flex-shrink: 0;
-  }
-  .masthead-logo span { font-weight: 400; font-size: 18px; }
-  .masthead-address {
-    flex: 1;
-    text-align: center;
-    font-size: 9px;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: #555;
-  }
-  .masthead-right {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    text-align: right;
-    flex-shrink: 0;
-  }
-  /* Title band */
-  .title-band {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    padding: 20px 32px 16px;
-    border-bottom: 1px solid #ccc;
-  }
-  .title-left {}
-  .doc-label {
-    font-size: 9.5px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: #888;
-    margin-bottom: 4px;
-  }
-  .doc-label::before { content: '— '; }
-  .doc-label::after { content: ' —'; }
-  .doc-title {
-    font-family: 'Playfair Display', Georgia, serif;
-    font-style: italic;
-    font-size: 52px;
-    font-weight: 400;
-    line-height: 1;
-    color: #1a1a1a;
-    letter-spacing: -1px;
-  }
-  .title-right {
-    text-align: right;
-  }
-  .inv-number {
-    font-size: 20px;
-    font-weight: 700;
-    color: #1a1a1a;
-    letter-spacing: -0.5px;
-  }
-  .inv-ref-line {
-    font-size: 9.5px;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: #666;
-    margin-top: 6px;
-  }
-  /* Meta table */
-  .meta-table {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr;
-    border-top: 1px solid #ccc;
-    border-bottom: 1.5px solid #1a1a1a;
-    margin: 0 32px;
-  }
-  .meta-cell {
-    padding: 10px 12px;
-    border-right: 1px solid #ddd;
-  }
-  .meta-cell:last-child { border-right: none; }
-  .meta-label {
-    font-size: 8.5px;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: #888;
-    margin-bottom: 5px;
-  }
-  .meta-value {
-    font-size: 12px;
-    font-weight: 600;
-    color: #1a1a1a;
-  }
-  /* From / Bill To */
-  .addresses {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0;
-    padding: 20px 32px;
-    border-bottom: 1px solid #ccc;
-  }
-  .addr-block {}
-  .addr-label {
-    font-size: 8.5px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: #888;
-    margin-bottom: 8px;
-  }
-  .addr-name { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
-  .addr-company { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
-  .addr-line { font-size: 12px; color: #444; line-height: 1.6; }
-  /* Items table */
-  .items-table {
-    width: calc(100% - 64px);
-    margin: 0 32px;
-    border-collapse: collapse;
-    margin-bottom: 0;
-  }
-  .items-table th {
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    background: #1a1a1a;
-    color: #F5F2EA;
-    padding: 9px 12px;
-    text-align: left;
-  }
-  .items-table th:nth-child(2),
-  .items-table th:nth-child(3) { text-align: center; }
-  .items-table th:nth-child(4),
-  .items-table th:nth-child(5) { text-align: right; }
-  /* Totals */
-  .totals-wrap {
-    display: flex;
-    justify-content: flex-end;
-    padding: 0 32px 24px;
-  }
-  .totals-table {
-    border-collapse: collapse;
-    min-width: 280px;
-  }
-  .totals-total-row td {
-    background: #1a1a1a;
-    color: #F5F2EA;
-    font-weight: 700;
-    font-size: 14px;
-    padding: 12px 16px;
-    letter-spacing: 0.5px;
-  }
-  .totals-total-row td:last-child {
-    text-align: right;
-    font-size: 16px;
-  }
-  /* Footer */
-  .footer {
-    border-top: 1.5px solid #1a1a1a;
-    display: flex;
-    justify-content: space-between;
-    padding: 12px 32px;
-    font-size: 10px;
-    color: #666;
-    letter-spacing: 0.3px;
-  }
+:root {
+  --ink: #181613;
+  --ink-2: #5C544A;
+  --ink-3: #8a8275;
+  --paper: #FBF8F0;
+  --paper-warm: #F3EDDE;
+  --accent: #0E6B47;
+  --accent-soft: rgba(14,107,71,0.10);
+  --red: #B83A1F;
+  --rule: rgba(24,22,19,0.18);
+  --rule-strong: rgba(24,22,19,0.55);
+  --font-display: "Newsreader", Georgia, serif;
+  --font-ui: "Geist", -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--paper-warm); }
+
+.inv {
+  font-family: var(--font-ui);
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  width: 794px;
+  min-height: 1123px;
+  box-sizing: border-box;
+  position: relative;
+}
+.inv *, .inv *::before, .inv *::after { box-sizing: border-box; }
+
+/* VARIANT C — STAMPED CLASSIFIED */
+.inv-st {
+  background: var(--paper-warm);
+  padding: 56px;
+  font-size: 13px;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  min-height: 1123px;
+}
+.inv-st::before {
+  content: '';
+  position: absolute;
+  inset: 56px;
+  border: 1px solid var(--rule-strong);
+  pointer-events: none;
+}
+.inv-st::after {
+  content: '';
+  position: absolute;
+  inset: 60px;
+  border: 1px solid var(--rule);
+  pointer-events: none;
+}
+
+.st-frame {
+  position: relative;
+  z-index: 1;
+  background: var(--paper);
+  margin: 8px;
+  padding: 32px 36px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.st-hd {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 18px;
+  border-bottom: 3px double var(--ink);
+  margin-bottom: 22px;
+}
+.st-hd-l { display: flex; align-items: baseline; gap: 8px; }
+.st-hd-brand {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+.st-hd-tld {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 16px;
+  font-weight: 300;
+  color: var(--ink-2);
+}
+.st-hd-r {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-2);
+  text-align: right;
+}
+.st-hd-r strong { color: var(--ink); display: block; font-size: 12px; font-weight: 600; }
+
+/* Title row */
+.st-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 24px;
+  gap: 24px;
+}
+.st-title-l { display: flex; flex-direction: column; gap: 4px; }
+.st-kicker {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--red);
+}
+.st-title {
+  font-family: var(--font-display);
+  font-size: 64px;
+  font-weight: 500;
+  line-height: 0.9;
+  letter-spacing: -0.035em;
+  margin: 0;
+  font-style: italic;
+}
+.st-title-r {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-2);
+}
+
+/* Stamp */
+.st-stamp {
+  position: absolute;
+  top: 200px;
+  right: 90px;
+  width: 150px;
+  height: 150px;
+  transform: rotate(-12deg);
+  z-index: 3;
+  pointer-events: none;
+}
+.st-stamp-inner {
+  width: 100%;
+  height: 100%;
+  border: 3px solid var(--accent);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  opacity: 0.88;
+}
+.st-stamp-inner::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+}
+.st-stamp-text {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+  text-align: center;
+}
+.st-stamp-sub {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+  margin-top: 4px;
+}
+.st-stamp-date {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  color: var(--accent);
+  margin-top: 2px;
+  letter-spacing: 0.08em;
+}
+
+/* Meta grid */
+.st-meta {
+  border: 1px solid var(--ink);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin-bottom: 20px;
+}
+.st-meta-c {
+  padding: 10px 14px;
+  border-right: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.st-meta-c:last-child { border-right: 0; }
+.st-meta-lbl {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+}
+.st-meta-val {
+  font-size: 12.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Parties */
+.st-parties {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--ink);
+  border-bottom: 0;
+  margin-bottom: 0;
+}
+.st-party {
+  padding: 14px 16px;
+  border-right: 1px solid var(--ink);
+}
+.st-party:last-child { border-right: 0; }
+.st-party-lbl {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+  margin-bottom: 4px;
+}
+.st-party-name {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  margin-bottom: 2px;
+}
+.st-party-line {
+  color: var(--ink-2);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+/* Items */
+.st-items { border: 1px solid var(--ink); margin-bottom: 16px; }
+.st-items-head {
+  display: grid;
+  grid-template-columns: 1fr 90px 70px 90px 90px;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+.st-items-head span { padding: 8px 12px; border-right: 1px solid var(--rule-strong); }
+.st-items-head span:last-child { border-right: 0; }
+.st-items-head span:nth-child(n+3) { text-align: right; }
+.st-item {
+  display: grid;
+  grid-template-columns: 1fr 90px 70px 90px 90px;
+  border-top: 1px solid var(--rule);
+}
+.st-item > span { padding: 10px 12px; border-right: 1px solid var(--rule); font-variant-numeric: tabular-nums; }
+.st-item > span:last-child { border-right: 0; }
+.st-item-desc {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.st-item-desc-name { font-weight: 500; font-size: 13px; }
+.st-item-desc-sub { font-size: 10.5px; color: var(--ink-3); }
+.st-item-pub, .st-item-qty, .st-item-unit, .st-item-amt {
+  text-align: right;
+  font-size: 12px;
+  align-content: center;
+}
+.st-item-amt { font-weight: 600; }
+
+/* Totals */
+.st-totals { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+.st-totals-inner {
+  width: 320px;
+  border: 1px solid var(--ink);
+}
+.st-tr {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 14px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  border-bottom: 1px solid var(--rule);
+}
+.st-tr:last-child { border-bottom: 0; }
+.st-tr .v { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
+.st-tr.discount, .st-tr.discount .v { color: var(--accent); }
+.st-tr-grand {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 10px 14px;
+  background: var(--ink);
+  color: var(--paper);
+}
+.st-tr-grand-l {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+.st-tr-grand-v {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Footer */
+.st-foot {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 3px double var(--ink);
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-2);
+}
+.st-foot-c { display: flex; flex-direction: column; gap: 2px; }
+.st-foot-c strong {
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.st-foot-c.right { text-align: right; }
+.st-foot-c.center { text-align: center; }
+.st-foot-thanks {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--ink);
+  text-transform: none;
+  letter-spacing: 0;
+}
 </style>
 </head>
 <body>
-<div class="page">
+<div class="inv inv-st">
+  ${stampHTML}
+  <div class="st-frame">
 
-  <!-- Masthead -->
-  <div class="masthead">
-    <div class="masthead-logo"><em>AdSpot</em><span> media</span></div>
-    <div class="masthead-address">130 High Level Rd &middot; Colombo 06 &middot; adspot77@gmail.com &middot; 070 161 1411</div>
-    <div class="masthead-right">AdSpot Media</div>
-  </div>
+    <header class="st-hd">
+      <div class="st-hd-l">
+        <span class="st-hd-brand">AdSpot</span>
+        <span class="st-hd-tld">media</span>
+      </div>
+      <div class="st-hd-r">
+        <strong>AdSpot Media</strong>
+        <span>130 High Level Rd · Colombo 06</span>
+        <span>adspot77@gmail.com · 070 161 1411</span>
+      </div>
+    </header>
 
-  <!-- Title band -->
-  <div class="title-band">
-    <div class="title-left">
-      <div class="doc-label">${docLabel}</div>
-      <div class="doc-title">${docTitle}</div>
-    </div>
-    <div class="title-right">
-      <div class="inv-number">${inv.invoiceNumber}</div>
-      <div class="inv-ref-line">Ref &middot; ${inv.quotationNumber}</div>
-      <div class="inv-ref-line">Issued &middot; ${fmtDateUpper(inv.date)}</div>
-    </div>
-  </div>
-
-  <!-- Meta row -->
-  <div style="padding:0 32px;">
-    <div class="meta-table">
-      <div class="meta-cell">
-        <div class="meta-label">Invoice #</div>
-        <div class="meta-value" style="font-size:11px;">${inv.invoiceNumber}</div>
+    <div class="st-title-row">
+      <div class="st-title-l">
+        <span class="st-kicker">— ${isPaid ? 'Tax Invoice · Receipt' : 'Quotation · Payment Due'} —</span>
+        <h1 class="st-title">${isPaid ? 'Invoice' : 'Quotation'}</h1>
       </div>
-      <div class="meta-cell">
-        <div class="meta-label">Reference</div>
-        <div class="meta-value" style="font-size:11px;">${inv.quotationNumber}</div>
-      </div>
-      <div class="meta-cell">
-        <div class="meta-label">Issued</div>
-        <div class="meta-value">${fmtDateShort(inv.date)}</div>
-      </div>
-      <div class="meta-cell" style="display:flex;align-items:center;justify-content:center;padding:8px;">
-        <div class="meta-label" style="position:absolute;top:8px;left:12px;">Payment</div>
-        ${paidStamp}
+      <div class="st-title-r">
+        <div style="font-family:var(--font-display);font-size:22px;font-weight:600;font-style:normal;letter-spacing:-0.01em;color:var(--ink);">${inv.invoiceNumber}</div>
+        <div style="margin-top:4px;">Ref · ${inv.quotationNumber}</div>
+        <div>Issued · ${fmtDateUp(inv.issueDate)}</div>
       </div>
     </div>
-  </div>
 
-  <!-- Addresses -->
-  <div class="addresses">
-    <div class="addr-block">
-      <div class="addr-label">From</div>
-      <div class="addr-name">AdSpot Media</div>
-      <div class="addr-line">130 High Level Road, Colombo 06</div>
-      <div class="addr-line">Sri Lanka</div>
-      <div class="addr-line">adspot77@gmail.com</div>
-      <div class="addr-line">070 161 1411 / 070 642 1998</div>
-    </div>
-    <div class="addr-block">
-      <div class="addr-label">Bill To</div>
-      <div class="addr-name">${inv.to.name}</div>
-      ${inv.to.company ? `<div class="addr-company">${inv.to.company}</div>` : ''}
-      ${inv.to.address ? `<div class="addr-line">${inv.to.address}</div>` : ''}
-      <div class="addr-line">${inv.to.email}</div>
-      ${inv.to.phone ? `<div class="addr-line">${inv.to.phone}</div>` : ''}
-    </div>
-  </div>
+    <section class="st-meta">
+      <div class="st-meta-c">
+        <span class="st-meta-lbl">Invoice №</span>
+        <span class="st-meta-val">${inv.invoiceNumber}</span>
+      </div>
+      <div class="st-meta-c">
+        <span class="st-meta-lbl">Reference</span>
+        <span class="st-meta-val">${inv.quotationNumber}</span>
+      </div>
+      <div class="st-meta-c">
+        <span class="st-meta-lbl">Issued</span>
+        <span class="st-meta-val">${fmtDate(inv.issueDate)}</span>
+      </div>
+      <div class="st-meta-c">
+        <span class="st-meta-lbl">Payment</span>
+        <span class="st-meta-val">${inv.paymentMethod === 'helapay' ? 'HelaPay' : 'Bank Transfer'}</span>
+      </div>
+    </section>
 
-  <!-- Items -->
-  <table class="items-table">
-    <thead>
-      <tr>
-        <th style="width:44%;">Publication</th>
-        <th style="width:14%;text-align:center;">Pub. Date</th>
-        <th style="width:8%;text-align:center;">Qty</th>
-        <th style="width:17%;text-align:right;">Unit</th>
-        <th style="width:17%;text-align:right;">Amount</th>
-      </tr>
-    </thead>
-    <tbody>
+    <section class="st-parties">
+      <div class="st-party">
+        <div class="st-party-lbl">From</div>
+        <div class="st-party-name">AdSpot Media</div>
+        <div class="st-party-line">130 High Level Road, Colombo 06, Sri Lanka</div>
+        <div class="st-party-line">adspot77@gmail.com</div>
+        <div class="st-party-line">070 161 1411 / 070 642 1998</div>
+      </div>
+      <div class="st-party">
+        <div class="st-party-lbl">Bill to</div>
+        <div class="st-party-name">${inv.customer.name}</div>
+        ${inv.customer.company ? `<div class="st-party-line" style="font-weight:500;color:var(--ink);">${inv.customer.company}</div>` : ''}
+        ${inv.customer.address ? `<div class="st-party-line">${inv.customer.address}</div>` : ''}
+        <div class="st-party-line">${inv.customer.email}</div>
+        ${inv.customer.phone ? `<div class="st-party-line">${inv.customer.phone}</div>` : ''}
+      </div>
+    </section>
+
+    <section class="st-items">
+      <div class="st-items-head">
+        <span>Publication</span>
+        <span>Pub. date</span>
+        <span style="text-align:right;">Qty</span>
+        <span style="text-align:right;">Unit</span>
+        <span style="text-align:right;">Amount</span>
+      </div>
       ${itemRows}
-    </tbody>
-  </table>
+    </section>
 
-  <!-- Spacer -->
-  <div style="height:16px;"></div>
+    <section class="st-totals">
+      <div class="st-totals-inner">
+        ${totalRows}
+        <div class="st-tr-grand">
+          <span class="st-tr-grand-l">Total Due</span>
+          <span class="st-tr-grand-v">${fmtLKR(displayTotal)}</span>
+        </div>
+      </div>
+    </section>
 
-  <!-- Totals -->
-  <div class="totals-wrap">
-    <table class="totals-table">
-      ${totalsRows.join('')}
-      <tr class="totals-total-row">
-        <td style="text-transform:uppercase;letter-spacing:1px;">Total Due</td>
-        <td>${fmtLKR(inv.total)}</td>
-      </tr>
-    </table>
+    <footer class="st-foot">
+      <div class="st-foot-c">
+        <strong>070 161 1411</strong>
+        <span>· 070 642 1998</span>
+      </div>
+      <div class="st-foot-c center">
+        <span class="st-foot-thanks">Thank you for advertising with us.</span>
+        <span>Reg. PV 0023411</span>
+      </div>
+      <div class="st-foot-c right">
+        <strong>adspot77@gmail.com</strong>
+        <span>· adspotmedia.lk</span>
+      </div>
+    </footer>
+
   </div>
-
-  ${inv.paymentStatus !== 'paid' ? `
-  <div style="margin:0 32px 20px;padding:14px 16px;border:1px solid #ccc;background:rgba(255,255,255,0.5);font-size:11.5px;color:#444;">
-    <strong style="color:#1a1a1a;">Bank Transfer Details</strong> &mdash;
-    Please transfer the total amount to our bank account and email the payment slip to adspot77@gmail.com quoting your reference number.
-  </div>` : ''}
-
-  <!-- Footer -->
-  <div class="footer">
-    <span>AdSpot Media &middot; 070 161 1411 / 070 642 1998</span>
-    <span>adspot77@gmail.com</span>
-  </div>
-
 </div>
 </body>
 </html>`;
 }
 
 async function generateInvoicePDF(invoiceData, bookingData, isPaid = true) {
-    try {
-        if (typeof jspdf === 'undefined') throw new Error('jsPDF library not loaded');
-        if (typeof html2canvas === 'undefined') throw new Error('html2canvas library not loaded');
+  try {
+    if (typeof jspdf === 'undefined') throw new Error('jsPDF not loaded');
+    if (typeof html2canvas === 'undefined') throw new Error('html2canvas not loaded');
 
-        const fmtDateShort = d => {
-            try { return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); }
-            catch (e) { return d || ''; }
-        };
+    const fmtDate = d => { try { return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); } catch(e) { return ''; } };
 
-        // Build the adSpecs string from item.details if available
-        const buildSpecs = item => {
-            const d = item.details || {};
-            const parts = [];
-            if (d.columns && d.height) parts.push(`${d.columns} col × ${d.height}cm`);
-            else if (d.size) parts.push(d.size);
-            if (d.colour || d.color) parts.push((d.colour || d.color) === 'colour' ? 'Full colour' : (d.colour || d.color));
-            if (d.language) parts.push(d.language.charAt(0).toUpperCase() + d.language.slice(1));
-            if (d.classifiedText) parts.push(`"${d.classifiedText.substring(0, 40)}${d.classifiedText.length > 40 ? '…' : ''}"`);
-            return parts.join(' · ');
-        };
+    // Build spec string from item.details
+    const buildSpec = item => {
+      const d = item.details || {};
+      const parts = [];
+      if (d.columns && d.height) parts.push(`${d.columns} col × ${d.height}cm`);
+      else if (d.size) parts.push(d.size);
+      if (d.colour || d.color) {
+        const c = d.colour || d.color;
+        parts.push(c === 'colour' || c === 'color' || c === 'full' ? 'Full colour' : c);
+      }
+      return parts.join(' · ');
+    };
 
-        const inv = {
-            invoiceNumber: invoiceData.invoiceNumber,
-            quotationNumber: invoiceData.quotationNumber || '',
-            date: new Date(),
-            paymentStatus: isPaid ? 'paid' : 'unpaid',
-            to: {
-                name: bookingData.customerName || '',
-                company: bookingData.customerCompany || '',
-                address: bookingData.customerAddress || '',
-                email: bookingData.customerEmail || '',
-                phone: bookingData.customerPhone || ''
-            },
-            items: (bookingData.items || []).map(item => ({
-                description: `${item.newspaperName || ''} — ${item.adType === 'box' ? 'Box Ad' : 'Classified Ad'}`,
-                specs: buildSpecs(item),
-                pubDate: fmtDateShort(item.pubDate),
-                qty: 1,
-                unitPrice: item.price || 0,
-                amount: item.price || 0
-            })),
-            subtotal: invoiceData.subtotal || 0,
-            commission: invoiceData.commission || 0,
-            vat: invoiceData.vat || 0,
-            serviceCharge: invoiceData.serviceCharge || 0,
-            promoDiscount: invoiceData.promoDiscount || 0,
-            promoCode: invoiceData.promoCode || '',
-            total: invoiceData.total || 0
-        };
+    const inv = {
+      invoiceNumber: invoiceData.invoiceNumber,
+      quotationNumber: invoiceData.quotationNumber || '',
+      issueDate: new Date(),
+      paidAt: new Date(),
+      paymentMethod: bookingData.paymentMethod || 'bank',
+      customer: {
+        name: bookingData.customerName || '',
+        company: bookingData.customerCompany || '',
+        address: bookingData.customerAddress || '',
+        email: bookingData.customerEmail || '',
+        phone: bookingData.customerPhone || ''
+      },
+      items: (bookingData.items || []).map(item => ({
+        paper: item.newspaperName || '',
+        adType: item.adType === 'box' ? 'Box Ad' : 'Classified Ad',
+        spec: buildSpec(item),
+        lang: item.details?.language || '',
+        pubDate: item.pubDate,
+        qty: 1,
+        unitPrice: item.price || 0
+      })),
+      commissionPct: invoiceData.commission && invoiceData.subtotal
+        ? Math.round((invoiceData.commission / invoiceData.subtotal) * 100) : 0,
+      vatPct: invoiceData.vat && invoiceData.subtotal
+        ? Math.round((invoiceData.vat / (invoiceData.subtotal - (invoiceData.promoDiscount || 0) + (invoiceData.commission || 0))) * 100) : 0,
+      serviceCharge: invoiceData.serviceCharge || 0,
+      promo: invoiceData.promoCode && invoiceData.promoDiscount > 0
+        ? { code: invoiceData.promoCode, pct: Math.round((invoiceData.promoDiscount / invoiceData.subtotal) * 100) }
+        : null,
+      total: invoiceData.total || 0
+    };
 
-        const container = document.createElement('div');
-        container.style.cssText = 'position:fixed;left:-9999px;top:0;z-index:-9999;';
-        container.innerHTML = buildInvoiceHTML(inv);
-        document.body.appendChild(container);
+    const container = document.createElement('div');
+    container.style.cssText = 'position:fixed;left:-9999px;top:0;z-index:-9999;width:794px;';
+    container.innerHTML = buildInvoiceHTML(inv, isPaid);
+    document.body.appendChild(container);
 
-        // Allow fonts to load
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        try { await document.fonts.ready; } catch (e) {}
+    // Wait for Google Fonts to load
+    await new Promise(r => setTimeout(r, 1200));
+    try { await document.fonts.ready; } catch(e) {}
 
-        const pageEl = container.querySelector('.page');
-        const canvas = await html2canvas(pageEl, {
-            scale: 2,
-            useCORS: true,
-            allowTaint: true,
-            logging: false,
-            backgroundColor: '#F5F2EA',
-            width: 794,
-            windowWidth: 794
-        });
+    const el = container.querySelector('.inv-st');
+    const canvas = await html2canvas(el, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+      backgroundColor: '#F3EDDE',
+      width: 794,
+      windowWidth: 794
+    });
+    document.body.removeChild(container);
 
-        document.body.removeChild(container);
+    const { jsPDF } = jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pw = doc.internal.pageSize.getWidth();
+    const ph = doc.internal.pageSize.getHeight();
+    const imgH = (canvas.height / canvas.width) * pw;
+    doc.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pw, Math.min(imgH, ph));
 
-        const imgData = canvas.toDataURL('image/jpeg', 0.95);
-        const { jsPDF } = jspdf;
-        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-        const pageW = doc.internal.pageSize.getWidth();
-        const imgH = (canvas.height / canvas.width) * pageW;
-        doc.addImage(imgData, 'JPEG', 0, 0, pageW, imgH);
+    const blob = doc.output('blob');
+    const path = `invoices/${invoiceData.invoiceNumber}.pdf`;
+    console.log('📤 Uploading PDF:', path);
+    const snap = await storage.ref(path).put(blob, { contentType: 'application/pdf' });
+    const url = await snap.ref.getDownloadURL();
+    console.log('✅ PDF uploaded:', url);
+    return url;
 
-        // Upload to Firebase Storage
-        const pdfBlob = doc.output('blob');
-        const fileName = `invoices/${invoiceData.invoiceNumber}.pdf`;
-        console.log('📤 Uploading PDF:', fileName);
-        const storageRef = storage.ref(fileName);
-        const snap = await storageRef.put(pdfBlob, { contentType: 'application/pdf' });
-        const url = await snap.ref.getDownloadURL();
-        console.log('✅ Invoice PDF uploaded:', url);
-        return url;
-
-    } catch (error) {
-        console.error('❌ Error generating invoice PDF:', error);
-        throw error;
-    }
+  } catch (err) {
+    console.error('❌ Invoice PDF error:', err);
+    throw err;
+  }
 }
 
 window.generateInvoicePDF = generateInvoicePDF;
-console.log('✅ Invoice PDF generator (Variant C) loaded');
+console.log('✅ Invoice PDF generator (Variant C · Stamped Classified) loaded');
