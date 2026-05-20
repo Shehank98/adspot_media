@@ -1309,11 +1309,19 @@ adspot77@gmail.com | 070 642 1998`;
                                     const storage = firebase.storage();
                                     const fileRef = storage.refFromURL(item.adFileUrl);
                                     await fileRef.delete();
+                                } catch (deleteError) {
+                                    // 404 = already gone from storage; still clean up Firestore reference
+                                    if (deleteError.code !== 'storage/object-not-found') {
+                                        console.error('Error deleting file:', deleteError);
+                                        continue;
+                                    }
+                                }
 
-                                    // Update booking to remove file URL
+                                try {
+                                    // serverTimestamp() cannot be used inside an array — use ISO string instead
                                     const updatedItems = booking.items.map(i => {
                                         if (i.pubDate === item.pubDate && i.adFileUrl === item.adFileUrl) {
-                                            return { ...i, adFileUrl: null, fileDeletedAt: firebase.firestore.FieldValue.serverTimestamp() };
+                                            return { ...i, adFileUrl: null, fileDeletedAt: new Date().toISOString() };
                                         }
                                         return i;
                                     });
@@ -1324,9 +1332,9 @@ adspot77@gmail.com | 070 642 1998`;
                                     });
 
                                     deletedCount++;
-                                    console.log(`🗑️ Deleted file for ${item.newspaperName} - ${item.pubDate} (${daysSincePublish} days old)`);
-                                } catch (deleteError) {
-                                    console.error('Error deleting file:', deleteError);
+                                    console.log(`🗑️ Cleaned file for ${item.newspaperName} - ${item.pubDate} (${daysSincePublish} days old)`);
+                                } catch (updateError) {
+                                    console.error('Error updating booking after file cleanup:', updateError);
                                 }
                             }
                         }
