@@ -43,6 +43,15 @@ service firebase.storage {
       allow read, write, delete: if isAdmin();
     }
 
+    // Invoice PDFs (generated on booking + payment confirmation)
+    match /invoices/{filename} {
+      allow read: if true;                         // Customer downloads from emailed link
+      allow create: if request.auth != null        // Booking flow (signed-in or anonymous with anon auth)
+                    && request.resource.size < 10 * 1024 * 1024
+                    && request.resource.contentType == 'application/pdf';
+      allow delete: if isAdmin();
+    }
+
     // Catch-all: deny everything else
     match /{allPaths=**} {
       allow read, write: if false;

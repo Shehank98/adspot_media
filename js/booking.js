@@ -1576,6 +1576,45 @@ async function handleSubmit(e) {
                     notes: formData.notes || ''
                 };
 
+                // Generate unpaid quotation PDF before saving (bank transfer only)
+                if (paymentMethod === 'bank' && typeof generateInvoicePDF === 'function') {
+                    try {
+                        let qtSubtotal = 0, qtCommission = 0, qtVat = 0, qtServiceCharge = 0;
+                        adCart.forEach(item => {
+                            if (item.adType === 'box') {
+                                qtSubtotal += item.details?.adTotal || 0;
+                                qtCommission += item.details?.commission || 0;
+                                qtVat += item.details?.vat || 0;
+                            } else {
+                                qtSubtotal += item.details?.adTotal || 0;
+                                qtServiceCharge += item.details?.serviceCharge || 0;
+                            }
+                        });
+                        const qtInvoiceData = {
+                            invoiceNumber: invoiceNumber,
+                            quotationNumber: quotationNumber,
+                            subtotal: qtSubtotal,
+                            commission: qtCommission,
+                            vat: qtVat,
+                            serviceCharge: qtServiceCharge,
+                            promoCode: appliedPromoCode?.code || '',
+                            promoDiscount: promoDiscount || 0,
+                            total: finalTotal
+                        };
+                        const qtBookingData = {
+                            customerName: formData.customer_name,
+                            customerEmail: formData.customer_email,
+                            customerPhone: formData.customer_phone,
+                            customerCompany: formData.customer_company || '',
+                            items: bookingData.items
+                        };
+                        bookingData.quotationPdfUrl = await generateInvoicePDF(qtInvoiceData, qtBookingData, false);
+                        console.log('✅ Quotation PDF generated:', bookingData.quotationPdfUrl);
+                    } catch (pdfErr) {
+                        console.warn('⚠️ Quotation PDF generation failed, continuing:', pdfErr);
+                    }
+                }
+
                 // Save to Firebase (also triggers email via Apps Script)
                 const bookingId = await saveBookingToFirebase(bookingData);
                 payhereBookingId = bookingId; // Store for PayHere callback

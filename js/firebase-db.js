@@ -32,9 +32,13 @@ async function saveBookingToFirebase(bookingData) {
             customerAddress: bookingData.customerAddress || '',
             items: bookingData.items,
             totalAmount: bookingData.totalAmount,
+            subtotalAmount: bookingData.subtotalAmount || bookingData.totalAmount,
+            promoCode: bookingData.promoCode || null,
+            promoDiscount: bookingData.promoDiscount || 0,
             paymentMethod: bookingData.paymentMethod,
             paymentStatus: bookingData.paymentStatus || 'pending',
             paymentReference: bookingData.paymentReference || '',
+            quotationPdfUrl: bookingData.quotationPdfUrl || '',
             status: 'pending',
             notes: bookingData.notes || '',
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -339,6 +343,7 @@ async function sendBookingEmails(bookingData) {
                 promoCode: bookingData.promoCode,
                 promoDiscount: bookingData.promoDiscount,
                 paymentMethod: bookingData.paymentMethod,
+                quotationPdfUrl: bookingData.quotationPdfUrl || '',
                 items: items
             })
         });
