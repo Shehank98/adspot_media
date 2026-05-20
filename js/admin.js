@@ -517,6 +517,12 @@ async function loadQuotations() {
                                 <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
                             </svg>
                         </button>
+                        <button class="action-btn action-btn--danger" onclick="deleteQuotation('${q.id}', '${q.source}')" title="Delete">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
+                                <path d="M10 11v6M14 11v6"/>
+                            </svg>
+                        </button>
                     </div>
                 </td>
             </tr>
@@ -1056,6 +1062,13 @@ async function viewQuotation(id, source = 'database') {
                         Send to Publication
                     </button>
                 ` : ''}
+                <button class="btn btn-danger" onclick="deleteQuotation('${quotation.id}', '${quotation.source || ''}', true)">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:5px">
+                        <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
+                        <path d="M10 11v6M14 11v6"/>
+                    </svg>
+                    Delete Booking
+                </button>
             </div>
         `;
 
@@ -2002,6 +2015,51 @@ window.downloadInvoice = downloadInvoice;
 window.previewInvoice = previewInvoice;
 window.openSendToPublicationModal = openSendToPublicationModal;
 window.markAsPaid = markAsPaid;
+window.deleteQuotation = deleteQuotation;
+
+// ─── Delete Booking ──────────────────────────────────────────────────────────
+
+async function deleteQuotation(quotationId, source, closeModal = false) {
+    if (!confirm('Are you sure you want to permanently delete this booking? This cannot be undone.')) return;
+
+    let deleted = false;
+
+    // Delete from Supabase if available
+    if (typeof QuotationDB !== 'undefined' && typeof isSupabaseAvailable === 'function' && isSupabaseAvailable()) {
+        try {
+            await QuotationDB.delete(quotationId);
+            deleted = true;
+        } catch (e) {
+            console.warn('[Delete] Supabase delete failed:', e.message);
+        }
+    }
+
+    // Always remove from localStorage too
+    try {
+        const orders = JSON.parse(localStorage.getItem('adspot_orders') || '[]');
+        const filtered = orders.filter(o =>
+            String(o.id) !== String(quotationId) &&
+            o.quotation_number !== quotationId &&
+            String(o.quotation_number) !== String(quotationId)
+        );
+        if (filtered.length < orders.length) {
+            localStorage.setItem('adspot_orders', JSON.stringify(filtered));
+            deleted = true;
+        }
+    } catch (e) {
+        console.warn('[Delete] localStorage delete failed:', e.message);
+    }
+
+    if (deleted) {
+        showToast('Booking deleted', 'success');
+        if (closeModal) {
+            document.getElementById('viewQuotationModal')?.classList.remove('active');
+        }
+        loadQuotations();
+    } else {
+        showToast('Could not delete booking', 'error');
+    }
+}
 
 // ─── Send to Publication ─────────────────────────────────────────────────────
 

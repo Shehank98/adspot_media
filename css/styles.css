@@ -2360,6 +2360,11 @@ select:focus {
     color: var(--primary);
 }
 
+.action-btn--danger:hover {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
 .action-btn svg {
     width: 18px;
     height: 18px;

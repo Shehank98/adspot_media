@@ -128,6 +128,14 @@ const QuotationDB = {
             .eq('quotation_number', quotationNumber);
         if (error) throw error;
     },
+
+    async delete(id) {
+        const { error } = await supabase
+            .from('quotations')
+            .delete()
+            .eq('id', id);
+        if (error) throw error;
+    },
     
     async getStats() {
         const { data: quotations, error } = await supabase
