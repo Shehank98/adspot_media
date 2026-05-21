@@ -91,6 +91,38 @@ router.post('/', verifyFirebaseToken, async (req, res) => {
     }
 });
 
+// PATCH /api/bookings/:id/receipt — customer uploads receipt (own booking only)
+router.patch('/:id/receipt', verifyFirebaseToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { receipt_url, receipt_uploaded_at, receipt_status } = req.body;
+
+        // Verify the booking belongs to this user
+        const check = await db.query(
+            `SELECT b.booking_id FROM bookings b
+             LEFT JOIN customers c ON c.id = b.customer_id
+             WHERE b.booking_id = $1
+               AND (c.firebase_uid = $2 OR LOWER(b.customer_email) = LOWER($3))`,
+            [id, req.uid, req.userEmail]
+        );
+        if (!check.rows.length) return res.status(403).json({ error: 'Booking not found or access denied' });
+
+        const result = await db.query(
+            `UPDATE bookings SET
+               receipt_url = $1,
+               receipt_uploaded_at = $2,
+               receipt_status = $3,
+               updated_at = NOW()
+             WHERE booking_id = $4 RETURNING *`,
+            [receipt_url, receipt_uploaded_at || new Date().toISOString(), receipt_status || 'submitted', id]
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('PATCH /api/bookings/:id/receipt error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // PATCH /api/bookings/:id — update booking (admin only)
 router.patch('/:id', verifyFirebaseToken, requireAdmin, async (req, res) => {
     try {

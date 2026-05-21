@@ -2226,7 +2226,7 @@ async function uploadReceipt(quotationNumber) {
         const snap = await storageRef.put(file);
         const url = await snap.ref.getDownloadURL();
 
-        await apiRequest('PATCH', `/api/bookings/${bookingId}`, {
+        await apiRequest('PATCH', `/api/bookings/${bookingId}/receipt`, {
             receipt_url: url,
             receipt_uploaded_at: new Date().toISOString(),
             receipt_status: 'submitted'
