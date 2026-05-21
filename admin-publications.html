@@ -400,17 +400,23 @@
         // Load all publications
         async function loadPublications() {
             try {
-                const snapshot = await db.collection('newspapers').get();
+                const data = await fetch('/api/publications').then(r => r.json());
                 const grid = document.getElementById('publicationsGrid');
                 grid.innerHTML = '';
 
-                if (snapshot.empty) {
+                const allPapers = [];
+                for (const [groupId, group] of Object.entries(data)) {
+                    for (const paper of group.newspapers || []) {
+                        allPapers.push({ ...paper, groupId, groupName: group.name });
+                    }
+                }
+
+                if (!allPapers.length) {
                     grid.innerHTML = '<p>No newspapers found. Add your first one!</p>';
                     return;
                 }
 
-                snapshot.forEach(doc => {
-                    const pub = { id: doc.id, ...doc.data() };
+                allPapers.forEach(pub => {
                     const card = createPublicationCard(pub);
                     grid.appendChild(card);
                 });
@@ -418,6 +424,22 @@
                 console.error('Error loading publications:', error);
                 alert('Failed to load publications: ' + error.message);
             }
+        }
+
+        async function getToken() {
+            const user = firebase.auth().currentUser;
+            return user ? await user.getIdToken() : '';
+        }
+
+        async function apiReq(method, path, body) {
+            const token = await getToken();
+            const res = await fetch(path, {
+                method,
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: body ? JSON.stringify(body) : undefined
+            });
+            if (!res.ok) throw new Error(await res.text());
+            return res.json();
         }
 
         // Create publication card
@@ -474,13 +496,13 @@
         // Edit publication
         async function editPublication(id) {
             try {
-                const doc = await db.collection('newspapers').doc(id).get();
-                if (!doc.exists) {
-                    alert('Publication not found');
-                    return;
+                const data = await fetch('/api/publications').then(r => r.json());
+                let pub = null;
+                for (const group of Object.values(data)) {
+                    pub = (group.newspapers || []).find(p => p.id === id);
+                    if (pub) break;
                 }
-
-                const pub = doc.data();
+                if (!pub) { alert('Publication not found'); return; }
                 currentEditId = id;
 
                 document.getElementById('modalTitle').textContent = 'Edit Newspaper';
@@ -605,14 +627,24 @@
                 }
 
                 if (currentEditId) {
-                    // Update existing
-                    await db.collection('newspapers').doc(currentEditId).update(data);
+                    await apiReq('PATCH', '/api/publications/newspapers/' + currentEditId, {
+                        name: data.name, language: data.language,
+                        bwRate: data.bwRate, colorRate: data.colorRate,
+                        classifiedBase: data.classifiedBase,
+                        classifiedFreeWords: data.classifiedFreeWords,
+                        classifiedExtraRate: data.classifiedExtraRate,
+                        isSundayPaper: data.isSundayPaper,
+                        active: data.active,
+                        logoUrl: data.logoUrl || null
+                    });
                     alert('Newspaper updated successfully!');
                 } else {
-                    // Create new
-                    data.id = data.name.toLowerCase().replace(/\s+/g, '-');
-                    data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-                    await db.collection('newspapers').doc(data.id).set(data);
+                    const groupId = document.getElementById('pubGroupName').value;
+                    await apiReq('POST', '/api/publications/newspapers', {
+                        groupId: groupId || 'lake-house',
+                        ...data,
+                        id: data.name.toLowerCase().replace(/\s+/g, '-')
+                    });
                     alert('Newspaper added successfully!');
                 }
 
@@ -629,12 +661,9 @@
 
         // Delete publication
         async function deletePublication(id, name) {
-            if (!confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) {
-                return;
-            }
-
+            if (!confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) return;
             try {
-                await db.collection('newspapers').doc(id).delete();
+                await apiReq('DELETE', '/api/publications/newspapers/' + id);
                 alert('Newspaper deleted successfully!');
                 loadPublications();
             } catch (error) {
@@ -649,52 +678,45 @@
         }
 
         // ── Publication Contact Emails ─────────────────────────────────
-        const PUB_EMAIL_KEY = 'adspot_pub_emails';
+        let _pubGroups = [];
 
-        function loadPublicationEmails() {
-            const saved = JSON.parse(localStorage.getItem(PUB_EMAIL_KEY) || '{}');
+        async function loadPublicationEmails() {
             const container = document.getElementById('pubEmailsTable');
             if (!container) return;
-
-            // Use publication groups from config (loaded via js/config.js on this page? No —
-            // admin-publications.html doesn't load config.js, so we hard-code the group list here)
-            const groups = [
-                { id: 'lake-house', name: 'Lake House (ANCL)' },
-                { id: 'wijeya',     name: 'Wijeya Newspapers' },
-                { id: 'upali',      name: 'Upali Newspapers' },
-                { id: 'express',    name: 'Express Newspapers' },
-                { id: 'mawbima',    name: 'Mawbima Group' },
-                { id: 'Liberty',    name: 'Liberty Publication' }
-            ];
-
-            container.innerHTML = groups.map(g => `
-                <div style="display:grid; grid-template-columns:220px 1fr; align-items:center; gap:16px; background:white; padding:14px 16px; border-radius:10px; border:1px solid #e5e7eb;">
-                    <label for="pub-email-admin-${g.id}" style="font-weight:600; font-size:14px; color:#111827;">${g.name}</label>
-                    <input type="email" id="pub-email-admin-${g.id}"
-                        value="${saved[g.id] || ''}"
-                        placeholder="contact@publication.lk"
-                        style="width:100%; padding:9px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; box-sizing:border-box;">
-                </div>
-            `).join('');
+            try {
+                const data = await fetch('/api/publications').then(r => r.json());
+                _pubGroups = Object.entries(data).map(([id, g]) => ({ id, name: g.name, contactEmail: g.contactEmail || '' }));
+                container.innerHTML = _pubGroups.map(g => `
+                    <div style="display:grid; grid-template-columns:220px 1fr; align-items:center; gap:16px; background:white; padding:14px 16px; border-radius:10px; border:1px solid #e5e7eb;">
+                        <label for="pub-email-admin-${g.id}" style="font-weight:600; font-size:14px; color:#111827;">${g.name}</label>
+                        <input type="email" id="pub-email-admin-${g.id}"
+                            value="${g.contactEmail}"
+                            placeholder="contact@publication.lk"
+                            style="width:100%; padding:9px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; box-sizing:border-box;">
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.warn('Could not load publication emails:', e.message);
+            }
         }
 
-        function saveAllPublicationEmails() {
-            const groups = ['lake-house', 'wijeya', 'upali', 'express', 'mawbima', 'Liberty'];
-            const saved = {};
-            groups.forEach(gid => {
-                const val = document.getElementById(`pub-email-admin-${gid}`)?.value.trim();
-                if (val) saved[gid] = val;
-            });
-            localStorage.setItem(PUB_EMAIL_KEY, JSON.stringify(saved));
-            alert('Publication emails saved successfully.');
+        async function saveAllPublicationEmails() {
+            try {
+                for (const g of _pubGroups) {
+                    const val = document.getElementById(`pub-email-admin-${g.id}`)?.value.trim() || '';
+                    await apiReq('PATCH', `/api/publications/groups/${g.id}`, { contactEmail: val });
+                }
+                alert('Publication emails saved successfully.');
+            } catch (e) {
+                alert('Save failed: ' + e.message);
+            }
         }
 
         // Check auth and load
         firebase.auth().onAuthStateChanged(async user => {
             if (user) {
-                // Check if admin
-                const userDoc = await db.collection('users').doc(user.uid).get();
-                if (userDoc.exists && userDoc.data().role === 'admin') {
+                // Admin check is handled server-side via ADMIN_EMAILS env var
+                {
                     loadPublications();
                     loadPublicationEmails();
                 } else {

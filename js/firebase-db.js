@@ -143,20 +143,37 @@ async function getUserBookings() {
     }
 }
 
-// ── Newspapers — read from CONFIG.PUBLICATIONS (config.js) ───────────────────
+// ── Newspapers — fetch from Railway PostgreSQL via API ────────────────────────
 async function loadNewspapersFromFirebase() {
-    // Newspapers are defined in js/config.js CONFIG.PUBLICATIONS.
-    // No database lookup needed.
-    if (typeof CONFIG !== 'undefined' && CONFIG.PUBLICATIONS) {
-        console.log('✅ CONFIG.PUBLICATIONS already loaded from config.js');
-        return CONFIG.PUBLICATIONS;
+    try {
+        const publications = await fetch('/api/publications').then(r => r.json());
+
+        if (typeof CONFIG !== 'undefined') {
+            CONFIG.PUBLICATIONS = publications;
+            console.log('✅ CONFIG.PUBLICATIONS loaded from database:', Object.keys(publications).length, 'groups');
+        }
+
+        return publications;
+    } catch (err) {
+        console.warn('⚠️ Could not load publications from API, using config.js fallback:', err.message);
+        if (typeof CONFIG !== 'undefined' && CONFIG.PUBLICATIONS) return CONFIG.PUBLICATIONS;
+        return {};
     }
-    return {};
 }
 
 async function loadNewspaperLogos() {
-    // Return default logos — newspaper data lives in config.js, not DB.
-    return getDefaultNewspaperLogos();
+    try {
+        const publications = await fetch('/api/publications').then(r => r.json());
+        const logos = [];
+        for (const group of Object.values(publications)) {
+            for (const paper of group.newspapers || []) {
+                logos.push({ name: paper.name, logo: paper.logoUrl || null, language: paper.language });
+            }
+        }
+        return logos.length ? logos : getDefaultNewspaperLogos();
+    } catch (_) {
+        return getDefaultNewspaperLogos();
+    }
 }
 
 function getDefaultNewspaperLogos() {

@@ -15,6 +15,7 @@ app.use(express.urlencoded({ extended: true }));
 // ── API Routes ────────────────────────────────────────────────────────────────
 app.get('/api/health', (_, res) => res.json({ ok: true, ts: new Date().toISOString() }));
 
+app.use('/api/publications',     require('./routes/publications'));
 app.use('/api/bookings',        require('./routes/bookings'));
 app.use('/api/invoices',        require('./routes/invoices'));
 app.use('/api/quotations',      require('./routes/quotations'));
