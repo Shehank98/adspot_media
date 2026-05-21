@@ -131,16 +131,30 @@ router.patch('/:id', verifyFirebaseToken, requireAdmin, async (req, res) => {
 
 // DELETE /api/bookings/:id — admin only
 router.delete('/:id', verifyFirebaseToken, requireAdmin, async (req, res) => {
+    const client = await db.connect();
     try {
-        const result = await db.query(
+        await client.query('BEGIN');
+        const id = req.params.id;
+        // Remove child records first to satisfy foreign key constraints
+        await client.query('DELETE FROM design_requests WHERE booking_id = $1', [id]);
+        await client.query('DELETE FROM payments WHERE booking_id = $1', [id]);
+        await client.query('DELETE FROM invoices WHERE booking_id = $1', [id]);
+        const result = await client.query(
             'DELETE FROM bookings WHERE booking_id = $1 RETURNING booking_id',
-            [req.params.id]
+            [id]
         );
-        if (!result.rows.length) return res.status(404).json({ error: 'Booking not found' });
+        if (!result.rows.length) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Booking not found' });
+        }
+        await client.query('COMMIT');
         res.json({ deleted: result.rows[0].booking_id });
     } catch (err) {
+        await client.query('ROLLBACK');
         console.error('DELETE /api/bookings error:', err.message);
         res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
     }
 });
 
