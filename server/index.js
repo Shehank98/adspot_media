@@ -32,7 +32,8 @@ const ROOT = path.join(__dirname, '..');
 app.use(express.static(ROOT));
 
 // Clean URL rewrites (match Netlify redirects)
-app.get('/book',    (_, res) => res.sendFile(path.join(ROOT, 'book.html')));
+app.get('/book',        (_, res) => res.sendFile(path.join(ROOT, 'book.html')));
+app.get('/my-bookings', (_, res) => res.sendFile(path.join(ROOT, 'my-bookings.html')));
 app.get('/admin',   (_, res) => res.sendFile(path.join(ROOT, 'admin', 'index.html')));
 app.get('/admin/',  (_, res) => res.sendFile(path.join(ROOT, 'admin', 'index.html')));
 
