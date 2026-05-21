@@ -329,7 +329,7 @@
         <!-- Totals -->
         <div class="qt-totals-card" id="qtTotalsCard" style="display:none;">
             <h2>Price Summary</h2>
-            <div class="qt-total-row"><span>Subtotal</span><span id="qts-sub">Rs. 0</span></div>
+            <div class="qt-total-row"><span>Ad Total</span><span id="qts-sub">Rs. 0</span></div>
             <div class="qt-total-row" id="qtRowComm" style="display:none;"><span>Commission (5%)</span><span id="qts-comm">Rs. 0</span></div>
             <div class="qt-total-row" id="qtRowVat"  style="display:none;"><span>VAT (18%)</span><span id="qts-vat">Rs. 0</span></div>
             <div class="qt-total-row" id="qtRowSvc"  style="display:none;"><span>Service Charge</span><span id="qts-svc">Rs. 0</span></div>
@@ -509,24 +509,28 @@
     function recalcItem(item) {
         const newspapers = getAllNewspapers();
         const np = newspapers.find(n => n.name === item.newspaper) || null;
-        if (!np) { item.price = 0; return; }
+        if (!np) { item.price = 0; item._adTotal = 0; item._commission = 0; item._vat = 0; item._serviceCharge = 0; return; }
 
         if (item.adType === 'box') {
+            // colorOption: 'black' → bwRate, 'spot'/'full' → colorRate
+            const colorArg = item.colorOption === 'black' ? 'bw' : 'color';
             const result = (typeof calculateBoxAdPrice === 'function')
-                ? calculateBoxAdPrice(np, item.height, item.columns, item.colorOption)
+                ? calculateBoxAdPrice(np, item.height, item.columns, colorArg)
                 : null;
-            item.price = result ? (result.total || result.adTotal || 0) : 0;
+            item._adTotal = result ? (result.adTotal || 0) : 0;
             item._commission = result ? (result.commission || 0) : 0;
             item._vat = result ? (result.vat || 0) : 0;
             item._serviceCharge = 0;
+            item.price = result ? (result.total || 0) : 0;
         } else {
             const result = (typeof calculateClassifiedPrice === 'function')
                 ? calculateClassifiedPrice(np, item.wordCount)
                 : null;
-            item.price = result ? (result.total || 0) : 0;
+            item._adTotal = result ? (result.adTotal || 0) : 0;
             item._commission = 0;
             item._vat = 0;
             item._serviceCharge = result ? (result.serviceCharge || 0) : 0;
+            item.price = result ? (result.total || 0) : 0;
         }
     }
 
@@ -536,23 +540,23 @@
             return;
         }
 
-        let subtotal = 0, commission = 0, vat = 0, serviceCharge = 0;
+        let adTotal = 0, commission = 0, vat = 0, serviceCharge = 0;
         qtItems.forEach(item => {
-            // price already includes commission + vat for box, service for classified
-            // We need the base ad cost for display breakdown
-            subtotal += item.price;
+            adTotal += item._adTotal || 0;
             commission += item._commission || 0;
             vat += item._vat || 0;
             serviceCharge += item._serviceCharge || 0;
         });
 
-        // Discount
+        const subtotal = adTotal + commission + vat + serviceCharge;
+
+        // Discount applied on subtotal
         const discPct = parseFloat(document.getElementById('qtDiscountPct').value) || 0;
         const discAmt = Math.round(subtotal * discPct / 100);
         const grand = subtotal - discAmt;
 
         // Update UI
-        document.getElementById('qts-sub').textContent = fmt(subtotal);
+        document.getElementById('qts-sub').textContent = fmt(adTotal);
         document.getElementById('qts-comm').textContent = fmt(commission);
         document.getElementById('qts-vat').textContent = fmt(vat);
         document.getElementById('qts-svc').textContent = fmt(serviceCharge);
@@ -580,13 +584,14 @@
         btn.innerHTML = '<span>Generating PDF…</span>';
 
         try {
-            let subtotal = 0, commission = 0, vat = 0, serviceCharge = 0;
+            let adTotal = 0, commission = 0, vat = 0, serviceCharge = 0;
             qtItems.forEach(i => {
-                subtotal += i.price;
+                adTotal += i._adTotal || 0;
                 commission += i._commission || 0;
                 vat += i._vat || 0;
                 serviceCharge += i._serviceCharge || 0;
             });
+            const subtotal = adTotal + commission + vat + serviceCharge;
             const discPct = parseFloat(document.getElementById('qtDiscountPct').value) || 0;
             const discAmt = Math.round(subtotal * discPct / 100);
             const grand = subtotal - discAmt;
