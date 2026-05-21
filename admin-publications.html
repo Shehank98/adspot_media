@@ -715,14 +715,8 @@
         // Check auth and load
         firebase.auth().onAuthStateChanged(async user => {
             if (user) {
-                // Admin check is handled server-side via ADMIN_EMAILS env var
-                {
-                    loadPublications();
-                    loadPublicationEmails();
-                } else {
-                    alert('Access denied. Admin only.');
-                    window.location.href = 'index.html';
-                }
+                loadPublications();
+                loadPublicationEmails();
             } else {
                 window.location.href = 'index.html';
             }
