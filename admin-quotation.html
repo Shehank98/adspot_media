@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Quotation | AdSpot Admin</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/firebase-ui.css">
+
+    <style>
+        body { background: #f8fafc; }
+
+        .admin-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 100px 20px 60px;
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .admin-header h1 { font-size: 32px; color: var(--text-primary); }
+
+        /* ── Card ── */
+        .qt-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.07);
+            margin-bottom: 24px;
+        }
+        .qt-card h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        /* ── Grid ── */
+        .qt-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .qt-full { grid-column: 1 / -1; }
+
+        @media (max-width: 600px) {
+            .qt-grid-2 { grid-template-columns: 1fr; }
+            .qt-full { grid-column: 1; }
+        }
+
+        /* ── Form controls ── */
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-label { font-size: 13px; font-weight: 500; color: #374151; }
+        .form-input, .form-select, .form-textarea {
+            padding: 10px 14px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #111827;
+            background: #fff;
+            transition: border-color .15s;
+            font-family: inherit;
+        }
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99,102,241,.12);
+        }
+        .form-textarea { resize: vertical; min-height: 80px; }
+
+        /* ── Items ── */
+        .qt-items-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .qt-items-header h2 { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }
+
+        .qt-item-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 14px;
+            background: #fafafa;
+            position: relative;
+        }
+        .qt-item-top {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 14px;
+            align-items: end;
+            margin-bottom: 14px;
+        }
+        @media (max-width: 600px) {
+            .qt-item-top { grid-template-columns: 1fr; }
+        }
+        .qt-item-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; }
+        .qt-item-price {
+            font-size: 15px;
+            font-weight: 600;
+            color: #6366f1;
+            margin-top: 12px;
+            text-align: right;
+        }
+
+        .btn-remove-item {
+            background: none;
+            border: 1px solid #fca5a5;
+            color: #ef4444;
+            border-radius: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+        .btn-remove-item:hover { background: #fef2f2; }
+
+        /* ── Totals ── */
+        .qt-totals-card {
+            background: #1e1b4b;
+            color: #fff;
+            border-radius: 16px;
+            padding: 28px;
+            margin-bottom: 24px;
+        }
+        .qt-totals-card h2 { color: #c7d2fe; border-color: #3730a3; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid #3730a3; }
+        .qt-total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 14px;
+            color: #c7d2fe;
+            border-bottom: 1px solid #312e81;
+        }
+        .qt-total-row.grand {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+            border-bottom: none;
+            margin-top: 8px;
+            padding-top: 12px;
+        }
+        .qt-total-row span:last-child { font-family: 'Courier New', monospace; }
+
+        /* ── Buttons ── */
+        .btn-add-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 9px 18px;
+            background: #ede9fe;
+            color: #4f46e5;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .btn-add-item:hover { background: #ddd6fe; }
+
+        .btn-send {
+            width: 100%;
+            padding: 15px;
+            background: #4f46e5;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn-send:hover { background: #4338ca; }
+        .btn-send:disabled { opacity: .6; cursor: not-allowed; }
+
+        /* ── Toast ── */
+        #qtToast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 14px 22px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 9999;
+            display: none;
+            max-width: 340px;
+        }
+        #qtToast.success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+        #qtToast.error   { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <span class="logo-icon">◈</span>
+                <span class="logo-text">AdSpot Admin</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/admin-bookings">Manage Bookings</a></li>
+                <li><a href="/admin-publications">Publications</a></li>
+                <li><a href="/admin-promo-codes">Promo Codes</a></li>
+                <li><a href="/admin-customers">Customers</a></li>
+                <li><a href="/admin-quotation" class="active">New Quotation</a></li>
+                <li><a href="/">Back to Home</a></li>
+            </ul>
+            <div class="nav-actions">
+                <div id="userMenu" class="user-menu">
+                    <img id="userPhoto" class="user-avatar" src="" alt="">
+                    <div class="user-dropdown">
+                        <button class="user-toggle" id="userToggle">
+                            <span id="userName">Admin</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                <path d="M6 9l6 6 6-6"/>
+                            </svg>
+                        </button>
+                        <div class="dropdown-menu" id="dropdownMenu">
+                            <div class="user-info-dropdown">
+                                <span id="userEmail" class="user-email-dropdown">admin@adspot.lk</span>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <a href="/" class="dropdown-item">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 12h18M12 3l9 9-9 9"/>
+                                </svg>
+                                Back to Home
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <button class="dropdown-item" id="signOutBtn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+                                </svg>
+                                Sign Out
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="admin-container">
+        <div class="admin-header">
+            <h1>New Quotation</h1>
+        </div>
+
+        <!-- Customer Details -->
+        <div class="qt-card">
+            <h2>Customer Details</h2>
+            <div class="qt-grid-2">
+                <div class="form-group">
+                    <label class="form-label">Full Name *</label>
+                    <input type="text" id="qtName" class="form-input" placeholder="e.g. Kamal Perera">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email Address *</label>
+                    <input type="email" id="qtEmail" class="form-input" placeholder="customer@email.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Phone</label>
+                    <input type="tel" id="qtPhone" class="form-input" placeholder="+94 77 123 4567">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Company</label>
+                    <input type="text" id="qtCompany" class="form-input" placeholder="Company name (optional)">
+                </div>
+                <div class="form-group qt-full">
+                    <label class="form-label">Address</label>
+                    <input type="text" id="qtAddress" class="form-input" placeholder="Street, City">
+                </div>
+            </div>
+        </div>
+
+        <!-- Ad Items -->
+        <div class="qt-card">
+            <div class="qt-items-header">
+                <h2>Ad Items</h2>
+                <button class="btn-add-item" onclick="addQtItem()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 5v14M5 12h14"/></svg>
+                    Add Item
+                </button>
+            </div>
+            <div id="qtItemsContainer">
+                <p id="qtEmptyMsg" style="color:#9ca3af;font-size:14px;text-align:center;padding:20px 0;">
+                    No items yet. Click "Add Item" to begin.
+                </p>
+            </div>
+        </div>
+
+        <!-- Promo & Notes -->
+        <div class="qt-card">
+            <h2>Discount &amp; Notes</h2>
+            <div class="qt-grid-2">
+                <div class="form-group">
+                    <label class="form-label">Promo Code</label>
+                    <input type="text" id="qtPromoCode" class="form-input" placeholder="e.g. WELCOME10" oninput="recalcQtTotals()">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Manual Discount %</label>
+                    <input type="number" id="qtDiscountPct" class="form-input" placeholder="0" min="0" max="100" oninput="recalcQtTotals()">
+                </div>
+                <div class="form-group qt-full">
+                    <label class="form-label">Notes (shown on quotation)</label>
+                    <textarea id="qtNotes" class="form-textarea" placeholder="Payment terms, validity, special instructions…"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Totals -->
+        <div class="qt-totals-card" id="qtTotalsCard" style="display:none;">
+            <h2>Price Summary</h2>
+            <div class="qt-total-row"><span>Subtotal</span><span id="qts-sub">Rs. 0</span></div>
+            <div class="qt-total-row" id="qtRowComm" style="display:none;"><span>Commission (5%)</span><span id="qts-comm">Rs. 0</span></div>
+            <div class="qt-total-row" id="qtRowVat"  style="display:none;"><span>VAT (18%)</span><span id="qts-vat">Rs. 0</span></div>
+            <div class="qt-total-row" id="qtRowSvc"  style="display:none;"><span>Service Charge</span><span id="qts-svc">Rs. 0</span></div>
+            <div class="qt-total-row" id="qtRowDisc" style="display:none;"><span>Discount</span><span id="qts-disc" style="color:#86efac;">-Rs. 0</span></div>
+            <div class="qt-total-row grand"><span>Total Due</span><span id="qts-total">Rs. 0</span></div>
+        </div>
+
+        <!-- Send Button -->
+        <button class="btn-send" id="qtSendBtn" onclick="sendQuotation()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+            </svg>
+            Generate &amp; Send Quotation
+        </button>
+    </main>
+
+    <div id="qtToast"></div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+
+    <!-- PDF libs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <!-- App scripts -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/firebase-db.js"></script>
+    <script src="js/invoice-pdf.js?v=4"></script>
+
+    <script>
+    // ── State ───────────────────────────────────────────────────────────────
+    let qtItems = [];
+    let qtCounter = 0;
+
+    // ── Helpers ─────────────────────────────────────────────────────────────
+    function fmt(n) { return 'Rs. ' + Math.round(n).toLocaleString(); }
+
+    function showToast(msg, type) {
+        const t = document.getElementById('qtToast');
+        t.textContent = msg;
+        t.className = type;
+        t.style.display = 'block';
+        setTimeout(() => { t.style.display = 'none'; }, 4000);
+    }
+
+    function getAllNewspapers() {
+        if (typeof CONFIG === 'undefined' || !CONFIG.PUBLICATIONS) return [];
+        return Object.values(CONFIG.PUBLICATIONS).flat();
+    }
+
+    // ── Items ────────────────────────────────────────────────────────────────
+    function addQtItem() {
+        const newspapers = getAllNewspapers();
+        const defaultNp = newspapers[0] || null;
+        qtItems.push({
+            id: ++qtCounter,
+            newspaper: defaultNp ? defaultNp.name : '',
+            adType: 'classified',
+            wordCount: 20,
+            height: 2,
+            columns: 1,
+            colorOption: 'black',
+            pubDate: '',
+            price: 0
+        });
+        renderQtItems();
+        recalcQtTotals();
+    }
+
+    function removeQtItem(id) {
+        qtItems = qtItems.filter(i => i.id !== id);
+        renderQtItems();
+        recalcQtTotals();
+    }
+
+    function renderQtItems() {
+        const c = document.getElementById('qtItemsContainer');
+        const newspapers = getAllNewspapers();
+        document.getElementById('qtEmptyMsg').style.display = qtItems.length ? 'none' : 'block';
+
+        // Remove old item cards (keep empty msg)
+        c.querySelectorAll('.qt-item-card').forEach(el => el.remove());
+
+        qtItems.forEach(item => {
+            const npOptions = newspapers.map(np =>
+                `<option value="${np.name}" ${np.name === item.newspaper ? 'selected' : ''}>${np.name}</option>`
+            ).join('');
+
+            const boxFields = `
+                <div class="form-group">
+                    <label class="form-label">Height (cm)</label>
+                    <input type="number" class="form-input" value="${item.height}" min="1"
+                        onchange="updateQtItem(${item.id},'height',this.value)">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Columns</label>
+                    <input type="number" class="form-input" value="${item.columns}" min="1" max="8"
+                        onchange="updateQtItem(${item.id},'columns',this.value)">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Color</label>
+                    <select class="form-select" onchange="updateQtItem(${item.id},'colorOption',this.value)">
+                        <option value="black" ${item.colorOption==='black'?'selected':''}>Black &amp; White</option>
+                        <option value="spot" ${item.colorOption==='spot'?'selected':''}>Spot Colour</option>
+                        <option value="full" ${item.colorOption==='full'?'selected':''}>Full Colour</option>
+                    </select>
+                </div>`;
+
+            const classifiedFields = `
+                <div class="form-group">
+                    <label class="form-label">Word Count</label>
+                    <input type="number" class="form-input" value="${item.wordCount}" min="1"
+                        onchange="updateQtItem(${item.id},'wordCount',this.value)">
+                </div>`;
+
+            const div = document.createElement('div');
+            div.className = 'qt-item-card';
+            div.id = 'qt-item-' + item.id;
+            div.innerHTML = `
+                <div class="qt-item-top">
+                    <div class="form-group">
+                        <label class="form-label">Newspaper</label>
+                        <select class="form-select" onchange="updateQtItem(${item.id},'newspaper',this.value)">${npOptions}</select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Ad Type</label>
+                        <select class="form-select" onchange="updateQtItemType(${item.id},this.value)">
+                            <option value="classified" ${item.adType==='classified'?'selected':''}>Classified</option>
+                            <option value="box" ${item.adType==='box'?'selected':''}>Box Ad</option>
+                        </select>
+                    </div>
+                    <button class="btn-remove-item" onclick="removeQtItem(${item.id})">Remove</button>
+                </div>
+                <div class="qt-item-fields">
+                    ${item.adType === 'box' ? boxFields : classifiedFields}
+                    <div class="form-group">
+                        <label class="form-label">Publication Date</label>
+                        <input type="date" class="form-input" value="${item.pubDate}"
+                            onchange="updateQtItem(${item.id},'pubDate',this.value)">
+                    </div>
+                </div>
+                <div class="qt-item-price" id="qt-price-${item.id}">${fmt(item.price)}</div>`;
+            c.appendChild(div);
+        });
+    }
+
+    function updateQtItem(id, field, value) {
+        const item = qtItems.find(i => i.id === id);
+        if (!item) return;
+        if (['height','columns','wordCount'].includes(field)) value = parseFloat(value) || 0;
+        item[field] = value;
+        recalcItem(item);
+        const priceEl = document.getElementById('qt-price-' + id);
+        if (priceEl) priceEl.textContent = fmt(item.price);
+        recalcQtTotals();
+    }
+
+    function updateQtItemType(id, type) {
+        const item = qtItems.find(i => i.id === id);
+        if (!item) return;
+        item.adType = type;
+        recalcItem(item);
+        renderQtItems();
+        recalcQtTotals();
+    }
+
+    function recalcItem(item) {
+        const newspapers = getAllNewspapers();
+        const np = newspapers.find(n => n.name === item.newspaper) || null;
+        if (!np) { item.price = 0; return; }
+
+        if (item.adType === 'box') {
+            const result = (typeof calculateBoxAdPrice === 'function')
+                ? calculateBoxAdPrice(np, item.height, item.columns, item.colorOption)
+                : null;
+            item.price = result ? (result.total || result.adTotal || 0) : 0;
+            item._commission = result ? (result.commission || 0) : 0;
+            item._vat = result ? (result.vat || 0) : 0;
+            item._serviceCharge = 0;
+        } else {
+            const result = (typeof calculateClassifiedPrice === 'function')
+                ? calculateClassifiedPrice(np, item.wordCount)
+                : null;
+            item.price = result ? (result.total || 0) : 0;
+            item._commission = 0;
+            item._vat = 0;
+            item._serviceCharge = result ? (result.serviceCharge || 0) : 0;
+        }
+    }
+
+    function recalcQtTotals() {
+        if (!qtItems.length) {
+            document.getElementById('qtTotalsCard').style.display = 'none';
+            return;
+        }
+
+        let subtotal = 0, commission = 0, vat = 0, serviceCharge = 0;
+        qtItems.forEach(item => {
+            // price already includes commission + vat for box, service for classified
+            // We need the base ad cost for display breakdown
+            subtotal += item.price;
+            commission += item._commission || 0;
+            vat += item._vat || 0;
+            serviceCharge += item._serviceCharge || 0;
+        });
+
+        // Discount
+        const discPct = parseFloat(document.getElementById('qtDiscountPct').value) || 0;
+        const discAmt = Math.round(subtotal * discPct / 100);
+        const grand = subtotal - discAmt;
+
+        // Update UI
+        document.getElementById('qts-sub').textContent = fmt(subtotal);
+        document.getElementById('qts-comm').textContent = fmt(commission);
+        document.getElementById('qts-vat').textContent = fmt(vat);
+        document.getElementById('qts-svc').textContent = fmt(serviceCharge);
+        document.getElementById('qts-disc').textContent = '-' + fmt(discAmt);
+        document.getElementById('qts-total').textContent = fmt(grand);
+
+        document.getElementById('qtRowComm').style.display = commission ? 'flex' : 'none';
+        document.getElementById('qtRowVat').style.display = vat ? 'flex' : 'none';
+        document.getElementById('qtRowSvc').style.display = serviceCharge ? 'flex' : 'none';
+        document.getElementById('qtRowDisc').style.display = discAmt ? 'flex' : 'none';
+        document.getElementById('qtTotalsCard').style.display = 'block';
+    }
+
+    // ── Send ─────────────────────────────────────────────────────────────────
+    async function sendQuotation() {
+        const name  = document.getElementById('qtName').value.trim();
+        const email = document.getElementById('qtEmail').value.trim();
+        if (!name)  { showToast('Please enter customer name.', 'error'); return; }
+        if (!email) { showToast('Please enter customer email.', 'error'); return; }
+        if (!qtItems.length) { showToast('Please add at least one ad item.', 'error'); return; }
+
+        const btn = document.getElementById('qtSendBtn');
+        const origText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span>Generating PDF…</span>';
+
+        try {
+            let subtotal = 0, commission = 0, vat = 0, serviceCharge = 0;
+            qtItems.forEach(i => {
+                subtotal += i.price;
+                commission += i._commission || 0;
+                vat += i._vat || 0;
+                serviceCharge += i._serviceCharge || 0;
+            });
+            const discPct = parseFloat(document.getElementById('qtDiscountPct').value) || 0;
+            const discAmt = Math.round(subtotal * discPct / 100);
+            const grand = subtotal - discAmt;
+
+            const quotationNumber = (typeof generateQuotationNumber === 'function')
+                ? generateQuotationNumber()
+                : 'QT-' + Date.now();
+            const invoiceNumber = (typeof generateInvoiceNumber === 'function')
+                ? generateInvoiceNumber()
+                : 'INV-' + Date.now();
+
+            const mappedItems = qtItems.map(item => ({
+                newspaperName: item.newspaper,
+                adType: item.adType === 'box' ? 'box' : 'classified',
+                pubDate: item.pubDate || new Date().toISOString().split('T')[0],
+                price: item.price
+            }));
+
+            const invoiceData = {
+                invoiceNumber,
+                quotationNumber,
+                subtotal,
+                commission,
+                vat,
+                serviceCharge,
+                promoCode: document.getElementById('qtPromoCode').value.trim(),
+                promoDiscount: discAmt,
+                total: grand
+            };
+
+            const bookingData = {
+                customerName: name,
+                customerEmail: email,
+                customerPhone: document.getElementById('qtPhone').value.trim(),
+                customerCompany: document.getElementById('qtCompany').value.trim(),
+                customerAddress: document.getElementById('qtAddress').value.trim(),
+                items: mappedItems
+            };
+
+            let pdfUrl = '';
+            if (typeof generateInvoicePDF === 'function') {
+                btn.innerHTML = '<span>Rendering PDF…</span>';
+                pdfUrl = await generateInvoicePDF(invoiceData, bookingData, false);
+            }
+
+            btn.innerHTML = '<span>Sending email…</span>';
+
+            // Save to Firestore
+            try {
+                const db = firebase.firestore();
+                await db.collection('quotations').add({
+                    quotationNumber,
+                    customerName: name,
+                    customerEmail: email,
+                    customerPhone: bookingData.customerPhone,
+                    customerCompany: bookingData.customerCompany,
+                    items: mappedItems,
+                    subtotal,
+                    commission,
+                    vat,
+                    serviceCharge,
+                    promoCode: invoiceData.promoCode,
+                    promoDiscount: discAmt,
+                    total: grand,
+                    notes: document.getElementById('qtNotes').value.trim(),
+                    pdfUrl,
+                    source: 'manual_admin',
+                    status: 'sent',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            } catch(e) { console.warn('Firestore save failed:', e); }
+
+            // Send email
+            if (typeof sendManualQuotationEmail === 'function') {
+                await sendManualQuotationEmail({
+                    quotationNumber,
+                    customerName: name,
+                    customerEmail: email,
+                    customerPhone: bookingData.customerPhone,
+                    customerCompany: bookingData.customerCompany,
+                    items: mappedItems,
+                    subtotal,
+                    commission,
+                    vat,
+                    serviceCharge,
+                    promoCode: invoiceData.promoCode,
+                    promoDiscount: discAmt,
+                    total: grand,
+                    notes: document.getElementById('qtNotes').value.trim(),
+                    pdfUrl
+                });
+            }
+
+            showToast('Quotation ' + quotationNumber + ' sent to ' + email, 'success');
+            resetQtForm();
+
+        } catch(e) {
+            console.error('Quotation error:', e);
+            showToast('Error: ' + e.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = origText;
+        }
+    }
+
+    function resetQtForm() {
+        qtItems = [];
+        qtCounter = 0;
+        ['qtName','qtEmail','qtPhone','qtCompany','qtAddress','qtPromoCode','qtDiscountPct','qtNotes'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        document.getElementById('qtTotalsCard').style.display = 'none';
+        renderQtItems();
+    }
+
+    // Init empty state
+    renderQtItems();
+
+    // Sign-out wiring (reuse pattern from other admin pages)
+    document.addEventListener('DOMContentLoaded', () => {
+        const signOutBtn = document.getElementById('signOutBtn');
+        if (signOutBtn) {
+            signOutBtn.addEventListener('click', () => {
+                firebase.auth().signOut().then(() => { window.location.href = '/'; });
+            });
+        }
+        const toggle = document.getElementById('userToggle');
+        const dropdown = document.getElementById('dropdownMenu');
+        if (toggle && dropdown) {
+            toggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dropdown.classList.toggle('active');
+            });
+            document.addEventListener('click', () => dropdown.classList.remove('active'));
+        }
+        firebase.auth().onAuthStateChanged(user => {
+            if (user) {
+                const el = document.getElementById('userEmail');
+                if (el) el.textContent = user.email;
+                const nm = document.getElementById('userName');
+                if (nm) nm.textContent = user.displayName || user.email.split('@')[0];
+                const ph = document.getElementById('userPhoto');
+                if (ph && user.photoURL) ph.src = user.photoURL;
+            }
+        });
+    });
+    </script>
+
+    <script src="js/maintenance-config.js"></script>
+    <script src="js/maintenance-check.js"></script>
+</body>
+</html>
