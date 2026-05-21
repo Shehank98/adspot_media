@@ -5,257 +5,261 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>My Bookings | AdSpot Media</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#1a56db">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#2563eb">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/firebase-ui.css">
-    <link rel="stylesheet" href="css/pwa.css">
+
+    <!-- Meta Pixel -->
+    <script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','835278496221371');fbq('track','PageView');</script>
 
     <style>
-        .dashboard-container {
-            max-width: 1200px;
+        *, *::before, *::after { box-sizing: border-box; }
+        body { background: #f1f5f9; font-family: 'Inter', sans-serif; color: #0f172a; }
+
+        .page-wrap {
+            max-width: 860px;
             margin: 0 auto;
-            padding: 100px 20px 40px;
+            padding: 88px 20px 80px;
         }
 
-        .dashboard-header {
-            margin-bottom: 40px;
-        }
-
-        .dashboard-header h1 {
-            font-size: 32px;
-            color: var(--text-primary);
-            margin-bottom: 8px;
-        }
-
-        .dashboard-header p {
-            color: var(--text-secondary);
-            font-size: 16px;
-        }
-
-        .bookings-grid {
-            display: grid;
-            gap: 24px;
-        }
-
-        .booking-card {
-            background: white;
-            border: 1px solid var(--gray-200);
-            border-radius: 16px;
-            padding: 24px;
-            transition: all 0.3s ease;
-        }
-
-        .booking-card:hover {
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-            transform: translateY(-2px);
-        }
-
-        .booking-header {
+        .page-header {
             display: flex;
+            align-items: flex-start;
             justify-content: space-between;
-            align-items: start;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
+            margin-bottom: 28px;
             gap: 12px;
+            flex-wrap: wrap;
         }
-
-        .booking-id {
-            font-size: 20px;
-            font-weight: 600;
-            color: var(--text-primary);
+        .page-header h1 { font-size: 24px; font-weight: 700; margin: 0; }
+        .page-header-sub { font-size: 13px; color: #64748b; margin-top: 3px; }
+        .btn-book-new {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 9px 18px; background: #2563eb; color: #fff;
+            border: none; border-radius: 8px; font-size: 13px; font-weight: 600;
+            cursor: pointer; text-decoration: none; white-space: nowrap; font-family: inherit;
+            transition: background .15s;
         }
+        .btn-book-new:hover { background: #1d4ed8; }
 
-        .booking-status {
-            padding: 6px 16px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 500;
+        /* ── Loading / Empty ── */
+        .state-box { text-align: center; padding: 60px 20px; }
+        .spinner { width: 40px; height: 40px; border: 3px solid #e2e8f0; border-top-color: #2563eb; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .state-box h2 { font-size: 20px; margin-bottom: 8px; }
+        .state-box p { color: #64748b; font-size: 14px; margin-bottom: 20px; }
+
+        /* ── Booking card ── */
+        .booking-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            margin-bottom: 18px;
+            overflow: hidden;
+            transition: box-shadow .2s;
         }
+        .booking-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.08); }
 
-        .status-pending {
-            background: #fef3c7;
-            color: #92400e;
+        .bk-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            cursor: pointer;
+            gap: 12px;
+            flex-wrap: wrap;
         }
+        .bk-id { font-size: 15px; font-weight: 700; color: #0f172a; }
+        .bk-date { font-size: 12px; color: #64748b; margin-top: 2px; }
+        .bk-header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .bk-amount { font-size: 15px; font-weight: 700; color: #2563eb; }
 
-        .status-confirmed {
-            background: #dbeafe;
-            color: #1e40af;
+        .bk-status {
+            font-size: 11px; font-weight: 600; padding: 3px 10px;
+            border-radius: 20px; text-transform: uppercase; letter-spacing: .04em;
         }
+        .s-pending   { background: #fef9c3; color: #854d0e; }
+        .s-confirmed { background: #dbeafe; color: #1e40af; }
+        .s-completed { background: #dcfce7; color: #166534; }
+        .s-cancelled { background: #fee2e2; color: #991b1b; }
 
-        .status-completed {
-            background: #dcfce7;
-            color: #166534;
+        .bk-chevron { color: #94a3b8; transition: transform .2s; flex-shrink: 0; }
+        .booking-card.open .bk-chevron { transform: rotate(180deg); }
+
+        /* ── Expandable body ── */
+        .bk-body { display: none; border-top: 1px solid #f1f5f9; }
+        .booking-card.open .bk-body { display: block; }
+
+        /* ── Timeline ── */
+        .bk-timeline {
+            padding: 20px 20px 0;
         }
-
-        .booking-details {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
+        .timeline-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; margin-bottom: 14px; }
+        .timeline-track {
+            display: flex;
+            align-items: flex-start;
+            gap: 0;
             margin-bottom: 20px;
+            overflow-x: auto;
+            padding-bottom: 4px;
         }
-
-        .detail-item {
+        .tl-step {
             display: flex;
             flex-direction: column;
-            gap: 4px;
-        }
-
-        .detail-label {
-            font-size: 13px;
-            color: var(--text-secondary);
-        }
-
-        .detail-value {
-            font-size: 15px;
-            color: var(--text-primary);
-            font-weight: 500;
-        }
-
-        .booking-items {
-            background: var(--gray-50);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 20px;
-        }
-
-        .booking-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid var(--gray-200);
-        }
-
-        .booking-item:last-child {
-            border-bottom: none;
-        }
-
-        .item-info h4 {
-            font-size: 15px;
-            color: var(--text-primary);
-            margin-bottom: 4px;
-        }
-
-        .item-info p {
-            font-size: 13px;
-            color: var(--text-secondary);
-        }
-
-        .item-price {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--primary);
-        }
-
-        .booking-actions {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: inline-flex;
             align-items: center;
-            gap: 8px;
-            text-decoration: none;
+            flex: 1;
+            min-width: 70px;
+            position: relative;
+        }
+        .tl-step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 13px;
+            left: calc(50% + 13px);
+            right: calc(-50% + 13px);
+            height: 2px;
+            background: #e2e8f0;
+            z-index: 0;
+        }
+        .tl-step.done:not(:last-child)::after { background: #2563eb; }
+        .tl-dot {
+            width: 26px; height: 26px; border-radius: 50%; border: 2px solid #e2e8f0;
+            background: #fff; display: flex; align-items: center; justify-content: center;
+            position: relative; z-index: 1; flex-shrink: 0;
+        }
+        .tl-step.done .tl-dot { background: #2563eb; border-color: #2563eb; }
+        .tl-step.active .tl-dot { border-color: #2563eb; background: #eff6ff; }
+        .tl-dot svg { width: 12px; height: 12px; stroke: #fff; display: none; }
+        .tl-step.done .tl-dot svg { display: block; }
+        .tl-step.active .tl-dot-pulse { width: 8px; height: 8px; border-radius: 50%; background: #2563eb; }
+        .tl-text { font-size: 10px; font-weight: 500; color: #94a3b8; text-align: center; margin-top: 6px; line-height: 1.3; }
+        .tl-step.done .tl-text { color: #2563eb; }
+        .tl-step.active .tl-text { color: #0f172a; }
+
+        /* ── Proof image ── */
+        .proof-box {
+            margin: 0 20px 16px;
+            border: 1px solid #bbf7d0;
+            background: #f0fdf4;
+            border-radius: 10px;
+            padding: 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .proof-thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; cursor: pointer; }
+        .proof-text h4 { font-size: 13px; font-weight: 600; color: #166534; margin-bottom: 2px; }
+        .proof-text p { font-size: 12px; color: #4ade80; }
+        .proof-text a { font-size: 12px; color: #2563eb; }
+
+        /* ── Ad items ── */
+        .bk-items { padding: 0 20px 16px; }
+        .items-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; margin-bottom: 10px; }
+        .item-row {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            padding: 10px 12px; border-radius: 8px; background: #f8fafc;
+            margin-bottom: 8px;
+        }
+        .item-np { font-size: 13px; font-weight: 600; color: #0f172a; }
+        .item-sub { font-size: 11px; color: #64748b; margin-top: 2px; }
+        .item-price { font-size: 13px; font-weight: 600; color: #475569; }
+
+        /* ── References ── */
+        .bk-refs {
+            padding: 0 20px 16px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        @media (max-width: 500px) { .bk-refs { grid-template-columns: 1fr; } }
+        .ref-item label { display: block; font-size: 11px; font-weight: 500; color: #94a3b8; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 2px; }
+        .ref-item p { font-size: 13px; font-weight: 500; color: #0f172a; }
+
+        /* ── Action buttons ── */
+        .bk-actions {
+            padding: 14px 20px;
+            border-top: 1px solid #f1f5f9;
+            display: flex; gap: 8px; flex-wrap: wrap;
+        }
+        .btn-act {
+            padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+            cursor: pointer; border: none; font-family: inherit; transition: background .15s;
+            display: inline-flex; align-items: center; gap: 5px;
+        }
+        .btn-rebook { background: #eff6ff; color: #2563eb; }
+        .btn-rebook:hover { background: #dbeafe; }
+        .btn-design { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+        .btn-design:hover { background: #dcfce7; }
+        .btn-invoice-dl { background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
+        .btn-invoice-dl:hover { background: #f1f5f9; }
+
+        /* ── Modal overlay ── */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,.5);
+            z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-box {
+            background: #fff; border-radius: 16px; padding: 28px;
+            max-width: 520px; width: 100%; position: relative;
+            max-height: 90vh; overflow-y: auto;
+        }
+        .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+        .modal-sub { font-size: 13px; color: #64748b; margin-bottom: 20px; }
+        .modal-close {
+            position: absolute; top: 16px; right: 16px; background: none;
+            border: none; cursor: pointer; color: #94a3b8; font-size: 20px;
+            line-height: 1; padding: 4px;
         }
 
-        .btn-primary {
-            background: var(--primary);
-            color: white;
+        /* ── Design brief form ── */
+        .brief-form .form-group { margin-bottom: 14px; }
+        .brief-form label { display: block; font-size: 12px; font-weight: 500; color: #475569; margin-bottom: 5px; text-transform: uppercase; letter-spacing: .04em; }
+        .brief-form input, .brief-form select, .brief-form textarea {
+            width: 100%; padding: 9px 12px; border: 1px solid #e2e8f0; border-radius: 8px;
+            font-size: 14px; font-family: inherit; color: #0f172a;
         }
+        .brief-form input:focus, .brief-form select:focus, .brief-form textarea:focus {
+            outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+        }
+        .brief-form textarea { resize: vertical; min-height: 80px; }
+        .fee-note {
+            background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;
+            padding: 12px 14px; font-size: 13px; color: #1e40af;
+            margin-bottom: 16px;
+        }
+        .btn-submit-design {
+            width: 100%; padding: 12px; background: #2563eb; color: #fff;
+            border: none; border-radius: 8px; font-size: 14px; font-weight: 600;
+            cursor: pointer; font-family: inherit;
+        }
+        .btn-submit-design:hover { background: #1d4ed8; }
+        .btn-submit-design:disabled { opacity: .5; cursor: not-allowed; }
 
-        .btn-primary:hover {
-            background: var(--primary-dark);
-            transform: translateY(-1px);
+        /* ── Style chips ── */
+        .style-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+        .style-chip {
+            padding: 6px 12px; border: 1px solid #e2e8f0; border-radius: 20px;
+            font-size: 12px; font-weight: 500; cursor: pointer; color: #475569;
+            transition: all .15s;
         }
+        .style-chip.selected { background: #2563eb; color: #fff; border-color: #2563eb; }
 
-        .btn-secondary {
-            background: white;
-            color: var(--text-primary);
-            border: 1px solid var(--gray-300);
+        /* ── Toast ── */
+        .toast {
+            position: fixed; bottom: 24px; right: 24px; padding: 12px 18px;
+            border-radius: 10px; font-size: 13px; font-weight: 500; z-index: 9999;
+            display: none; max-width: 340px; box-shadow: 0 4px 16px rgba(0,0,0,.12);
         }
-
-        .btn-secondary:hover {
-            background: var(--gray-50);
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 80px 20px;
-        }
-
-        .empty-state svg {
-            width: 120px;
-            height: 120px;
-            margin-bottom: 24px;
-            opacity: 0.3;
-        }
-
-        .empty-state h2 {
-            font-size: 24px;
-            color: var(--text-primary);
-            margin-bottom: 12px;
-        }
-
-        .empty-state p {
-            color: var(--text-secondary);
-            margin-bottom: 24px;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 60px 20px;
-        }
-
-        .spinner {
-            width: 48px;
-            height: 48px;
-            border: 4px solid var(--gray-200);
-            border-top-color: var(--primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        .toast.success { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+        .toast.error   { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
     </style>
-
-    <!-- Meta Pixel Code -->
-    <script>
-    !function(f,b,e,v,n,t,s)
-    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-    n.queue=[];t=b.createElement(e);t.async=!0;
-    t.src=v;s=b.getElementsByTagName(e)[0];
-    s.parentNode.insertBefore(t,s)}(window, document,'script',
-    'https://connect.facebook.net/en_US/fbevents.js');
-    fbq('init', '835278496221371');
-    fbq('track', 'PageView');
-    </script>
-    <noscript><img height="1" width="1" style="display:none"
-    src="https://www.facebook.com/tr?id=835278496221371&ev=PageView&noscript=1"
-    /></noscript>
-    <!-- End Meta Pixel Code -->
 </head>
 <body>
-    <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-container">
             <a href="/" class="logo">
@@ -263,63 +267,24 @@
                 <span class="logo-text">AdSpot</span>
             </a>
             <ul class="nav-links">
-                <li><a href="index.html#services">Services</a></li>
-                <li><a href="index.html#publications">Publications</a></li>
-                <li><a href="index.html#contact">Contact</a></li>
+                <li><a href="/#services">Services</a></li>
+                <li><a href="/#publications">Publications</a></li>
+                <li><a href="/#contact">Contact</a></li>
             </ul>
-            <button class="mobile-menu-btn" aria-label="Menu">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
             <div class="nav-actions">
-                <a href="/book" class="btn btn-primary">Book Your Ad</a>
-
-                <!-- Login Button (shown when not logged in) -->
-                <button id="loginBtn" class="btn btn-ghost btn-auth" style="display: none;">
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
-                    </svg>
-                    Sign In
-                </button>
-
-                <!-- User Menu (shown when logged in) -->
-                <div id="userMenu" class="user-menu" style="display: none;">
+                <div id="userMenu" class="user-menu" style="display:none">
                     <img id="userPhoto" class="user-avatar" src="" alt="">
                     <div class="user-dropdown">
                         <button class="user-toggle" id="userToggle">
                             <span id="userName"></span>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                                <path d="M6 9l6 6 6-6"/>
-                            </svg>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M6 9l6 6 6-6"/></svg>
                         </button>
                         <div class="dropdown-menu" id="dropdownMenu">
-                            <div class="user-info-dropdown">
-                                <span id="userEmail" class="user-email-dropdown">user@email.com</span>
-                            </div>
+                            <div class="user-info-dropdown"><span id="userEmail" class="user-email-dropdown"></span></div>
                             <div class="dropdown-divider"></div>
-                            <a href="/my-bookings" id="myBookingsLink" class="dropdown-item active">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
-                                </svg>
-                                My Bookings
-                            </a>
-                            <a href="/admin-bookings" id="adminLink" class="dropdown-item" style="display: none;">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="3" y="3" width="7" height="7"/>
-                                    <rect x="14" y="3" width="7" height="7"/>
-                                    <rect x="14" y="14" width="7" height="7"/>
-                                    <rect x="3" y="14" width="7" height="7"/>
-                                </svg>
-                                Admin Dashboard
-                            </a>
+                            <a href="/my-bookings" class="dropdown-item active">My Bookings</a>
                             <div class="dropdown-divider"></div>
-                            <button class="dropdown-item" id="signOutBtn">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
-                                </svg>
-                                Sign Out
-                            </button>
+                            <button class="dropdown-item" id="signOutBtn">Sign Out</button>
                         </div>
                     </div>
                 </div>
@@ -327,253 +292,320 @@
         </div>
     </nav>
 
-    <main class="dashboard-container">
-        <div class="dashboard-header">
-            <h1>My Bookings</h1>
-            <p>View and manage your newspaper advertisement bookings</p>
+    <main class="page-wrap">
+        <div class="page-header">
+            <div>
+                <h1>My Bookings</h1>
+                <p class="page-header-sub">Track and manage your newspaper advertisement bookings</p>
+            </div>
+            <a href="/book" class="btn-book-new">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 5v14M5 12h14"/></svg>
+                Book New Ad
+            </a>
         </div>
 
-        <!-- Loading State -->
-        <div id="loadingState" class="loading">
+        <div id="loadingState" class="state-box">
             <div class="spinner"></div>
-            <p>Loading your bookings...</p>
+            <p>Loading your bookings…</p>
         </div>
 
-        <!-- Empty State -->
-        <div id="emptyState" class="empty-state" style="display: none;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-            </svg>
-            <h2>No Bookings Yet</h2>
-            <p>You haven't placed any advertisement bookings yet.</p>
-            <a href="/book" class="btn btn-primary">Book Your First Ad</a>
+        <div id="emptyState" class="state-box" style="display:none">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" width="64" height="64" style="margin:0 auto 16px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <h2>No bookings yet</h2>
+            <p>You have not placed any advertisement bookings.</p>
+            <a href="/book" class="btn-book-new">Book Your First Ad</a>
         </div>
 
-        <!-- Bookings Grid -->
-        <div id="bookingsGrid" class="bookings-grid" style="display: none;"></div>
+        <div id="bookingsList"></div>
     </main>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-
-    <!-- Firebase Config and Auth -->
-    <script src="js/firebase-config.js"></script>
-    <script src="js/auth.js"></script>
-
-    <script>
-        // Format currency
-        function formatCurrency(amount) {
-            return `LKR ${amount.toLocaleString('en-LK')}`;
-        }
-
-        // Format date
-        function formatDate(timestamp) {
-            if (!timestamp) return 'N/A';
-            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-        }
-
-        // Load user bookings
-        async function loadBookings() {
-            const user = firebase.auth().currentUser;
-
-            if (!user) {
-                // Redirect to home if not logged in
-                window.location.href = 'index.html';
-                return;
-            }
-
-            const loadingState = document.getElementById('loadingState');
-            const emptyState = document.getElementById('emptyState');
-            const bookingsGrid = document.getElementById('bookingsGrid');
-
-            try {
-                // Query bookings for current user (without orderBy to avoid index requirement)
-                const snapshot = await db.collection('bookings')
-                    .where('customerId', '==', user.uid)
-                    .get();
-
-                loadingState.style.display = 'none';
-
-                if (snapshot.empty) {
-                    emptyState.style.display = 'block';
-                    return;
-                }
-
-                // Sort bookings in memory by createdAt
-                const bookings = [];
-                snapshot.forEach(doc => {
-                    bookings.push({ id: doc.id, ...doc.data() });
-                });
-
-                // Sort by createdAt descending
-                bookings.sort((a, b) => {
-                    const timeA = a.createdAt ? a.createdAt.toMillis() : 0;
-                    const timeB = b.createdAt ? b.createdAt.toMillis() : 0;
-                    return timeB - timeA;
-                });
-
-                bookingsGrid.style.display = 'grid';
-
-                // Render bookings
-                bookings.forEach(booking => {
-                    const bookingCard = createBookingCard(booking);
-                    bookingsGrid.appendChild(bookingCard);
-                });
-
-            } catch (error) {
-                console.error('Error loading bookings:', error);
-                loadingState.innerHTML = `
-                    <p style="color: #ef4444;">Failed to load bookings: ${error.message}</p>
-                    <p style="color: #64748b; font-size: 13px; margin-top: 8px;">Please check Firestore security rules.</p>
-                `;
-            }
-        }
-
-        // Create booking card HTML
-        function createBookingCard(booking) {
-            const card = document.createElement('div');
-            card.className = 'booking-card';
-
-            const statusClass = `status-${booking.status || 'pending'}`;
-            const statusText = (booking.status || 'pending').charAt(0).toUpperCase() + (booking.status || 'pending').slice(1);
-
-            card.innerHTML = `
-                <div class="booking-header">
-                    <div>
-                        <div class="booking-id">${booking.bookingId}</div>
-                        <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
-                            ${formatDate(booking.createdAt)}
-                        </p>
-                    </div>
-                    <span class="booking-status ${statusClass}">${statusText}</span>
+    <!-- Design Brief Modal -->
+    <div class="modal-overlay" id="designModal">
+        <div class="modal-box">
+            <button class="modal-close" onclick="closeDesignModal()">&#x2715;</button>
+            <h2 class="modal-title">Request Ad Design</h2>
+            <p class="modal-sub">Our team will create your ad artwork. You will be contacted for payment of the design fee.</p>
+            <div class="fee-note">Design fee: Rs. 2,500 — payable via bank transfer after design is confirmed.</div>
+            <form class="brief-form" id="designForm" onsubmit="submitDesignRequest(event)">
+                <input type="hidden" id="designBookingId">
+                <div class="form-group">
+                    <label>Ad Text / Copy</label>
+                    <textarea id="briefText" rows="4" placeholder="Paste your ad text here. Include all details you want in the ad." required></textarea>
                 </div>
-
-                <div class="booking-details">
-                    <div class="detail-item">
-                        <span class="detail-label">Quotation Number</span>
-                        <span class="detail-value">${booking.quotationNumber}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Invoice Number</span>
-                        <span class="detail-value">${booking.invoiceNumber || 'Pending'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Payment Status</span>
-                        <span class="detail-value">${booking.paymentStatus || 'Pending'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Total Amount</span>
-                        <span class="detail-value">${formatCurrency(booking.totalAmount)}</span>
+                <div class="form-group">
+                    <label>Style Preference</label>
+                    <div class="style-chips" id="styleChips">
+                        <span class="style-chip" onclick="toggleStyle(this,'Modern')">Modern</span>
+                        <span class="style-chip" onclick="toggleStyle(this,'Traditional')">Traditional</span>
+                        <span class="style-chip" onclick="toggleStyle(this,'Bold')">Bold</span>
+                        <span class="style-chip" onclick="toggleStyle(this,'Minimal')">Minimal</span>
                     </div>
                 </div>
-
-                <div class="booking-items">
-                    ${booking.items.map(item => `
-                        <div class="booking-item">
-                            <div class="item-info">
-                                <h4>${item.newspaperName}</h4>
-                                <p>${item.adType === 'box' ? 'Box Ad' : 'Classified Ad'} • ${item.pubDate}</p>
-                            </div>
-                            <div class="item-price">${formatCurrency(item.price)}</div>
-                        </div>
-                    `).join('')}
+                <div class="form-group">
+                    <label>Colour Preference</label>
+                    <input type="text" id="briefColour" placeholder="e.g. Blue and white, brand colours, black and white…">
                 </div>
-
-                <div class="booking-actions">
-                    <button class="btn btn-primary" onclick="downloadInvoice('${booking.invoiceNumber}')">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                        Download Invoice
-                    </button>
-                    <a href="/book" class="btn btn-secondary">Book Again</a>
+                <div class="form-group">
+                    <label>Reference Notes</label>
+                    <textarea id="briefNotes" rows="2" placeholder="Any references, examples, or special instructions…"></textarea>
                 </div>
-            `;
-
-            return card;
-        }
-
-        // Download invoice (will fetch from Google Drive link)
-        async function downloadInvoice(invoiceNumber) {
-            if (!invoiceNumber || invoiceNumber === 'Pending') {
-                alert('Invoice is being generated. Please check back later.');
-                return;
-            }
-
-            try {
-                // Fetch invoice from Firestore
-                const invoiceDoc = await db.collection('invoices').doc(invoiceNumber).get();
-
-                if (invoiceDoc.exists) {
-                    const invoice = invoiceDoc.data();
-                    if (invoice.pdfUrl) {
-                        // Open Google Drive PDF link in new tab
-                        window.open(invoice.pdfUrl, '_blank');
-                    } else {
-                        alert('Invoice PDF is being generated. Please try again in a few moments.');
-                    }
-                } else {
-                    alert('Invoice not found.');
-                }
-            } catch (error) {
-                console.error('Error downloading invoice:', error);
-                alert('Failed to download invoice. Please try again.');
-            }
-        }
-
-        // Wait for auth to load
-        firebase.auth().onAuthStateChanged(user => {
-            if (user) {
-                loadBookings();
-            } else {
-                // Redirect to home if not logged in
-                window.location.href = 'index.html';
-            }
-        });
-    </script>
-
-    <!-- Maintenance Mode -->
-    <script src="js/maintenance-config.js"></script>
-    <script src="js/maintenance-check.js"></script>
-
-    <!-- Mobile Menu -->
-    <div class="mobile-menu">
-        <div class="mobile-menu-content">
-            <a href="index.html#services">Services</a>
-            <a href="index.html#publications">Publications</a>
-            <a href="index.html#contact">Contact</a>
-            <a href="/book" class="btn btn-primary">Book Your Ad</a>
+                <button type="submit" class="btn-submit-design" id="designSubmitBtn">Submit Design Request</button>
+            </form>
         </div>
     </div>
 
+    <div class="toast" id="toast"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/firebase-db.js"></script>
+
     <script>
-    // Mobile menu toggle
-    (function() {
-        const menuBtn = document.querySelector('.mobile-menu-btn');
-        const mobileMenu = document.querySelector('.mobile-menu');
-        if (menuBtn && mobileMenu) {
-            menuBtn.addEventListener('click', function() {
-                this.classList.toggle('active');
-                mobileMenu.classList.toggle('active');
-                document.body.style.overflow = mobileMenu.classList.contains('active') ? 'hidden' : '';
-            });
-            mobileMenu.querySelectorAll('a').forEach(link => {
-                link.addEventListener('click', function() {
-                    menuBtn.classList.remove('active');
-                    mobileMenu.classList.remove('active');
-                    document.body.style.overflow = '';
-                });
-            });
+    // ── State ─────────────────────────────────────────────────────────────────
+    let allBookings = [];
+    let designTargetBookingId = '';
+    let selectedStyle = '';
+
+    // ── Utils ─────────────────────────────────────────────────────────────────
+    function fmtRs(n) { return 'Rs. ' + Math.round(n).toLocaleString('en-US'); }
+    function fmtDate(s) {
+        if (!s) return 'N/A';
+        const d = new Date(s);
+        return isNaN(d) ? s : d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+    }
+    function fmtPubDate(s) {
+        if (!s) return '';
+        const d = new Date(s);
+        return isNaN(d) ? s : d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+    }
+    function showToast(msg, type) {
+        const t = document.getElementById('toast');
+        t.textContent = msg; t.className = 'toast ' + type; t.style.display = 'block';
+        setTimeout(() => { t.style.display = 'none'; }, 4000);
+    }
+
+    // ── Timeline helpers ──────────────────────────────────────────────────────
+    function buildTimeline(b) {
+        const stages = [
+            { label: 'Booked',          done: true },
+            { label: 'Payment\nReceived', done: b.payment_status === 'completed' || b.paymentStatus === 'completed' },
+            { label: 'Artwork\nApproved', done: !!b.artwork_approved_at },
+            { label: 'Sent to\nPublication', done: !!b.sent_to_publication_at },
+            { label: 'Published',       done: !!b.published_at }
+        ];
+
+        const firstIncomplete = stages.findIndex(s => !s.done);
+
+        const stepsHTML = stages.map((s, i) => {
+            const done   = s.done;
+            const active = !done && i === firstIncomplete;
+            const cls    = done ? 'done' : active ? 'active' : '';
+            return `<div class="tl-step ${cls}">
+                <div class="tl-dot">
+                    ${done ? `<svg viewBox="0 0 24 24" fill="none" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
+                    ${active ? `<div class="tl-dot-pulse"></div>` : ''}
+                </div>
+                <div class="tl-text">${s.label.replace('\n','<br>')}</div>
+            </div>`;
+        }).join('');
+
+        return `<div class="bk-timeline">
+            <div class="timeline-label">Booking Progress</div>
+            <div class="timeline-track">${stepsHTML}</div>
+        </div>`;
+    }
+
+    function buildProofBox(b) {
+        if (!b.proof_url) return '';
+        return `<div class="proof-box">
+            <img class="proof-thumb" src="${b.proof_url}" alt="Published ad proof" onclick="window.open('${b.proof_url}','_blank')">
+            <div class="proof-text">
+                <h4>Your ad was published!</h4>
+                <a href="${b.proof_url}" target="_blank">View full proof</a>
+            </div>
+        </div>`;
+    }
+
+    // ── Build card ────────────────────────────────────────────────────────────
+    function buildCard(b) {
+        const statusClass = {
+            pending: 's-pending', confirmed: 's-confirmed',
+            completed: 's-completed', cancelled: 's-cancelled', paid: 's-confirmed'
+        }[b.status] || 's-pending';
+        const statusLabel = (b.status || 'pending').charAt(0).toUpperCase() + (b.status || 'pending').slice(1);
+        const items = b.items || [];
+        const pdfUrl = b.quotation_pdf_url || b.quotationPdfUrl || '';
+        const invNum = b.invoice_number || b.invoiceNumber || '';
+        const hasClassified = items.some(i => i.adType === 'classified' || i.adType === 'classifieds');
+
+        const itemsHTML = items.map(it => {
+            const typeLabel = it.adType === 'box' ? 'Box Ad' : 'Classified';
+            const detail = it.adType === 'box'
+                ? (it.details ? `${it.details.columns} col × ${it.details.height} cm` : '')
+                : (it.details?.text ? `"${it.details.text.substring(0, 50)}${it.details.text.length > 50 ? '...' : ''}"` : '');
+            return `<div class="item-row">
+                <div>
+                    <div class="item-np">${it.newspaperName || ''}</div>
+                    <div class="item-sub">${typeLabel}${detail ? ' — ' + detail : ''}${it.pubDate ? ' &middot; ' + fmtPubDate(it.pubDate) : ''}</div>
+                </div>
+                <div class="item-price">${fmtRs(it.price || 0)}</div>
+            </div>`;
+        }).join('');
+
+        const bookingId = b.booking_id || b.bookingId || b.id;
+        const quotNum   = b.quotation_number || b.quotationNumber || '—';
+
+        return `<div class="booking-card" id="card-${bookingId}">
+            <div class="bk-header" onclick="toggleCard('${bookingId}')">
+                <div>
+                    <div class="bk-id">${quotNum}</div>
+                    <div class="bk-date">${fmtDate(b.created_at || b.createdAt)}</div>
+                </div>
+                <div class="bk-header-right">
+                    <span class="bk-amount">${fmtRs(b.total_amount || b.totalAmount || 0)}</span>
+                    <span class="bk-status ${statusClass}">${statusLabel}</span>
+                    <svg class="bk-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+            </div>
+            <div class="bk-body">
+                ${buildTimeline(b)}
+                ${buildProofBox(b)}
+                <div class="bk-items">
+                    <div class="items-label">Ad Items (${items.length})</div>
+                    ${itemsHTML}
+                </div>
+                <div class="bk-refs">
+                    <div class="ref-item"><label>Quotation</label><p>${quotNum}</p></div>
+                    <div class="ref-item"><label>Invoice</label><p>${invNum || 'Pending'}</p></div>
+                    <div class="ref-item"><label>Payment</label><p>${(b.payment_method || b.paymentMethod || '—').replace('_', ' ')}</p></div>
+                    <div class="ref-item"><label>Payment Status</label><p>${b.payment_status || b.paymentStatus || 'Pending'}</p></div>
+                </div>
+                <div class="bk-actions">
+                    <button class="btn-act btn-rebook" onclick="rebookBooking('${bookingId}')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M1 4v6h6M23 20v-6h-6M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
+                        Rebook
+                    </button>
+                    ${hasClassified ? `<button class="btn-act btn-design" onclick="openDesignModal('${bookingId}')">Request Design</button>` : ''}
+                    ${pdfUrl ? `<a class="btn-act btn-invoice-dl" href="${pdfUrl}" target="_blank">Download PDF</a>` : ''}
+                </div>
+            </div>
+        </div>`;
+    }
+
+    function toggleCard(id) {
+        const card = document.getElementById('card-' + id);
+        if (card) card.classList.toggle('open');
+    }
+
+    // ── Load bookings ─────────────────────────────────────────────────────────
+    async function loadBookings() {
+        try {
+            const bookings = await apiRequest('GET', '/api/bookings');
+            document.getElementById('loadingState').style.display = 'none';
+
+            if (!bookings || !bookings.length) {
+                document.getElementById('emptyState').style.display = 'block';
+                return;
+            }
+
+            allBookings = bookings;
+            const list = document.getElementById('bookingsList');
+            list.innerHTML = bookings.map(b => buildCard(b)).join('');
+
+            // Auto-open the first booking
+            const firstId = bookings[0]?.booking_id || bookings[0]?.bookingId || bookings[0]?.id;
+            if (firstId) {
+                const first = document.getElementById('card-' + firstId);
+                if (first) first.classList.add('open');
+            }
+        } catch (e) {
+            document.getElementById('loadingState').innerHTML =
+                `<p style="color:#dc2626">Failed to load bookings: ${e.message}</p>`;
         }
-    })();
+    }
+
+    // ── Rebook ────────────────────────────────────────────────────────────────
+    function rebookBooking(bookingId) {
+        const b = allBookings.find(x => (x.booking_id || x.bookingId || x.id) === bookingId);
+        if (!b || !b.items || !b.items.length) { showToast('No items found to rebook.', 'error'); return; }
+        sessionStorage.setItem('adspot_rebook', JSON.stringify(b.items));
+        window.location.href = '/book';
+    }
+
+    // ── Design modal ──────────────────────────────────────────────────────────
+    function openDesignModal(bookingId) {
+        designTargetBookingId = bookingId;
+        document.getElementById('designBookingId').value = bookingId;
+        document.getElementById('designForm').reset();
+        document.querySelectorAll('.style-chip').forEach(c => c.classList.remove('selected'));
+        selectedStyle = '';
+        document.getElementById('designModal').classList.add('open');
+    }
+    function closeDesignModal() {
+        document.getElementById('designModal').classList.remove('open');
+    }
+    function toggleStyle(el, style) {
+        document.querySelectorAll('.style-chip').forEach(c => c.classList.remove('selected'));
+        el.classList.add('selected');
+        selectedStyle = style;
+    }
+
+    async function submitDesignRequest(e) {
+        e.preventDefault();
+        const user = firebase.auth().currentUser;
+        if (!user) return;
+
+        const btn = document.getElementById('designSubmitBtn');
+        btn.disabled = true; btn.textContent = 'Submitting…';
+
+        try {
+            await apiRequest('POST', '/api/design-requests', {
+                bookingId:     designTargetBookingId,
+                customerName:  user.displayName || user.email.split('@')[0],
+                customerEmail: user.email,
+                fee:           2500,
+                brief: {
+                    text:    document.getElementById('briefText').value.trim(),
+                    style:   selectedStyle,
+                    colour:  document.getElementById('briefColour').value.trim(),
+                    notes:   document.getElementById('briefNotes').value.trim()
+                }
+            });
+            closeDesignModal();
+            showToast('Design request submitted. We will contact you shortly.', 'success');
+        } catch (err) {
+            showToast('Submission failed: ' + err.message, 'error');
+        } finally {
+            btn.disabled = false; btn.textContent = 'Submit Design Request';
+        }
+    }
+
+    // ── Auth ──────────────────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+        const toggle = document.getElementById('userToggle');
+        const dropdown = document.getElementById('dropdownMenu');
+        if (toggle && dropdown) {
+            toggle.addEventListener('click', e => { e.stopPropagation(); dropdown.classList.toggle('active'); });
+            document.addEventListener('click', () => dropdown.classList.remove('active'));
+        }
+        document.getElementById('signOutBtn')?.addEventListener('click', () => {
+            firebase.auth().signOut().then(() => { window.location.href = '/'; });
+        });
+
+        firebase.auth().onAuthStateChanged(user => {
+            if (!user) { window.location.href = '/'; return; }
+            document.getElementById('userMenu').style.display = '';
+            document.getElementById('userEmail').textContent = user.email;
+            document.getElementById('userName').textContent  = user.displayName || user.email.split('@')[0];
+            if (user.photoURL) document.getElementById('userPhoto').src = user.photoURL;
+            loadBookings();
+        });
+    });
     </script>
+
+    <script src="js/maintenance-config.js"></script>
+    <script src="js/maintenance-check.js"></script>
 </body>
 </html>

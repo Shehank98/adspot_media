@@ -208,6 +208,7 @@
                 <span class="logo-text">AdSpot Admin</span>
             </a>
             <ul class="nav-links">
+                <li><a href="/admin-dashboard">Dashboard</a></li>
                 <li><a href="/admin-bookings" class="active">Manage Bookings</a></li>
                 <li><a href="/admin-publications">Publications</a></li>
                 <li><a href="/admin-promo-codes">Promo Codes</a></li>
@@ -588,6 +589,32 @@
         <div class="panel-section">
             <div class="panel-section-title">Send to Publication</div>
             <div id="pubSendPanels"></div>
+        </div>
+        <div class="panel-section">
+            <div class="panel-section-title">Tracking</div>
+            <div class="action-group" style="margin-bottom:10px;">
+                <label style="font-size:12px;font-weight:500;color:#475569;min-width:90px;">Artwork</label>
+                <select id="artworkStatusSelect">
+                    <option value="pending"  ${(b.artwork_status||'pending')==='pending'  ?'selected':''}>Pending</option>
+                    <option value="received" ${(b.artwork_status||'')==='received'?'selected':''}>Received</option>
+                    <option value="approved" ${(b.artwork_status||'')==='approved'?'selected':''}>Approved</option>
+                </select>
+                <button class="btn-action btn-update" onclick="updateArtworkStatus()">Update</button>
+            </div>
+            <div class="action-group" style="margin-bottom:10px;">
+                <button class="btn-action btn-update" onclick="markSentToPublication()" ${b.sent_to_publication_at?'disabled':''}>
+                    ${b.sent_to_publication_at ? 'Sent ' + new Date(b.sent_to_publication_at).toLocaleDateString('en-GB') : 'Mark Sent to Publication'}
+                </button>
+                <button class="btn-action btn-update" onclick="markPublished()" ${b.published_at?'disabled':''}>
+                    ${b.published_at ? 'Published ' + new Date(b.published_at).toLocaleDateString('en-GB') : 'Mark Published'}
+                </button>
+            </div>
+            <div class="action-group" style="align-items:flex-start;flex-direction:column;gap:8px;">
+                <label style="font-size:12px;font-weight:500;color:#475569;">Upload Proof of Publication</label>
+                <input type="file" id="proofFileInput" accept="image/*,.pdf" style="font-size:13px;">
+                <button class="btn-action btn-invoice" onclick="uploadProof()">Upload &amp; Notify Customer</button>
+                ${b.proof_url ? `<a href="${b.proof_url}" target="_blank" style="font-size:12px;color:#2563eb;">View current proof</a>` : ''}
+            </div>
         </div>`;
     }
 
@@ -623,6 +650,60 @@
                 await generateAndSendInvoice();
             }
         } catch (err) { showToast('Update failed: ' + err.message, 'error'); }
+    }
+
+    // ── Tracking ───────────────────────────────────────────────────────────────
+    async function updateArtworkStatus() {
+        if (!currentBooking) return;
+        const s = document.getElementById('artworkStatusSelect')?.value;
+        if (!s) return;
+        const patch = { artwork_status: s };
+        if (s === 'approved') patch.artwork_approved_at = new Date().toISOString();
+        try {
+            await apiRequest('PATCH', '/api/bookings/' + currentBooking.id, patch);
+            Object.assign(currentBooking, patch);
+            showToast('Artwork status updated to ' + s);
+        } catch (err) { showToast('Update failed: ' + err.message, 'error'); }
+    }
+
+    async function markSentToPublication() {
+        if (!currentBooking) return;
+        const now = new Date().toISOString();
+        try {
+            await apiRequest('PATCH', '/api/bookings/' + currentBooking.id, { sent_to_publication_at: now });
+            currentBooking.sent_to_publication_at = now;
+            showToast('Marked as sent to publication');
+            viewBooking(currentBooking);
+        } catch (err) { showToast('Update failed: ' + err.message, 'error'); }
+    }
+
+    async function markPublished() {
+        if (!currentBooking) return;
+        const now = new Date().toISOString();
+        try {
+            await apiRequest('PATCH', '/api/bookings/' + currentBooking.id, { published_at: now, status: 'completed' });
+            currentBooking.published_at = now;
+            currentBooking.status = 'completed';
+            showToast('Marked as published');
+            viewBooking(currentBooking);
+        } catch (err) { showToast('Update failed: ' + err.message, 'error'); }
+    }
+
+    async function uploadProof() {
+        if (!currentBooking) return;
+        const fileInput = document.getElementById('proofFileInput');
+        if (!fileInput?.files?.length) { showToast('Please select a proof image first', 'error'); return; }
+        const file = fileInput.files[0];
+        try {
+            const storageRef = storage.ref(`proofs/${currentBooking.id}/${Date.now()}_${file.name}`);
+            const snap = await storageRef.put(file);
+            const url  = await snap.ref.getDownloadURL();
+            await apiRequest('PATCH', '/api/bookings/' + currentBooking.id, { proof_url: url, published_at: new Date().toISOString() });
+            currentBooking.proof_url = url;
+            if (typeof sendProofEmail === 'function') await sendProofEmail(currentBooking, url);
+            showToast('Proof uploaded and customer notified');
+            viewBooking(currentBooking);
+        } catch (err) { showToast('Upload failed: ' + err.message, 'error'); }
     }
 
     // ── Invoice ────────────────────────────────────────────────────────────────

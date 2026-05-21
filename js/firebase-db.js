@@ -372,6 +372,44 @@ async function sendManualQuotationEmail(data) {
     }
 }
 
+async function sendProofEmail(bookingData, proofUrl) {
+    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') return;
+    try {
+        await fetch(APPS_SCRIPT_URL, {
+            method: 'POST', mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'send_proof_of_publication',
+                quotationNumber: bookingData.quotation_number || bookingData.quotationNumber,
+                customerName:    bookingData.customer_name   || bookingData.customerName,
+                customerEmail:   bookingData.customer_email  || bookingData.customerEmail,
+                proofUrl,
+                items:           bookingData.items || [],
+                publishedAt:     new Date().toLocaleDateString('en-GB')
+            })
+        });
+        console.log('Proof email dispatched');
+    } catch (e) { console.error('Proof email failed:', e); }
+}
+
+async function sendDesignDeliveryEmail(data) {
+    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') return;
+    try {
+        await fetch(APPS_SCRIPT_URL, {
+            method: 'POST', mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'send_design_delivery',
+                customerName:  data.customerName,
+                customerEmail: data.customerEmail,
+                deliveryUrl:   data.deliveryUrl,
+                bookingId:     data.bookingId || ''
+            })
+        });
+        console.log('Design delivery email dispatched');
+    } catch (e) { console.error('Design delivery email failed:', e); }
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function generateBookingId() {
     const d = new Date();
@@ -394,5 +432,7 @@ window.sendInvoiceEmail = sendInvoiceEmail;
 window.sendFileUploadNotification = sendFileUploadNotification;
 window.sendManualQuotationEmail = sendManualQuotationEmail;
 window.apiRequest = apiRequest;
+window.sendProofEmail = sendProofEmail;
+window.sendDesignDeliveryEmail = sendDesignDeliveryEmail;
 
 console.log('✅ AdSpot Media database operations loaded (Railway PostgreSQL)');

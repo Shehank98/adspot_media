@@ -35,7 +35,56 @@ document.addEventListener('DOMContentLoaded', async function() {
             toggleAdOptions();
         }
     }
+
+    // Rebook: pre-fill cart from sessionStorage if arriving from my-bookings
+    const rebookData = sessionStorage.getItem('adspot_rebook');
+    if (rebookData) {
+        sessionStorage.removeItem('adspot_rebook');
+        try {
+            const rebookItems = JSON.parse(rebookData);
+            if (Array.isArray(rebookItems) && rebookItems.length) {
+                prefillRebookCart(rebookItems);
+                const banner = document.getElementById('rebookBanner');
+                if (banner) banner.style.display = 'block';
+            }
+        } catch (_) {}
+    }
 });
+
+function prefillRebookCart(items) {
+    items.forEach(item => {
+        const npName = item.newspaperName;
+        const allNps = getAllNewspapers ? getAllNewspapers() : [];
+        const np = allNps.find(n => n.name === npName);
+        if (!np) return;
+
+        let price = 0;
+        if (item.adType === 'box' && item.details && typeof calculateBoxAdPrice === 'function') {
+            const calc = calculateBoxAdPrice(np, item.details.height || 4, item.details.columns || 2, item.details.colorOption || 'bw');
+            price = calc.total;
+        } else if (item.adType === 'classified' && item.details && typeof calculateClassifiedPrice === 'function') {
+            const calc = calculateClassifiedPrice(np, item.details.wordCount || 20);
+            price = calc.total;
+        } else {
+            price = item.price || 0;
+        }
+
+        const cartItem = {
+            id: Date.now() + Math.random(),
+            newspaperId:       np.id,
+            newspaperName:     np.name,
+            newspaperLanguage: np.language,
+            groupId:           np.groupId || '',
+            adType:            item.adType,
+            pubDate:           '',
+            price:             price,
+            details:           item.details || {},
+            description:       item.description || np.name
+        };
+        adCart.push(cartItem);
+    });
+    if (typeof updateCartDisplay === 'function') updateCartDisplay();
+}
 
 /**
  * Initialize Newspapers from Firebase
@@ -545,6 +594,37 @@ function updateWordCount() {
             breakdown.style.display = 'none';
         }
     }
+    updateClassifiedPreview();
+}
+
+function updateClassifiedPreview() {
+    const text = document.getElementById('classifiedText')?.value || '';
+    const preview = document.getElementById('classifiedPreview');
+    if (!preview) return;
+
+    if (!text.trim()) { preview.style.display = 'none'; return; }
+
+    const np   = selectedNewspaper;
+    const lang = (selectedLanguage || 'english').toLowerCase();
+    const widths = (typeof CONFIG !== 'undefined' && CONFIG.COLUMN_WIDTHS)
+        ? (CONFIG.COLUMN_WIDTHS[lang] || CONFIG.COLUMN_WIDTHS.english)
+        : { 1: 3.0 };
+    const colW = widths[1] || 3.0;
+    const pxWidth = Math.round(colW * 37.8);
+
+    document.getElementById('prevCol').style.width = pxWidth + 'px';
+    document.getElementById('prevText').textContent = text;
+    document.getElementById('prevNpName').textContent = np ? np.name : '';
+
+    const wc    = text.trim().split(/\s+/).filter(Boolean).length;
+    const free  = np?.classifiedFreeWords || 0;
+    const extra = Math.max(0, wc - free);
+    const metaParts = [wc + ' word' + (wc !== 1 ? 's' : '')];
+    if (free) metaParts.push(free + ' free');
+    if (extra > 0) metaParts.push(extra + ' extra at Rs. ' + (np?.classifiedExtraRate || 0) + '/word');
+    document.getElementById('prevMeta').textContent = metaParts.join(' — ');
+
+    preview.style.display = 'block';
 }
 
 /**

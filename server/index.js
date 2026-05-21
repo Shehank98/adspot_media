@@ -25,6 +25,7 @@ app.use('/api/promo-codes',     require('./routes/promoCodes'));
 app.use('/api/push-register',   require('./routes/push'));
 app.use('/api/helapay',         require('./routes/helapay'));
 app.use('/api/helapay-webhook', require('./routes/helapayWebhook'));
+app.use('/api/design-requests', require('./routes/design-requests'));
 
 // ── Static files (the entire repo root) ──────────────────────────────────────
 const ROOT = path.join(__dirname, '..');

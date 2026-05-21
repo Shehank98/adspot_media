@@ -144,6 +144,12 @@
     </nav>
 
     <!-- Booking Section -->
+    <!-- Rebook banner (shown when rebooking from my-bookings) -->
+    <div id="rebookBanner" style="display:none;background:#eff6ff;border-bottom:1px solid #bfdbfe;padding:10px 20px;text-align:center;font-size:13px;font-weight:500;color:#1e40af;">
+        Rebooking a previous order — your cart has been pre-filled. Please confirm or update the publication dates.
+        <button onclick="document.getElementById('rebookBanner').style.display=\'none\'" style="margin-left:12px;background:none;border:none;color:#1e40af;cursor:pointer;font-weight:700;font-size:14px;">&#x2715;</button>
+    </div>
+
     <main class="booking-main">
         <div class="container">
             <!-- Progress Steps -->
@@ -390,6 +396,17 @@
                                             <strong id="classifiedTotal">Rs. 0</strong>
                                         </div>
                                     </div>
+                                </div>
+
+                                <!-- Real-time classified preview -->
+                                <div id="classifiedPreview" style="display:none;margin-top:16px;">
+                                    <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;margin-bottom:8px;">
+                                        Preview — <span id="prevNpName"></span>
+                                    </div>
+                                    <div id="prevCol" style="font-family:'Times New Roman',serif;font-size:8.5pt;line-height:1.5;background:#fffff8;border:1px solid #c7b299;border-radius:4px;padding:8px 10px;min-height:40px;white-space:pre-wrap;word-break:break-word;color:#1a1008;">
+                                        <span id="prevText" style="display:block;"></span>
+                                    </div>
+                                    <div id="prevMeta" style="font-size:11px;color:#6b7280;margin-top:5px;"></div>
                                 </div>
                             </div>
 
