@@ -72,6 +72,7 @@ router.post('/', verifyFirebaseToken, async (req, res) => {
         );
         res.status(201).json(result.rows[0]);
     } catch (err) {
+        if (err.code === '23505') return res.status(409).json({ error: 'Booking already exists' });
         console.error('POST /api/bookings error:', err.message);
         res.status(500).json({ error: err.message });
     }
