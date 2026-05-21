@@ -36,14 +36,25 @@ router.get('/:id', verifyFirebaseToken, requireAdmin, async (req, res) => {
     }
 });
 
-// GET /api/customers/count (admin only)
-router.get('/count', verifyFirebaseToken, requireAdmin, async (req, res) => {
+// PATCH /api/customers/:id (admin only)
+router.patch('/:id', verifyFirebaseToken, requireAdmin, async (req, res) => {
     try {
-        const result = await db.query('SELECT COUNT(*) FROM customers');
-        res.json({ count: parseInt(result.rows[0].count) });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+        const d = req.body;
+        const allowed = { name: 'name', phone: 'phone', company: 'company', address: 'address', city: 'city' };
+        const fields = [], vals = [];
+        let i = 1;
+        for (const [k, col] of Object.entries(allowed)) {
+            if (d[k] !== undefined) { fields.push(`${col} = $${i++}`); vals.push(d[k]); }
+        }
+        if (!fields.length) return res.status(400).json({ error: 'Nothing to update' });
+        fields.push(`updated_at = NOW()`);
+        vals.push(req.params.id);
+        const result = await db.query(
+            `UPDATE customers SET ${fields.join(', ')} WHERE id = $${i} RETURNING *`, vals
+        );
+        if (!result.rows.length) return res.status(404).json({ error: 'Customer not found' });
+        res.json(result.rows[0]);
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 module.exports = router;
