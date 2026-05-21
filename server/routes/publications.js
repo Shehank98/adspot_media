@@ -46,6 +46,7 @@ router.get('/', async (req, res) => {
                         classifiedExtraRate: parseFloat(p.classified_extra_rate),
                         isSundayPaper: p.is_sunday_paper,
                         logoUrl: p.logo_url || null,
+                        active: p.active,
                         groupName: g.name
                     }))
             };

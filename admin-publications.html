@@ -7,220 +7,667 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/firebase-ui.css">
 
     <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
         body {
-            background: #f8fafc;
+            background: #f1f5f9;
+            font-family: 'Inter', sans-serif;
+            color: #0f172a;
         }
 
-        .admin-container {
-            max-width: 1400px;
+        .page-wrap {
+            max-width: 1300px;
             margin: 0 auto;
-            padding: 100px 20px 40px;
+            padding: 90px 24px 60px;
         }
 
-        .admin-header {
+        /* ── Page header ── */
+        .page-header {
             display: flex;
+            align-items: flex-start;
             justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+
+        .page-header-left h1 {
+            font-size: 26px;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0 0 4px;
+        }
+
+        .page-header-left p {
+            font-size: 14px;
+            color: #64748b;
+            margin: 0;
+        }
+
+        .btn-add {
+            display: inline-flex;
             align-items: center;
+            gap: 8px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .15s;
+            white-space: nowrap;
+        }
+        .btn-add:hover { background: #1d4ed8; }
+
+        /* ── Stats row ── */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 16px;
             margin-bottom: 32px;
         }
 
-        .admin-header h1 {
-            font-size: 32px;
-            color: var(--text-primary);
-        }
-
-        .btn {
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: var(--primary-dark);
-        }
-
-        .publications-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-        }
-
-        .pub-card {
+        .stat-card {
             background: white;
-            border: 1px solid var(--gray-200);
-            border-radius: 12px;
-            padding: 20px;
-            transition: all 0.3s;
+            border-radius: 14px;
+            padding: 20px 22px;
+            border: 1px solid #e2e8f0;
         }
 
-        .pub-card:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        .stat-card .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1;
         }
 
-        .pub-card h3 {
-            font-size: 18px;
-            margin-bottom: 12px;
-            color: var(--text-primary);
-        }
-
-        .pub-info {
-            display: grid;
-            gap: 8px;
-            margin-bottom: 16px;
-        }
-
-        .pub-info-item {
-            display: flex;
-            justify-content: space-between;
-            font-size: 13px;
-        }
-
-        .pub-info-item label {
-            color: var(--text-secondary);
-        }
-
-        .pub-info-item span {
+        .stat-card .stat-label {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 6px;
             font-weight: 500;
-            color: var(--text-primary);
+            text-transform: uppercase;
+            letter-spacing: .5px;
         }
 
-        .pub-actions {
+        /* ── Filters ── */
+        .filters-bar {
             display: flex;
-            gap: 8px;
+            gap: 10px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            align-items: center;
         }
 
-        .btn-sm {
-            padding: 6px 12px;
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 9px 12px 9px 36px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            background: white;
+            color: #0f172a;
+        }
+
+        .search-box input:focus { outline: none; border-color: #2563eb; }
+
+        .search-icon {
+            position: absolute;
+            left: 11px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 15px;
+        }
+
+        .filter-btn {
+            padding: 9px 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            background: white;
             font-size: 13px;
-            border-radius: 6px;
+            font-weight: 500;
+            color: #475569;
+            cursor: pointer;
+            transition: all .15s;
+        }
+
+        .filter-btn.active {
+            background: #2563eb;
+            color: white;
+            border-color: #2563eb;
+        }
+
+        .filter-btn:hover:not(.active) { background: #f8fafc; }
+
+        /* ── Group section ── */
+        .group-section {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .group-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid #f1f5f9;
+            cursor: pointer;
+            user-select: none;
+            background: #f8fafc;
+        }
+
+        .group-header:hover { background: #f1f5f9; }
+
+        .group-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .group-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #2563eb;
+            flex-shrink: 0;
+        }
+
+        .group-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .group-count {
+            font-size: 12px;
+            color: #64748b;
+            background: #e2e8f0;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        .group-chevron {
+            color: #94a3b8;
+            font-size: 14px;
+            transition: transform .2s;
+        }
+
+        .group-section.collapsed .group-chevron { transform: rotate(-90deg); }
+        .group-section.collapsed .group-body { display: none; }
+
+        /* ── Table ── */
+        .pub-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .pub-table th {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            color: #64748b;
+            padding: 10px 16px;
+            text-align: left;
+            background: #fafafa;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .pub-table td {
+            padding: 13px 16px;
+            font-size: 14px;
+            border-bottom: 1px solid #f8fafc;
+            vertical-align: middle;
+        }
+
+        .pub-table tr:last-child td { border-bottom: none; }
+
+        .pub-table tr:hover td { background: #f8fafc; }
+
+        .pub-table tr.hidden-row { display: none; }
+
+        /* ── Cells ── */
+        .paper-name-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .paper-logo {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            object-fit: contain;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            padding: 3px;
+            flex-shrink: 0;
+        }
+
+        .paper-logo-placeholder {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .paper-name { font-weight: 600; color: #0f172a; }
+        .paper-type { font-size: 11px; color: #94a3b8; margin-top: 1px; }
+
+        .lang-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .lang-english { background: #dbeafe; color: #1e40af; }
+        .lang-sinhala { background: #dcfce7; color: #166534; }
+        .lang-tamil   { background: #fce7f3; color: #9d174d; }
+
+        .rate-cell {
+            font-size: 13px;
+            color: #334155;
+        }
+
+        .rate-bw { font-weight: 600; color: #0f172a; }
+        .rate-color { color: #64748b; font-size: 12px; }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-pill::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        .status-active { background: #dcfce7; color: #166534; }
+        .status-active::before { background: #22c55e; }
+        .status-inactive { background: #fee2e2; color: #991b1b; }
+        .status-inactive::before { background: #ef4444; }
+
+        .action-cell { display: flex; gap: 6px; }
+
+        .btn-icon {
+            padding: 6px 12px;
+            border-radius: 7px;
+            font-size: 12px;
+            font-weight: 600;
             border: none;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all .15s;
         }
 
-        .btn-edit {
-            background: var(--primary);
-            color: white;
-        }
+        .btn-edit  { background: #eff6ff; color: #2563eb; }
+        .btn-edit:hover { background: #dbeafe; }
+        .btn-delete { background: #fff1f2; color: #e11d48; }
+        .btn-delete:hover { background: #ffe4e6; }
 
-        .btn-delete {
-            background: #ef4444;
-            color: white;
-        }
-
-        .modal {
+        /* ── Modal ── */
+        .modal-overlay {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
+            inset: 0;
+            background: rgba(0,0,0,.45);
+            z-index: 2000;
             align-items: center;
             justify-content: center;
             padding: 20px;
         }
 
-        .modal.active {
-            display: flex;
-        }
+        .modal-overlay.open { display: flex; }
 
-        .modal-content {
+        .modal-box {
             background: white;
-            border-radius: 16px;
-            max-width: 600px;
+            border-radius: 20px;
             width: 100%;
-            max-height: 90vh;
+            max-width: 620px;
+            max-height: 92vh;
             overflow-y: auto;
-            padding: 32px;
+            box-shadow: 0 25px 60px rgba(0,0,0,.2);
         }
 
-        .modal-header {
+        .modal-head {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 24px;
+            justify-content: space-between;
+            padding: 24px 28px 20px;
+            border-bottom: 1px solid #f1f5f9;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 1;
+            border-radius: 20px 20px 0 0;
         }
+
+        .modal-head h2 { font-size: 18px; font-weight: 700; color: #0f172a; margin: 0; }
 
         .modal-close {
-            background: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
             border: none;
-            font-size: 24px;
+            background: #f1f5f9;
+            color: #64748b;
+            font-size: 18px;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background .15s;
         }
 
-        .form-group {
-            margin-bottom: 20px;
+        .modal-close:hover { background: #e2e8f0; }
+
+        .modal-body { padding: 24px 28px; }
+
+        .form-section {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 16px 18px;
+            margin-bottom: 16px;
         }
+
+        .form-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            color: #64748b;
+            margin-bottom: 14px;
+        }
+
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .form-group { margin-bottom: 12px; }
+        .form-group:last-child { margin-bottom: 0; }
 
         .form-group label {
             display: block;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
-            margin-bottom: 6px;
-            color: var(--text-primary);
+            color: #374151;
+            margin-bottom: 5px;
         }
 
         .form-group input,
         .form-group select {
             width: 100%;
-            padding: 10px;
-            border: 1px solid var(--gray-300);
+            padding: 9px 12px;
+            border: 1px solid #e2e8f0;
             border-radius: 8px;
             font-size: 14px;
+            color: #0f172a;
+            background: white;
+            transition: border-color .15s;
         }
 
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,.1);
         }
 
-        .checkbox-label {
+        .toggle-row {
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: space-between;
+            padding: 10px 0;
         }
 
-        .modal-actions {
+        .toggle-label { font-size: 14px; font-weight: 500; color: #374151; }
+        .toggle-sub   { font-size: 12px; color: #94a3b8; }
+
+        .toggle {
+            position: relative;
+            width: 40px;
+            height: 22px;
+            flex-shrink: 0;
+        }
+
+        .toggle input { opacity: 0; width: 0; height: 0; }
+
+        .toggle-track {
+            position: absolute;
+            inset: 0;
+            background: #cbd5e1;
+            border-radius: 11px;
+            cursor: pointer;
+            transition: background .2s;
+        }
+
+        .toggle-track::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: white;
+            transition: transform .2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,.2);
+        }
+
+        .toggle input:checked + .toggle-track { background: #2563eb; }
+        .toggle input:checked + .toggle-track::after { transform: translateX(18px); }
+
+        .logo-upload-area {
+            border: 2px dashed #e2e8f0;
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color .15s, background .15s;
+        }
+
+        .logo-upload-area:hover {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+
+        .logo-preview-wrap {
             display: flex;
+            align-items: center;
             gap: 12px;
+            padding: 10px 14px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+        }
+
+        .logo-preview-wrap img {
+            max-width: 100px;
+            max-height: 44px;
+            object-fit: contain;
+        }
+
+        .modal-foot {
+            display: flex;
+            gap: 10px;
             justify-content: flex-end;
-            margin-top: 24px;
+            padding: 18px 28px 24px;
+            border-top: 1px solid #f1f5f9;
         }
 
-        .status-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
+        .btn-cancel {
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            font-size: 14px;
             font-weight: 500;
+            color: #374151;
+            cursor: pointer;
         }
 
-        .status-active {
-            background: #dcfce7;
-            color: #166534;
+        .btn-cancel:hover { background: #f8fafc; }
+
+        .btn-save {
+            padding: 10px 24px;
+            border-radius: 10px;
+            border: none;
+            background: #2563eb;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .15s;
         }
 
-        .status-inactive {
-            background: #fee2e2;
-            color: #991b1b;
+        .btn-save:hover { background: #1d4ed8; }
+        .btn-save:disabled { opacity: .6; cursor: not-allowed; }
+
+        /* ── Emails section ── */
+        .emails-section {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            padding: 28px;
+            margin-top: 28px;
+        }
+
+        .emails-section h2 {
+            font-size: 17px;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0 0 6px;
+        }
+
+        .emails-section p {
+            font-size: 13px;
+            color: #64748b;
+            margin: 0 0 22px;
+        }
+
+        .email-row {
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .email-row:last-of-type { border-bottom: none; }
+
+        .email-row label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .email-row input {
+            padding: 9px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #0f172a;
+            width: 100%;
+        }
+
+        .email-row input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+        }
+
+        .btn-save-emails {
+            margin-top: 20px;
+            padding: 10px 24px;
+            border-radius: 10px;
+            border: none;
+            background: #0f172a;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .15s;
+        }
+
+        .btn-save-emails:hover { background: #1e293b; }
+
+        /* ── Toast ── */
+        .toast {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            background: #0f172a;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 9999;
+            transform: translateY(80px);
+            opacity: 0;
+            transition: all .3s cubic-bezier(.34,1.56,.64,1);
+            max-width: 320px;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success { background: #166534; }
+        .toast.error   { background: #991b1b; }
+
+        /* ── Loading skeleton ── */
+        .skeleton {
+            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 8px;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        @media (max-width: 768px) {
+            .form-row { grid-template-columns: 1fr; }
+            .email-row { grid-template-columns: 1fr; }
+            .pub-table th:nth-child(3),
+            .pub-table td:nth-child(3),
+            .pub-table th:nth-child(5),
+            .pub-table td:nth-child(5) { display: none; }
         }
     </style>
 
@@ -266,345 +713,491 @@
         </div>
     </nav>
 
-    <main class="admin-container">
-        <div class="admin-header">
-            <h1>Manage Publications</h1>
-            <button class="btn btn-primary" onclick="openAddModal()">+ Add Newspaper</button>
+    <div class="page-wrap">
+        <!-- Header -->
+        <div class="page-header">
+            <div class="page-header-left">
+                <h1>Manage Publications</h1>
+                <p>Add, edit and manage newspaper rates across all publication groups</p>
+            </div>
+            <button class="btn-add" onclick="openAddModal()">
+                <span>+</span> Add Newspaper
+            </button>
         </div>
 
-        <div id="publicationsGrid" class="publications-grid"></div>
-
-        <!-- Publication Contact Emails -->
-        <div style="margin-top: 48px;">
-            <h2 style="font-size: 22px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">Publication Contact Emails</h2>
-            <p style="color: #6b7280; font-size: 14px; margin-bottom: 24px;">
-                Set the email address for each publication group. These are used when sending ad bookings and payment slips after a customer completes payment.
-            </p>
-            <div id="pubEmailsTable" style="display:flex; flex-direction:column; gap:12px; max-width:700px;"></div>
-            <button class="btn btn-primary" style="margin-top:20px;" onclick="saveAllPublicationEmails()">Save All Emails</button>
+        <!-- Stats -->
+        <div class="stats-row" id="statsRow">
+            <div class="stat-card">
+                <div class="stat-value" id="statGroups">—</div>
+                <div class="stat-label">Publication Groups</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statPapers">—</div>
+                <div class="stat-label">Newspapers</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statActive">—</div>
+                <div class="stat-label">Active</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statEnglish">—</div>
+                <div class="stat-label">English Papers</div>
+            </div>
         </div>
-    </main>
 
-    <!-- Add/Edit Modal -->
-    <div id="publicationModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
+        <!-- Filters -->
+        <div class="filters-bar">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="searchInput" placeholder="Search newspapers…" oninput="applyFilters()">
+            </div>
+            <button class="filter-btn active" onclick="setLangFilter('all', this)">All</button>
+            <button class="filter-btn" onclick="setLangFilter('english', this)">English</button>
+            <button class="filter-btn" onclick="setLangFilter('sinhala', this)">Sinhala</button>
+            <button class="filter-btn" onclick="setLangFilter('tamil', this)">Tamil</button>
+        </div>
+
+        <!-- Publications list -->
+        <div id="pubList">
+            <!-- Skeleton -->
+            <div class="group-section" id="loadingSkeleton">
+                <div class="group-header" style="cursor:default;">
+                    <div class="skeleton" style="width:200px;height:18px;"></div>
+                </div>
+                <div class="group-body" style="padding:16px;">
+                    <div class="skeleton" style="height:40px;margin-bottom:8px;"></div>
+                    <div class="skeleton" style="height:40px;margin-bottom:8px;"></div>
+                    <div class="skeleton" style="height:40px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Emails -->
+        <div class="emails-section">
+            <h2>Publication Contact Emails</h2>
+            <p>Set the email for each publication group — used when sending booking confirmations and payment slips.</p>
+            <div id="pubEmailsTable"></div>
+            <button class="btn-save-emails" onclick="saveAllPublicationEmails()">Save All Emails</button>
+        </div>
+    </div>
+
+    <!-- Add / Edit Modal -->
+    <div class="modal-overlay" id="pubModal">
+        <div class="modal-box">
+            <div class="modal-head">
                 <h2 id="modalTitle">Add Newspaper</h2>
-                <button class="modal-close" onclick="closeModal()">&times;</button>
+                <button class="modal-close" onclick="closeModal()">✕</button>
             </div>
 
-            <form id="publicationForm" onsubmit="savePublication(event)">
+            <form id="pubForm" onsubmit="savePublication(event)">
                 <input type="hidden" id="pubId">
+                <input type="hidden" id="pubLogoUrl">
 
-                <div class="form-group">
-                    <label>Newspaper Name *</label>
-                    <input type="text" id="pubName" required>
-                </div>
+                <div class="modal-body">
+                    <!-- Basic info -->
+                    <div class="form-section">
+                        <div class="form-section-title">Basic Information</div>
 
-                <!-- Logo Upload -->
-                <div class="form-group">
-                    <label>Newspaper Logo</label>
-                    <input type="file" id="pubLogo" accept="image/*" style="display: none;" onchange="handleLogoPreview(event)">
-                    <input type="hidden" id="pubLogoUrl">
+                        <div class="form-group">
+                            <label>Newspaper Name *</label>
+                            <input type="text" id="pubName" required placeholder="e.g. Daily News">
+                        </div>
 
-                    <div style="display: flex; gap: 1rem; align-items: center;">
-                        <button type="button" class="btn" onclick="document.getElementById('pubLogo').click()" style="background: var(--primary); color: white;">
-                            📤 Upload Logo
-                        </button>
-                        <div id="logoPreview" style="display: none; position: relative;">
-                            <img id="logoPreviewImg" src="" alt="Logo preview" style="max-width: 150px; max-height: 60px; border-radius: 4px; border: 1px solid #e5e7eb;">
-                            <button type="button" onclick="removeLogoPreview()" style="position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 14px; line-height: 1;">×</button>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Language *</label>
+                                <select id="pubLanguage" required>
+                                    <option value="english">English</option>
+                                    <option value="sinhala">Sinhala</option>
+                                    <option value="tamil">Tamil</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Publication Group</label>
+                                <select id="pubGroupId">
+                                    <!-- filled dynamically -->
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Logo -->
+                        <div class="form-group">
+                            <label>Newspaper Logo</label>
+                            <input type="file" id="pubLogoFile" accept="image/*" style="display:none" onchange="handleLogoPreview(event)">
+                            <div id="logoUploadArea" class="logo-upload-area" onclick="document.getElementById('pubLogoFile').click()">
+                                <div style="font-size:24px;margin-bottom:6px;">🖼️</div>
+                                <div style="font-size:13px;color:#64748b;font-weight:500;">Click to upload logo</div>
+                                <div style="font-size:12px;color:#94a3b8;margin-top:3px;">PNG with transparent bg recommended</div>
+                            </div>
+                            <div id="logoPreviewWrap" class="logo-preview-wrap" style="display:none;">
+                                <img id="logoPreviewImg" src="" alt="Logo">
+                                <div style="flex:1;">
+                                    <div style="font-size:13px;font-weight:500;color:#374151;">Logo uploaded</div>
+                                    <button type="button" onclick="removeLogo()" style="font-size:12px;color:#ef4444;background:none;border:none;cursor:pointer;padding:0;margin-top:3px;">Remove</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <small style="color: #6b7280; font-size: 0.875rem; display: block; margin-top: 0.5rem;">
-                        Recommended: PNG with transparent background, 200-300px width
-                    </small>
-                </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Language *</label>
-                        <select id="pubLanguage" required>
-                            <option value="english">English</option>
-                            <option value="sinhala">Sinhala</option>
-                            <option value="tamil">Tamil</option>
-                        </select>
+                    <!-- Rates -->
+                    <div class="form-section">
+                        <div class="form-section-title">Box Ad Rates (LKR per col cm)</div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>B&W Rate *</label>
+                                <input type="number" id="pubBwRate" required min="0" step="0.01" placeholder="400">
+                            </div>
+                            <div class="form-group">
+                                <label>Colour Rate *</label>
+                                <input type="number" id="pubColorRate" required min="0" step="0.01" placeholder="560">
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Group Name</label>
-                        <input type="text" id="pubGroupName" placeholder="Lake House">
+
+                    <!-- Classified rates -->
+                    <div class="form-section">
+                        <div class="form-section-title">Classified Ad Rates</div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Base Rate (LKR)</label>
+                                <input type="number" id="pubClassifiedBase" min="0" step="0.01" placeholder="1000">
+                            </div>
+                            <div class="form-group">
+                                <label>Free Words</label>
+                                <input type="number" id="pubClassifiedFreeWords" min="0" placeholder="20">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Extra Rate per Word (LKR)</label>
+                            <input type="number" id="pubClassifiedExtraRate" min="0" step="0.01" placeholder="45">
+                        </div>
+                    </div>
+
+                    <!-- Toggles -->
+                    <div class="form-section">
+                        <div class="form-section-title">Settings</div>
+                        <div class="toggle-row">
+                            <div>
+                                <div class="toggle-label">Sunday Paper</div>
+                                <div class="toggle-sub">Only available for Sunday editions</div>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="pubIsSunday">
+                                <span class="toggle-track"></span>
+                            </label>
+                        </div>
+                        <div class="toggle-row">
+                            <div>
+                                <div class="toggle-label">Active</div>
+                                <div class="toggle-sub">Inactive papers won't appear in bookings</div>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="pubActive" checked>
+                                <span class="toggle-track"></span>
+                            </label>
+                        </div>
                     </div>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>B&W Rate (LKR/col cm) *</label>
-                        <input type="number" id="pubBwRate" required min="0" step="0.01">
-                    </div>
-                    <div class="form-group">
-                        <label>Color Rate (LKR/col cm) *</label>
-                        <input type="number" id="pubColorRate" required min="0" step="0.01">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Classified Base (LKR)</label>
-                        <input type="number" id="pubClassifiedBase" min="0" step="0.01">
-                    </div>
-                    <div class="form-group">
-                        <label>Classified Free Words</label>
-                        <input type="number" id="pubClassifiedFreeWords" min="0">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Classified Extra Rate (LKR/word)</label>
-                    <input type="number" id="pubClassifiedExtraRate" min="0" step="0.01">
-                </div>
-
-                <div class="form-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="pubIsSunday">
-                        <span>Sunday Paper</span>
-                    </label>
-                </div>
-
-                <div class="form-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="pubActive" checked>
-                        <span>Active</span>
-                    </label>
-                </div>
-
-                <div class="modal-actions">
-                    <button type="button" class="btn" onclick="closeModal()">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save</button>
+                <div class="modal-foot">
+                    <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn-save" id="saveBtn">Save Newspaper</button>
                 </div>
             </form>
         </div>
     </div>
 
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 
     <script src="js/firebase-config.js"></script>
     <script src="js/auth.js"></script>
 
     <script>
+        let allData = {};       // groupId → { name, contactEmail, newspapers[] }
+        let langFilter = 'all';
         let currentEditId = null;
+        let _pubGroups = [];
 
-        // Load all publications
-        async function loadPublications() {
-            try {
-                const data = await fetch('/api/publications').then(r => r.json());
-                const grid = document.getElementById('publicationsGrid');
-                grid.innerHTML = '';
-
-                const allPapers = [];
-                for (const [groupId, group] of Object.entries(data)) {
-                    for (const paper of group.newspapers || []) {
-                        allPapers.push({ ...paper, groupId, groupName: group.name });
-                    }
-                }
-
-                if (!allPapers.length) {
-                    grid.innerHTML = '<p>No newspapers found. Add your first one!</p>';
-                    return;
-                }
-
-                allPapers.forEach(pub => {
-                    const card = createPublicationCard(pub);
-                    grid.appendChild(card);
-                });
-            } catch (error) {
-                console.error('Error loading publications:', error);
-                alert('Failed to load publications: ' + error.message);
-            }
-        }
-
-        async function getToken() {
-            const user = firebase.auth().currentUser;
-            return user ? await user.getIdToken() : '';
-        }
-
+        // ── API helper ─────────────────────────────────────────────────
         async function apiReq(method, path, body) {
-            const token = await getToken();
+            const user = firebase.auth().currentUser;
+            const token = user ? await user.getIdToken() : '';
             const res = await fetch(path, {
                 method,
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
                 body: body ? JSON.stringify(body) : undefined
             });
-            if (!res.ok) throw new Error(await res.text());
+            if (!res.ok) {
+                const txt = await res.text();
+                throw new Error(txt);
+            }
+            if (res.status === 204) return null;
             return res.json();
         }
 
-        // Create publication card
-        function createPublicationCard(pub) {
-            const card = document.createElement('div');
-            card.className = 'pub-card';
-
-            const statusClass = pub.active ? 'status-active' : 'status-inactive';
-            const statusText = pub.active ? 'Active' : 'Inactive';
-
-            card.innerHTML = `
-                <h3>${pub.name}</h3>
-                <span class="status-badge ${statusClass}">${statusText}</span>
-
-                <div class="pub-info">
-                    <div class="pub-info-item">
-                        <label>Language:</label>
-                        <span>${pub.language}</span>
-                    </div>
-                    <div class="pub-info-item">
-                        <label>B&W Rate:</label>
-                        <span>LKR ${pub.bwRate}</span>
-                    </div>
-                    <div class="pub-info-item">
-                        <label>Color Rate:</label>
-                        <span>LKR ${pub.colorRate}</span>
-                    </div>
-                    ${pub.classifiedBase ? `
-                    <div class="pub-info-item">
-                        <label>Classified:</label>
-                        <span>LKR ${pub.classifiedBase}</span>
-                    </div>
-                    ` : ''}
-                </div>
-
-                <div class="pub-actions">
-                    <button class="btn-sm btn-edit" onclick="editPublication('${pub.id}')">Edit</button>
-                    <button class="btn-sm btn-delete" onclick="deletePublication('${pub.id}', '${pub.name}')">Delete</button>
-                </div>
-            `;
-
-            return card;
+        // ── Toast ───────────────────────────────────────────────────────
+        function showToast(msg, type = 'success') {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = `toast ${type} show`;
+            setTimeout(() => t.className = 'toast', 3000);
         }
 
-        // Open add modal
+        // ── Load all publications ───────────────────────────────────────
+        async function loadPublications() {
+            try {
+                const data = await fetch('/api/publications').then(r => r.json());
+                allData = data;
+                renderPublications();
+                updateStats();
+                renderEmailSection();
+            } catch (err) {
+                console.error('Load error:', err);
+                document.getElementById('pubList').innerHTML = `<div style="padding:24px;color:#ef4444;">Failed to load: ${err.message}</div>`;
+            }
+        }
+
+        // ── Stats ───────────────────────────────────────────────────────
+        function updateStats() {
+            const groups = Object.keys(allData).length;
+            let total = 0, active = 0, english = 0;
+            for (const g of Object.values(allData)) {
+                for (const p of g.newspapers || []) {
+                    total++;
+                    if (p.active !== false) active++;
+                    if (p.language === 'english') english++;
+                }
+            }
+            document.getElementById('statGroups').textContent  = groups;
+            document.getElementById('statPapers').textContent  = total;
+            document.getElementById('statActive').textContent  = active;
+            document.getElementById('statEnglish').textContent = english;
+        }
+
+        // ── Render ──────────────────────────────────────────────────────
+        function renderPublications() {
+            const container = document.getElementById('pubList');
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            container.innerHTML = '';
+
+            let anyVisible = false;
+
+            for (const [groupId, group] of Object.entries(allData)) {
+                const papers = (group.newspapers || []).filter(p => {
+                    if (langFilter !== 'all' && p.language !== langFilter) return false;
+                    if (q && !p.name.toLowerCase().includes(q)) return false;
+                    return true;
+                });
+
+                if (!papers.length) continue;
+                anyVisible = true;
+
+                const section = document.createElement('div');
+                section.className = 'group-section';
+                section.dataset.groupId = groupId;
+
+                section.innerHTML = `
+                    <div class="group-header" onclick="toggleGroup(this)">
+                        <div class="group-title">
+                            <div class="group-dot"></div>
+                            <span class="group-name">${group.name}</span>
+                            <span class="group-count">${papers.length}</span>
+                        </div>
+                        <span class="group-chevron">▼</span>
+                    </div>
+                    <div class="group-body">
+                        <table class="pub-table">
+                            <thead>
+                                <tr>
+                                    <th>Newspaper</th>
+                                    <th>Language</th>
+                                    <th>B&W Rate</th>
+                                    <th>Colour Rate</th>
+                                    <th>Classified Base</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${papers.map(p => renderRow(p)).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                container.appendChild(section);
+            }
+
+            if (!anyVisible) {
+                container.innerHTML = `<div style="text-align:center;padding:48px 24px;color:#64748b;background:white;border-radius:16px;border:1px solid #e2e8f0;">
+                    <div style="font-size:36px;margin-bottom:12px;">📰</div>
+                    <div style="font-size:16px;font-weight:600;color:#374151;margin-bottom:6px;">No newspapers found</div>
+                    <div style="font-size:14px;">Try adjusting your search or filters</div>
+                </div>`;
+            }
+        }
+
+        function renderRow(p) {
+            const isActive = p.active !== false;
+            const langClass = { english: 'lang-english', sinhala: 'lang-sinhala', tamil: 'lang-tamil' }[p.language] || 'lang-english';
+            const logoHtml = p.logoUrl
+                ? `<img class="paper-logo" src="${p.logoUrl}" alt="">`
+                : `<div class="paper-logo-placeholder">📰</div>`;
+            return `
+                <tr>
+                    <td>
+                        <div class="paper-name-cell">
+                            ${logoHtml}
+                            <div>
+                                <div class="paper-name">${p.name}</div>
+                                <div class="paper-type">${p.isSundayPaper ? 'Sunday Edition' : 'Daily'}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="lang-badge ${langClass}">${capitalize(p.language)}</span></td>
+                    <td><div class="rate-bw">LKR ${fmt(p.bwRate)}</div></td>
+                    <td><div class="rate-bw">LKR ${fmt(p.colorRate)}</div></td>
+                    <td><div class="rate-cell">${p.classifiedBase ? 'LKR ' + fmt(p.classifiedBase) : '—'}</div></td>
+                    <td><span class="status-pill ${isActive ? 'status-active' : 'status-inactive'}">${isActive ? 'Active' : 'Inactive'}</span></td>
+                    <td>
+                        <div class="action-cell">
+                            <button class="btn-icon btn-edit" onclick="editPublication('${p.id}')">Edit</button>
+                            <button class="btn-icon btn-delete" onclick="deletePublication('${p.id}', '${p.name.replace(/'/g,"\\'")}')">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function capitalize(s) { return s ? s[0].toUpperCase() + s.slice(1) : s; }
+        function fmt(n) { return Number(n || 0).toLocaleString(); }
+
+        function toggleGroup(header) {
+            header.closest('.group-section').classList.toggle('collapsed');
+        }
+
+        // ── Filters ─────────────────────────────────────────────────────
+        function setLangFilter(lang, btn) {
+            langFilter = lang;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderPublications();
+        }
+
+        function applyFilters() { renderPublications(); }
+
+        // ── Modal helpers ───────────────────────────────────────────────
+        function populateGroupSelect(selectedId) {
+            const sel = document.getElementById('pubGroupId');
+            sel.innerHTML = Object.entries(allData)
+                .map(([id, g]) => `<option value="${id}" ${id === selectedId ? 'selected' : ''}>${g.name}</option>`)
+                .join('');
+        }
+
         function openAddModal() {
             currentEditId = null;
             document.getElementById('modalTitle').textContent = 'Add Newspaper';
-            document.getElementById('publicationForm').reset();
+            document.getElementById('pubForm').reset();
             document.getElementById('pubActive').checked = true;
-            document.getElementById('publicationModal').classList.add('active');
+            document.getElementById('pubLogoUrl').value = '';
+            removeLogo();
+            populateGroupSelect('lake-house');
+            document.getElementById('pubModal').classList.add('open');
         }
 
-        // Edit publication
         async function editPublication(id) {
-            try {
-                const data = await fetch('/api/publications').then(r => r.json());
-                let pub = null;
-                for (const group of Object.values(data)) {
-                    pub = (group.newspapers || []).find(p => p.id === id);
-                    if (pub) break;
-                }
-                if (!pub) { alert('Publication not found'); return; }
-                currentEditId = id;
-
-                document.getElementById('modalTitle').textContent = 'Edit Newspaper';
-                document.getElementById('pubId').value = id;
-                document.getElementById('pubName').value = pub.name;
-                document.getElementById('pubLanguage').value = pub.language;
-                document.getElementById('pubGroupName').value = pub.groupName || '';
-                document.getElementById('pubBwRate').value = pub.bwRate;
-                document.getElementById('pubColorRate').value = pub.colorRate;
-                document.getElementById('pubClassifiedBase').value = pub.classifiedBase || '';
-                document.getElementById('pubClassifiedFreeWords').value = pub.classifiedFreeWords || '';
-                document.getElementById('pubClassifiedExtraRate').value = pub.classifiedExtraRate || '';
-                document.getElementById('pubIsSunday').checked = pub.isSundayPaper || false;
-                document.getElementById('pubActive').checked = pub.active !== false;
-
-                // Load existing logo if available
-                if (pub.logoUrl) {
-                    document.getElementById('pubLogoUrl').value = pub.logoUrl;
-                    document.getElementById('logoPreviewImg').src = pub.logoUrl;
-                    document.getElementById('logoPreview').style.display = 'block';
-                } else {
-                    removeLogoPreview();
-                }
-
-                document.getElementById('publicationModal').classList.add('active');
-            } catch (error) {
-                console.error('Error loading publication:', error);
-                alert('Failed to load publication');
+            let pub = null;
+            let groupId = null;
+            for (const [gid, g] of Object.entries(allData)) {
+                pub = (g.newspapers || []).find(p => p.id === id);
+                if (pub) { groupId = gid; break; }
             }
+            if (!pub) { showToast('Publication not found', 'error'); return; }
+
+            currentEditId = id;
+            document.getElementById('modalTitle').textContent = 'Edit Newspaper';
+            document.getElementById('pubId').value = id;
+            document.getElementById('pubName').value = pub.name;
+            document.getElementById('pubLanguage').value = pub.language;
+            document.getElementById('pubBwRate').value = pub.bwRate;
+            document.getElementById('pubColorRate').value = pub.colorRate;
+            document.getElementById('pubClassifiedBase').value = pub.classifiedBase || '';
+            document.getElementById('pubClassifiedFreeWords').value = pub.classifiedFreeWords || '';
+            document.getElementById('pubClassifiedExtraRate').value = pub.classifiedExtraRate || '';
+            document.getElementById('pubIsSunday').checked = pub.isSundayPaper || false;
+            document.getElementById('pubActive').checked = pub.active !== false;
+            document.getElementById('pubLogoUrl').value = pub.logoUrl || '';
+
+            if (pub.logoUrl) {
+                document.getElementById('logoPreviewImg').src = pub.logoUrl;
+                document.getElementById('logoPreviewWrap').style.display = 'flex';
+                document.getElementById('logoUploadArea').style.display = 'none';
+            } else {
+                removeLogo();
+            }
+
+            populateGroupSelect(groupId);
+            document.getElementById('pubModal').classList.add('open');
         }
 
-        // Handle logo preview
-        function handleLogoPreview(event) {
-            const file = event.target.files[0];
+        function closeModal() {
+            document.getElementById('pubModal').classList.remove('open');
+        }
+
+        // ── Logo ────────────────────────────────────────────────────────
+        function handleLogoPreview(e) {
+            const file = e.target.files[0];
             if (!file) return;
-
-            // Validate file type
-            if (!file.type.startsWith('image/')) {
-                alert('Please select an image file');
-                event.target.value = '';
-                return;
-            }
-
-            // Validate file size (max 2MB)
-            if (file.size > 2 * 1024 * 1024) {
-                alert('Logo file size must be less than 2MB');
-                event.target.value = '';
-                return;
-            }
-
-            // Show preview
+            if (!file.type.startsWith('image/')) { showToast('Please select an image file', 'error'); return; }
+            if (file.size > 2 * 1024 * 1024) { showToast('Logo must be under 2 MB', 'error'); return; }
             const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById('logoPreviewImg').src = e.target.result;
-                document.getElementById('logoPreview').style.display = 'block';
+            reader.onload = ev => {
+                document.getElementById('logoPreviewImg').src = ev.target.result;
+                document.getElementById('logoPreviewWrap').style.display = 'flex';
+                document.getElementById('logoUploadArea').style.display = 'none';
             };
             reader.readAsDataURL(file);
         }
 
-        // Remove logo preview
-        function removeLogoPreview() {
-            document.getElementById('pubLogo').value = '';
+        function removeLogo() {
+            document.getElementById('pubLogoFile').value = '';
             document.getElementById('pubLogoUrl').value = '';
-            document.getElementById('logoPreview').style.display = 'none';
+            document.getElementById('logoPreviewWrap').style.display = 'none';
+            document.getElementById('logoUploadArea').style.display = 'block';
             document.getElementById('logoPreviewImg').src = '';
         }
 
-        // Upload logo to Firebase Storage
-        async function uploadLogoToStorage(file, newspaperName) {
-            try {
-                const storage = firebase.storage();
-                const fileName = `${newspaperName.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.${file.name.split('.').pop()}`;
-                const storageRef = storage.ref(`newspaper-logos/${fileName}`);
-
-                // Upload file
-                const uploadTask = await storageRef.put(file);
-
-                // Get download URL
-                const downloadURL = await uploadTask.ref.getDownloadURL();
-                console.log('✅ Logo uploaded:', downloadURL);
-
-                return downloadURL;
-            } catch (error) {
-                console.error('❌ Error uploading logo:', error);
-                throw error;
-            }
+        async function uploadLogo(file, name) {
+            const stor = firebase.storage();
+            const ref = stor.ref(`newspaper-logos/${name.toLowerCase().replace(/\s+/g,'-')}-${Date.now()}.${file.name.split('.').pop()}`);
+            const snap = await ref.put(file);
+            return snap.ref.getDownloadURL();
         }
 
-        // Save publication
-        async function savePublication(event) {
-            event.preventDefault();
-
-            const submitBtn = event.target.querySelector('button[type="submit"]');
-            const originalText = submitBtn.textContent;
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Saving...';
+        // ── Save ────────────────────────────────────────────────────────
+        async function savePublication(e) {
+            e.preventDefault();
+            const btn = document.getElementById('saveBtn');
+            btn.disabled = true;
+            btn.textContent = 'Saving…';
 
             try {
-                const data = {
+                let logoUrl = document.getElementById('pubLogoUrl').value || null;
+                const logoFile = document.getElementById('pubLogoFile').files[0];
+                if (logoFile) {
+                    btn.textContent = 'Uploading logo…';
+                    logoUrl = await uploadLogo(logoFile, document.getElementById('pubName').value);
+                }
+
+                const payload = {
                     name: document.getElementById('pubName').value,
                     language: document.getElementById('pubLanguage').value,
-                    groupName: document.getElementById('pubGroupName').value || '',
                     bwRate: parseFloat(document.getElementById('pubBwRate').value),
                     colorRate: parseFloat(document.getElementById('pubColorRate').value),
                     classifiedBase: parseFloat(document.getElementById('pubClassifiedBase').value) || 0,
@@ -612,117 +1205,76 @@
                     classifiedExtraRate: parseFloat(document.getElementById('pubClassifiedExtraRate').value) || 0,
                     isSundayPaper: document.getElementById('pubIsSunday').checked,
                     active: document.getElementById('pubActive').checked,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    logoUrl
                 };
 
-                // Handle logo upload if new file selected
-                const logoFile = document.getElementById('pubLogo').files[0];
-                if (logoFile) {
-                    submitBtn.textContent = 'Uploading logo...';
-                    const logoUrl = await uploadLogoToStorage(logoFile, data.name);
-                    data.logoUrl = logoUrl;
-                } else if (document.getElementById('pubLogoUrl').value) {
-                    // Keep existing logo URL
-                    data.logoUrl = document.getElementById('pubLogoUrl').value;
-                }
-
                 if (currentEditId) {
-                    await apiReq('PATCH', '/api/publications/newspapers/' + currentEditId, {
-                        name: data.name, language: data.language,
-                        bwRate: data.bwRate, colorRate: data.colorRate,
-                        classifiedBase: data.classifiedBase,
-                        classifiedFreeWords: data.classifiedFreeWords,
-                        classifiedExtraRate: data.classifiedExtraRate,
-                        isSundayPaper: data.isSundayPaper,
-                        active: data.active,
-                        logoUrl: data.logoUrl || null
-                    });
-                    alert('Newspaper updated successfully!');
+                    await apiReq('PATCH', '/api/publications/newspapers/' + currentEditId, payload);
+                    showToast('Newspaper updated successfully');
                 } else {
-                    const groupId = document.getElementById('pubGroupName').value;
+                    const groupId = document.getElementById('pubGroupId').value;
                     await apiReq('POST', '/api/publications/newspapers', {
-                        groupId: groupId || 'lake-house',
-                        ...data,
-                        id: data.name.toLowerCase().replace(/\s+/g, '-')
+                        ...payload,
+                        groupId,
+                        id: payload.name.toLowerCase().replace(/\s+/g, '-')
                     });
-                    alert('Newspaper added successfully!');
+                    showToast('Newspaper added successfully');
                 }
 
                 closeModal();
                 loadPublications();
-            } catch (error) {
-                console.error('Error saving publication:', error);
-                alert('Failed to save: ' + error.message);
+            } catch (err) {
+                showToast('Save failed: ' + err.message, 'error');
             } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = originalText;
+                btn.disabled = false;
+                btn.textContent = 'Save Newspaper';
             }
         }
 
-        // Delete publication
+        // ── Delete ──────────────────────────────────────────────────────
         async function deletePublication(id, name) {
-            if (!confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) return;
+            if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
             try {
                 await apiReq('DELETE', '/api/publications/newspapers/' + id);
-                alert('Newspaper deleted successfully!');
+                showToast('Newspaper deleted');
                 loadPublications();
-            } catch (error) {
-                console.error('Error deleting publication:', error);
-                alert('Failed to delete: ' + error.message);
+            } catch (err) {
+                showToast('Delete failed: ' + err.message, 'error');
             }
         }
 
-        // Close modal
-        function closeModal() {
-            document.getElementById('publicationModal').classList.remove('active');
-        }
-
-        // ── Publication Contact Emails ─────────────────────────────────
-        let _pubGroups = [];
-
-        async function loadPublicationEmails() {
-            const container = document.getElementById('pubEmailsTable');
-            if (!container) return;
-            try {
-                const data = await fetch('/api/publications').then(r => r.json());
-                _pubGroups = Object.entries(data).map(([id, g]) => ({ id, name: g.name, contactEmail: g.contactEmail || '' }));
-                container.innerHTML = _pubGroups.map(g => `
-                    <div style="display:grid; grid-template-columns:220px 1fr; align-items:center; gap:16px; background:white; padding:14px 16px; border-radius:10px; border:1px solid #e5e7eb;">
-                        <label for="pub-email-admin-${g.id}" style="font-weight:600; font-size:14px; color:#111827;">${g.name}</label>
-                        <input type="email" id="pub-email-admin-${g.id}"
-                            value="${g.contactEmail}"
-                            placeholder="contact@publication.lk"
-                            style="width:100%; padding:9px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; box-sizing:border-box;">
-                    </div>
-                `).join('');
-            } catch (e) {
-                console.warn('Could not load publication emails:', e.message);
-            }
+        // ── Contact emails ──────────────────────────────────────────────
+        function renderEmailSection() {
+            _pubGroups = Object.entries(allData).map(([id, g]) => ({ id, name: g.name, contactEmail: g.contactEmail || '' }));
+            document.getElementById('pubEmailsTable').innerHTML = _pubGroups.map(g => `
+                <div class="email-row">
+                    <label for="em-${g.id}">${g.name}</label>
+                    <input type="email" id="em-${g.id}" value="${g.contactEmail}" placeholder="contact@publication.lk">
+                </div>
+            `).join('');
         }
 
         async function saveAllPublicationEmails() {
             try {
                 for (const g of _pubGroups) {
-                    const val = document.getElementById(`pub-email-admin-${g.id}`)?.value.trim() || '';
+                    const val = (document.getElementById(`em-${g.id}`)?.value || '').trim();
                     await apiReq('PATCH', `/api/publications/groups/${g.id}`, { contactEmail: val });
                 }
-                alert('Publication emails saved successfully.');
-            } catch (e) {
-                alert('Save failed: ' + e.message);
+                showToast('Contact emails saved');
+            } catch (err) {
+                showToast('Save failed: ' + err.message, 'error');
             }
         }
 
-        // Check auth and load
-        firebase.auth().onAuthStateChanged(async user => {
+        // ── Auth ────────────────────────────────────────────────────────
+        firebase.auth().onAuthStateChanged(user => {
             if (user) {
                 loadPublications();
-                loadPublicationEmails();
             } else {
                 window.location.href = 'index.html';
             }
         });
     </script>
-    <!-- Maintenance Mode -->
     <script src="js/maintenance-config.js"></script>
     <script src="js/maintenance-check.js"></script>
 </body>
