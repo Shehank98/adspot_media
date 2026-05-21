@@ -7,10 +7,6 @@
  */
 
 const CONFIG = {
-    // Supabase Configuration
-    SUPABASE_URL: 'https://dwikjvghmpukghzgoizr.supabase.co',
-    SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3aWtqdmdobXB1a2doemdvaXpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyOTk3NTQsImV4cCI6MjA4NTg3NTc1NH0.fJy1S9Wuk17keuiniokzrerNz-1ixNjR7cl6TOAOeFk',
-
     // PayHere Payment Gateway Configuration
     // Sign up at https://www.payhere.lk and get your Merchant ID & Secret
     // ⚠️ IMPORTANT: Move PAYHERE_MERCHANT_SECRET to your server/Apps Script in production!

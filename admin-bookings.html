@@ -568,47 +568,46 @@
         // Load all bookings (admin view)
         async function loadBookings() {
             const user = firebase.auth().currentUser;
-
-            if (!user) {
-                window.location.href = 'index.html';
-                return;
-            }
-
-            // Check if user is admin (you can add role check here)
-            const userDoc = await db.collection('users').doc(user.uid).get();
-            if (userDoc.exists && userDoc.data().role !== 'admin') {
-                alert('Access denied. Admin only.');
-                window.location.href = 'index.html';
-                return;
-            }
+            if (!user) { window.location.href = 'index.html'; return; }
 
             const loadingState = document.getElementById('loadingState');
             const emptyState = document.getElementById('emptyState');
             const bookingsTable = document.getElementById('bookingsTable');
 
             try {
-                // Load ALL bookings (admin view)
-                const snapshot = await db.collection('bookings').get();
+                const data = await apiRequest('GET', '/api/bookings');
 
                 loadingState.style.display = 'none';
 
-                if (snapshot.empty) {
+                if (!data || !data.length) {
                     emptyState.style.display = 'block';
                     return;
                 }
 
-                // Store all bookings
-                allBookings = [];
-                snapshot.forEach(doc => {
-                    allBookings.push({ id: doc.id, ...doc.data() });
-                });
-
-                // Sort by createdAt descending
-                allBookings.sort((a, b) => {
-                    const timeA = a.createdAt ? a.createdAt.toMillis() : 0;
-                    const timeB = b.createdAt ? b.createdAt.toMillis() : 0;
-                    return timeB - timeA;
-                });
+                // PostgreSQL rows already ordered by created_at DESC
+                // Normalise id field: use booking_id (PostgreSQL) or id
+                allBookings = data.map(b => ({
+                    ...b,
+                    id: b.booking_id || b.id,
+                    // Flatten snake_case fields to camelCase for existing render code
+                    bookingId: b.booking_id || b.bookingId,
+                    quotationNumber: b.quotation_number || b.quotationNumber,
+                    invoiceNumber: b.invoice_number || b.invoiceNumber,
+                    customerName: b.customer_name || b.customerName,
+                    customerEmail: b.customer_email || b.customerEmail,
+                    customerPhone: b.customer_phone || b.customerPhone,
+                    customerCompany: b.customer_company || b.customerCompany,
+                    customerAddress: b.customer_address || b.customerAddress,
+                    totalAmount: b.total_amount || b.totalAmount,
+                    subtotalAmount: b.subtotal_amount || b.subtotalAmount,
+                    promoCode: b.promo_code || b.promoCode,
+                    promoDiscount: b.promo_discount || b.promoDiscount || 0,
+                    paymentMethod: b.payment_method || b.paymentMethod,
+                    paymentStatus: b.payment_status || b.paymentStatus,
+                    paymentReference: b.payment_reference || b.paymentReference,
+                    quotationPdfUrl: b.quotation_pdf_url || b.quotationPdfUrl,
+                    createdAt: b.created_at || b.createdAt
+                }));
 
                 bookingsTable.style.display = 'block';
                 renderBookings();
@@ -658,13 +657,13 @@
             });
         }
 
-        // Delete a booking from Firestore and the local list
+        // Delete a booking
         async function deleteBooking(bookingId, closeAfter = false) {
             if (!bookingId) return;
             if (!confirm('Permanently delete this booking? This cannot be undone.')) return;
 
             try {
-                await db.collection('bookings').doc(bookingId).delete();
+                await apiRequest('DELETE', '/api/bookings/' + bookingId);
                 allBookings = allBookings.filter(b => b.id !== bookingId);
                 if (closeAfter) closeModal();
                 renderBookings();
@@ -1017,19 +1016,13 @@ adspot77@gmail.com | 070 642 1998`;
         // Update booking status
         async function updateStatus() {
             if (!currentBooking) return;
-
             const newStatus = document.getElementById('statusSelect').value;
-
             try {
-                await db.collection('bookings').doc(currentBooking.id).update({
-                    status: newStatus,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
+                await apiRequest('PATCH', '/api/bookings/' + currentBooking.id, { status: newStatus });
                 alert('Status updated successfully!');
                 currentBooking.status = newStatus;
                 closeModal();
-                loadBookings(); // Reload bookings
+                loadBookings();
             } catch (error) {
                 console.error('Error updating status:', error);
                 alert('Failed to update status: ' + error.message);
@@ -1039,27 +1032,16 @@ adspot77@gmail.com | 070 642 1998`;
         // Update payment status
         async function updatePaymentStatus() {
             if (!currentBooking) return;
-
             const newPaymentStatus = document.getElementById('paymentStatusSelect').value;
-
             try {
-                await db.collection('bookings').doc(currentBooking.id).update({
-                    paymentStatus: newPaymentStatus,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
+                await apiRequest('PATCH', '/api/bookings/' + currentBooking.id, { payment_status: newPaymentStatus });
                 alert('Payment status updated successfully!');
                 currentBooking.paymentStatus = newPaymentStatus;
-
-                // If marked as paid, generate and send invoice
                 if (newPaymentStatus === 'completed') {
                     const shouldGenerateInvoice = confirm('Payment marked as paid. Generate and send invoice to customer?');
-                    if (shouldGenerateInvoice) {
-                        await generateAndSendInvoice();
-                    }
+                    if (shouldGenerateInvoice) await generateAndSendInvoice();
                 }
-
-                loadBookings(); // Reload bookings
+                loadBookings();
             } catch (error) {
                 console.error('Error updating payment status:', error);
                 alert('Failed to update payment status: ' + error.message);
@@ -1079,14 +1061,8 @@ adspot77@gmail.com | 070 642 1998`;
                 let invoiceNumber = currentBooking.invoiceNumber;
 
                 if (!invoiceNumber) {
-                    // Generate new invoice number
                     invoiceNumber = 'INV-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-
-                    // Update booking with invoice number
-                    await db.collection('bookings').doc(currentBooking.id).update({
-                        invoiceNumber: invoiceNumber,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                    await apiRequest('PATCH', '/api/bookings/' + currentBooking.id, { invoice_number: invoiceNumber });
                 }
 
                 // Use the actual fee breakdown from the booking
@@ -1102,12 +1078,10 @@ adspot77@gmail.com | 070 642 1998`;
                 const hasBoxAds = currentBooking.items?.some(item => item.adType === 'box') || false;
                 const hasClassifiedAds = currentBooking.items?.some(item => item.adType === 'classified') || false;
 
-                // Create/update invoice in Firestore
                 const invoiceData = {
                     invoiceNumber: invoiceNumber,
                     quotationNumber: currentBooking.quotationNumber,
                     bookingId: currentBooking.id,
-                    customerId: currentBooking.customerId,
                     customerName: currentBooking.customerName,
                     customerEmail: currentBooking.customerEmail,
                     customerPhone: currentBooking.customerPhone || '',
@@ -1120,17 +1094,13 @@ adspot77@gmail.com | 070 642 1998`;
                     serviceCharge: serviceCharge,
                     promoCode: promoCode,
                     promoDiscount: promoDiscount,
-                    hasBoxAds: hasBoxAds,
-                    hasClassifiedAds: hasClassifiedAds,
                     total: currentBooking.totalAmount,
                     paymentMethod: currentBooking.paymentMethod || 'card',
-                    pdfUrl: '', // Will be updated after PDF generation
-                    status: 'generated',
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    generatedBy: firebase.auth().currentUser.uid
+                    pdfUrl: '',
+                    status: 'sent'
                 };
 
-                await db.collection('invoices').doc(invoiceNumber).set(invoiceData, { merge: true });
+                await apiRequest('POST', '/api/invoices', invoiceData);
 
                 // Generate PDF and upload to Firebase Storage
                 try {
@@ -1151,9 +1121,7 @@ adspot77@gmail.com | 070 642 1998`;
                     console.log('✅ PDF generated and uploaded:', pdfUrl);
 
                     // Update invoice with PDF URL
-                    await db.collection('invoices').doc(invoiceNumber).update({
-                        pdfUrl: pdfUrl
-                    });
+                    await apiRequest('PATCH', '/api/invoices/' + invoiceNumber, { pdf_url: pdfUrl });
 
                     invoiceData.pdfUrl = pdfUrl;
                     console.log('✅ Invoice document updated with PDF URL');
@@ -1221,24 +1189,17 @@ adspot77@gmail.com | 070 642 1998`;
                 alert('No invoice available yet. Generate invoice first.');
                 return;
             }
-
             try {
-                console.log('📥 Attempting to download invoice:', currentBooking.invoiceNumber);
-                const invoiceDoc = await db.collection('invoices').doc(currentBooking.invoiceNumber).get();
-
-                if (invoiceDoc.exists) {
-                    const invoiceData = invoiceDoc.data();
-                    console.log('📄 Invoice data:', invoiceData);
-
-                    if (invoiceData.pdfUrl) {
-                        console.log('✅ Opening PDF:', invoiceData.pdfUrl);
-                        window.open(invoiceData.pdfUrl, '_blank');
+                const invoices = await apiRequest('GET', '/api/invoices');
+                const inv = invoices.find(i => (i.invoice_number || i.invoiceNumber) === currentBooking.invoiceNumber);
+                if (inv) {
+                    const pdfUrl = inv.pdf_url || inv.pdfUrl;
+                    if (pdfUrl) {
+                        window.open(pdfUrl, '_blank');
                     } else {
-                        console.warn('⚠️ PDF URL not found in invoice data');
-                        alert('Invoice created but PDF not yet uploaded to Firebase Storage.\n\nPossible causes:\n• PDF generation failed\n• Firebase Storage not configured\n• Network error during upload\n\nCheck browser console for details.');
+                        alert('Invoice created but PDF not yet uploaded.\n\nCheck browser console for details.');
                     }
                 } else {
-                    console.error('❌ Invoice document not found');
                     alert('Invoice not found. Please generate the invoice first.');
                 }
             } catch (error) {
@@ -1295,14 +1256,14 @@ adspot77@gmail.com | 070 642 1998`;
         async function checkAndDeleteOldFiles() {
             try {
                 const now = new Date();
-                const bookingsSnapshot = await db.collection('bookings').get();
+                const bookingsList = await apiRequest('GET', '/api/bookings');
 
                 let deletedCount = 0;
 
-                for (const doc of bookingsSnapshot.docs) {
-                    const booking = doc.data();
+                for (const booking of bookingsList) {
+                    const doc = { id: booking.booking_id || booking.id, data: () => booking };
 
-                    for (const item of booking.items) {
+                    for (const item of (booking.items || [])) {
                         if (item.adFileUrl && item.pubDate) {
                             const pubDate = new Date(item.pubDate);
                             const daysSincePublish = Math.floor((now - pubDate) / (1000 * 60 * 60 * 24));
@@ -1329,10 +1290,7 @@ adspot77@gmail.com | 070 642 1998`;
                                         return i;
                                     });
 
-                                    await db.collection('bookings').doc(doc.id).update({
-                                        items: updatedItems,
-                                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                                    });
+                                    await apiRequest('PATCH', '/api/bookings/' + doc.id, { items: updatedItems });
 
                                     deletedCount++;
                                     console.log(`🗑️ Cleaned file for ${item.newspaperName} - ${item.pubDate} (${daysSincePublish} days old)`);

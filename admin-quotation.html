@@ -639,30 +639,30 @@
 
             btn.innerHTML = '<span>Sending email…</span>';
 
-            // Save to Firestore
+            // Save to PostgreSQL
             try {
-                const db = firebase.firestore();
-                await db.collection('quotations').add({
-                    quotationNumber,
-                    customerName: name,
-                    customerEmail: email,
-                    customerPhone: bookingData.customerPhone,
-                    customerCompany: bookingData.customerCompany,
-                    items: mappedItems,
-                    subtotal,
-                    commission,
-                    vat,
-                    serviceCharge,
-                    promoCode: invoiceData.promoCode,
-                    promoDiscount: discAmt,
-                    total: grand,
-                    notes: document.getElementById('qtNotes').value.trim(),
-                    pdfUrl,
-                    source: 'manual_admin',
-                    status: 'sent',
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            } catch(e) { console.warn('Firestore save failed:', e); }
+                if (typeof apiRequest === 'function') {
+                    await apiRequest('POST', '/api/quotations', {
+                        quotationNumber,
+                        customerName: name,
+                        customerEmail: email,
+                        customerPhone: bookingData.customerPhone,
+                        customerCompany: bookingData.customerCompany,
+                        items: mappedItems,
+                        subtotal,
+                        commission,
+                        vat,
+                        serviceCharge,
+                        promoCode: invoiceData.promoCode,
+                        promoDiscount: discAmt,
+                        total: grand,
+                        notes: document.getElementById('qtNotes').value.trim(),
+                        pdfUrl,
+                        source: 'manual_admin',
+                        status: 'pending'
+                    });
+                }
+            } catch(e) { console.warn('Quotation save failed:', e); }
 
             // Send email
             if (typeof sendManualQuotationEmail === 'function') {
