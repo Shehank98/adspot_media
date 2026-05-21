@@ -800,20 +800,20 @@ function updatePrice() {
         details.push({ label: 'Service Charge', value: formatCurrency(calc.serviceCharge) });
     }
 
+    // Add design fee line when enabled (must be before render)
+    if (designAddonEnabled && DESIGN_FEE > 0) {
+        details.push({ label: 'Ad Design Service', value: formatCurrency(DESIGN_FEE) });
+        total += DESIGN_FEE;
+    }
+
     // Update price display
     const priceDetails = document.getElementById('priceDetails');
     priceDetails.innerHTML = details.map(d => `
-        <div class="price-row">
+        <div class="price-row${d.label === 'Ad Design Service' ? '" style="color:#2563eb;font-weight:500' : ''}">
             <span>${d.label}:</span>
             <span>${d.value}</span>
         </div>
     `).join('');
-
-    // Add design fee line when enabled
-    if (designAddonEnabled && DESIGN_FEE > 0) {
-        details.push({ label: 'Design Service', value: formatCurrency(DESIGN_FEE) });
-        total += DESIGN_FEE;
-    }
 
     document.getElementById('currentAdTotal').textContent = formatCurrency(total);
 

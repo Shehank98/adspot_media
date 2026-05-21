@@ -22,9 +22,15 @@ router.get('/', verifyFirebaseToken, async (req, res) => {
                 result = await db.query('SELECT * FROM bookings ORDER BY created_at DESC');
             }
         } else {
+            // Match by firebase_uid (via customer join) OR by email (case-insensitive)
+            // so bookings booked with a different email casing or pre-login still appear
             result = await db.query(
-                'SELECT * FROM bookings WHERE customer_email = $1 ORDER BY created_at DESC',
-                [req.userEmail]
+                `SELECT DISTINCT b.* FROM bookings b
+                 LEFT JOIN customers c ON c.id = b.customer_id
+                 WHERE c.firebase_uid = $1
+                    OR LOWER(b.customer_email) = LOWER($2)
+                 ORDER BY b.created_at DESC`,
+                [req.uid, req.userEmail]
             );
         }
         res.json(result.rows);
@@ -60,8 +66,9 @@ router.post('/', verifyFirebaseToken, async (req, res) => {
                 customer_name, customer_email, customer_phone, customer_company, customer_address,
                 items, total_amount, subtotal_amount, promo_code, promo_discount,
                 payment_method, payment_status, payment_reference, quotation_pdf_url,
+                design_requested, design_fee,
                 status, notes, source)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
              RETURNING *`,
             [
                 d.bookingId, d.quotationNumber, d.invoiceNumber, customerId,
@@ -72,6 +79,7 @@ router.post('/', verifyFirebaseToken, async (req, res) => {
                 d.promoCode || null, d.promoDiscount || 0,
                 d.paymentMethod, d.paymentStatus || 'pending',
                 d.paymentReference || null, d.quotationPdfUrl || null,
+                d.designRequested || false, d.designFee || 0,
                 d.status || 'pending', d.notes || null, d.source || 'website'
             ]
         );
