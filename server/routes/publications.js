@@ -15,7 +15,6 @@ router.get('/', async (req, res) => {
         const groups = await db.query(
             `SELECT pg.id, pg.name, pg.contact_email
              FROM publication_groups pg
-             WHERE pg.active = true
              ORDER BY pg.sort_order, pg.name`
         );
 
@@ -23,7 +22,6 @@ router.get('/', async (req, res) => {
             `SELECT n.*, pg.name AS group_name
              FROM newspapers n
              JOIN publication_groups pg ON pg.id = n.group_id
-             WHERE n.active = true AND pg.active = true
              ORDER BY n.sort_order, n.name`
         );
 
