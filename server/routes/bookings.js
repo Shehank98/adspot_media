@@ -10,16 +10,21 @@ router.get('/', verifyFirebaseToken, async (req, res) => {
         const isAdmin = ADMIN_EMAILS.includes(req.userEmail.toLowerCase());
 
         let result;
-        if (isAdmin) {
-            result = await db.query(
-                'SELECT * FROM bookings ORDER BY created_at DESC'
-            );
+        // ?self=true forces own-email filter even for admin (used by my-bookings page)
+        if (isAdmin && !req.query.self) {
+            const filterEmail = req.query.customerEmail;
+            if (filterEmail) {
+                result = await db.query(
+                    'SELECT * FROM bookings WHERE customer_email = $1 ORDER BY created_at DESC',
+                    [filterEmail]
+                );
+            } else {
+                result = await db.query('SELECT * FROM bookings ORDER BY created_at DESC');
+            }
         } else {
-            // Customer: return their own bookings
-            const email = req.query.customerEmail || req.userEmail;
             result = await db.query(
                 'SELECT * FROM bookings WHERE customer_email = $1 ORDER BY created_at DESC',
-                [email]
+                [req.userEmail]
             );
         }
         res.json(result.rows);

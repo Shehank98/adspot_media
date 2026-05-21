@@ -504,7 +504,7 @@
     // ── Load bookings ─────────────────────────────────────────────────────────
     async function loadBookings() {
         try {
-            const bookings = await apiRequest('GET', '/api/bookings');
+            const bookings = await apiRequest('GET', '/api/bookings?self=true');
             document.getElementById('loadingState').style.display = 'none';
 
             if (!bookings || !bookings.length) {
