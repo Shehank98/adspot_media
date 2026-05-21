@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'adspot-v1';
+const CACHE_VERSION = 'adspot-v2';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 
@@ -55,9 +55,10 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET, non-http, and API/external calls
+  // Skip non-GET, non-http, API routes, and external calls
   if (request.method !== 'GET') return;
   if (!url.protocol.startsWith('http')) return;
+  if (url.pathname.startsWith('/api/')) return;
   if (NEVER_CACHE.some((domain) => url.hostname.includes(domain))) return;
 
   // For HTML pages: network-first, cache as fallback
