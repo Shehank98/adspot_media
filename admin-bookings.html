@@ -214,6 +214,7 @@
                 <li><a href="/admin-promo-codes">Promo Codes</a></li>
                 <li><a href="/admin-customers">Customers</a></li>
                 <li><a href="/admin-quotation">New Quotation</a></li>
+                <li><a href="/admin-settings">Settings</a></li>
                 <li><a href="/">Back to Home</a></li>
             </ul>
             <div class="nav-actions">
@@ -402,6 +403,15 @@
                 paymentReference:b.payment_reference || b.paymentReference,
                 quotationPdfUrl: b.quotation_pdf_url || b.quotationPdfUrl,
                 createdAt:       b.created_at        || b.createdAt,
+                receipt_url:     b.receipt_url,
+                receipt_status:  b.receipt_status    || 'none',
+                design_requested:b.design_requested  || false,
+                design_fee:      b.design_fee        || 0,
+                artwork_status:  b.artwork_status,
+                artwork_approved_at: b.artwork_approved_at,
+                sent_to_publication_at: b.sent_to_publication_at,
+                published_at:    b.published_at,
+                proof_url:       b.proof_url,
                 items: typeof b.items === 'string' ? JSON.parse(b.items) : (b.items || [])
             }));
             document.getElementById('emptyState').style.display = 'none';
@@ -615,7 +625,41 @@
                 <button class="btn-action btn-invoice" onclick="uploadProof()">Upload &amp; Notify Customer</button>
                 ${b.proof_url ? `<a href="${b.proof_url}" target="_blank" style="font-size:12px;color:#2563eb;">View current proof</a>` : ''}
             </div>
-        </div>`;
+        </div>
+        ${(b.payment_method === 'bank' || b.payment_method === 'bank_transfer') ? `
+        <div class="panel-section">
+            <div class="panel-section-title">Payment Receipt</div>
+            ${b.receipt_status === 'none' || !b.receipt_status ? `
+                <p style="font-size:13px;color:#64748b;margin:0 0 8px;">No receipt uploaded yet by customer.</p>
+            ` : b.receipt_status === 'approved' ? `
+                <p style="font-size:13px;color:#15803d;font-weight:600;margin:0 0 8px;">Receipt approved — payment confirmed.</p>
+                ${b.receipt_url ? `<a href="${b.receipt_url}" target="_blank" style="font-size:12px;color:#2563eb;">View receipt</a>` : ''}
+            ` : b.receipt_status === 'rejected' ? `
+                <p style="font-size:13px;color:#dc2626;font-weight:600;margin:0 0 8px;">Receipt rejected.</p>
+                ${b.receipt_url ? `<a href="${b.receipt_url}" target="_blank" style="font-size:12px;color:#2563eb;">View receipt</a>` : ''}
+            ` : `
+                <p style="font-size:13px;color:#b45309;font-weight:600;margin:0 0 8px;">Receipt submitted — awaiting review.</p>
+                ${b.receipt_url ? `
+                    <a href="${b.receipt_url}" target="_blank" style="display:block;margin-bottom:10px;">
+                        <img src="${b.receipt_url}" style="max-width:100%;border-radius:6px;border:1px solid #e2e8f0;" alt="Receipt"
+                             onerror="this.style.display='none';this.nextSibling.style.display='inline'">
+                        <span style="display:none;font-size:12px;color:#2563eb;">View PDF Receipt</span>
+                    </a>
+                ` : ''}
+                <div style="display:flex;gap:8px;margin-top:4px;">
+                    <button class="btn-action btn-invoice" onclick="approveReceipt()">Approve Payment</button>
+                    <button class="btn-action btn-update" style="background:#fee2e2;color:#991b1b;border-color:#fca5a5;" onclick="rejectReceipt()">Reject</button>
+                </div>
+            `}
+        </div>
+        ` : ''}
+        ${b.design_requested ? `
+        <div class="panel-section">
+            <div class="panel-section-title">Design Service Requested</div>
+            <p style="font-size:13px;color:#0f172a;margin:0 0 4px;">Fee: <strong>Rs. ${(b.design_fee||0).toLocaleString()}</strong></p>
+            <p style="font-size:12px;color:#64748b;margin:0;">Customer requested ad design. Coordinate separately.</p>
+        </div>
+        ` : ''}`;
     }
 
     function closePanel() {
@@ -650,6 +694,42 @@
                 await generateAndSendInvoice();
             }
         } catch (err) { showToast('Update failed: ' + err.message, 'error'); }
+    }
+
+    // ── Receipt approval ──────────────────────────────────────────────────────
+    async function approveReceipt() {
+        if (!currentBooking) return;
+        try {
+            await apiRequest('PATCH', '/api/bookings/' + currentBooking.id, {
+                payment_status: 'completed',
+                receipt_status: 'approved'
+            });
+            currentBooking.paymentStatus = 'completed';
+            currentBooking.receipt_status = 'approved';
+            allBookings = allBookings.map(b => b.id === currentBooking.id
+                ? { ...b, paymentStatus: 'completed', receipt_status: 'approved' } : b);
+            renderBookings();
+            document.getElementById('panelBody').innerHTML = buildPanelHTML(currentBooking);
+            showToast('Payment approved');
+            if (confirm('Receipt approved. Generate and send invoice to customer?')) {
+                await generateAndSendInvoice();
+            }
+        } catch (err) { showToast('Failed: ' + err.message, 'error'); }
+    }
+
+    async function rejectReceipt() {
+        if (!currentBooking) return;
+        const reason = prompt('Reason for rejection (optional):') || '';
+        try {
+            await apiRequest('PATCH', '/api/bookings/' + currentBooking.id, {
+                receipt_status: 'rejected',
+                notes: (currentBooking.notes ? currentBooking.notes + ' | ' : '') + 'Receipt rejected: ' + reason
+            });
+            currentBooking.receipt_status = 'rejected';
+            allBookings = allBookings.map(b => b.id === currentBooking.id ? { ...b, receipt_status: 'rejected' } : b);
+            document.getElementById('panelBody').innerHTML = buildPanelHTML(currentBooking);
+            showToast('Receipt rejected — customer should re-upload');
+        } catch (err) { showToast('Failed: ' + err.message, 'error'); }
     }
 
     // ── Tracking ───────────────────────────────────────────────────────────────

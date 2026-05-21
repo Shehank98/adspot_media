@@ -8,11 +8,14 @@
 let currentStep = 1;
 let selectedNewspaper = null;
 let selectedGroup = null;
-let selectedLanguage = 'sinhala'; // Default language
+let selectedLanguage = 'sinhala';
 let adCart = [];
-let appliedPromoCode = null; // { code, discount, type }
+let appliedPromoCode = null;
 let promoDiscount = 0;
-let payhereBookingId = null; // Stores Firebase booking ID for PayHere callback
+let payhereBookingId = null;
+let designAddonEnabled = false;
+let DESIGN_FEE = 3000;
+let lastSubmittedBookingId = null;
 
 document.addEventListener('DOMContentLoaded', async function() {
     // Load newspapers from Firebase first
@@ -194,34 +197,46 @@ function updateClassifiedNewspaperGrid(newspapers) {
         return;
     }
 
-    const langLabels = {
-        'english': 'EN',
-        'sinhala': 'SI',
-        'tamil': 'TA'
-    };
+    const langClass = { 'english': 'en', 'sinhala': 'si', 'tamil': 'ta' };
+    const langLabel = { 'english': 'EN', 'sinhala': 'SI', 'tamil': 'TA' };
 
-    container.innerHTML = classifiedNewspapers.map((paper, index) => `
-        <label class="newspaper-card">
+    container.innerHTML = classifiedNewspapers.map((paper, index) => {
+        const lc = langClass[paper.language] || 'en';
+        const ll = langLabel[paper.language] || 'EN';
+        const base = parseFloat(paper.classifiedBase) || 0;
+        const free = paper.classifiedFreeWords || 0;
+        const extra = paper.classifiedExtraRate || 0;
+        return `
+        <label class="np-card${index === 0 ? ' selected' : ''}">
             <input type="radio" name="classifiedNewspaper" value="${paper.id}" ${index === 0 ? 'checked' : ''}>
-            <div class="card-content">
-                <span class="lang-badge">${langLabels[paper.language] || 'EN'}</span>
-                <span class="paper-name">${paper.name}</span>
-                <span class="paper-rate">From Rs. ${paper.classifiedBase}</span>
-                ${paper.isSundayPaper ? '<span class="sunday-badge">Sunday</span>' : ''}
-            </div>
-        </label>
-    `).join('');
+            <span class="np-lang ${lc}">${ll}</span>
+            <span class="np-name">${paper.name}</span>
+            <span class="np-rate">From Rs. ${base.toLocaleString()}</span>
+            <span class="np-free">${free} words incl. &bull; Rs. ${extra}/extra</span>
+            ${paper.isSundayPaper ? '<span class="np-sunday">Sunday</span>' : ''}
+        </label>`;
+    }).join('');
 
     // Add change listeners
     container.querySelectorAll('input[name="classifiedNewspaper"]').forEach(radio => {
         radio.addEventListener('change', function() {
             selectedNewspaper = classifiedNewspapers.find(p => p.id === this.value);
             selectedGroup = selectedNewspaper.groupId;
+            // Update selected card styling
+            container.querySelectorAll('.np-card').forEach(c => c.classList.remove('selected'));
+            this.closest('.np-card')?.classList.add('selected');
             updateQuickRates();
             updateWordCount();
             updatePrice();
+            // Show design addon once a newspaper is selected
+            const addonBox = document.getElementById('designAddonBox');
+            if (addonBox) addonBox.style.display = 'block';
         });
     });
+
+    // Mark the initially-checked card as selected
+    const checkedRadio = container.querySelector('input[name="classifiedNewspaper"]:checked');
+    if (checkedRadio) checkedRadio.closest('.np-card')?.classList.add('selected');
 }
 
 /**
@@ -518,6 +533,27 @@ function initBookingForm() {
         radio.addEventListener('change', togglePaymentMethod);
     });
 
+    // Design addon checkbox
+    document.getElementById('designAddonCheck')?.addEventListener('change', function() {
+        designAddonEnabled = this.checked;
+        const label = document.getElementById('designAddonLabel');
+        if (label) label.classList.toggle('checked', designAddonEnabled);
+        updatePrice();
+        updateCartDisplay();
+    });
+
+    // Fetch design fee from server
+    fetch('/api/settings/design_fee')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+            if (data?.value) {
+                DESIGN_FEE = parseFloat(data.value) || 3000;
+                const label = document.getElementById('designAddonFeeLabel');
+                if (label) label.textContent = '+ Rs. ' + DESIGN_FEE.toLocaleString();
+            }
+        })
+        .catch(() => {});
+
     // Full page contact form
     document.getElementById('fullPageContactForm')?.addEventListener('submit', handleFullPageContact);
 }
@@ -773,7 +809,17 @@ function updatePrice() {
         </div>
     `).join('');
 
+    // Add design fee line when enabled
+    if (designAddonEnabled && DESIGN_FEE > 0) {
+        details.push({ label: 'Design Service', value: formatCurrency(DESIGN_FEE) });
+        total += DESIGN_FEE;
+    }
+
     document.getElementById('currentAdTotal').textContent = formatCurrency(total);
+
+    // Show design addon box once a newspaper is selected
+    const addonBox = document.getElementById('designAddonBox');
+    if (addonBox && selectedNewspaper) addonBox.style.display = 'block';
 
     // Store for cart
     window.currentAdPrice = total;
@@ -1046,6 +1092,9 @@ function addToCart() {
             text: text,
             wordCount: words,
             category: category,
+            language: selectedLanguage,
+            freeWords: selectedNewspaper.classifiedFreeWords || 0,
+            extraRate: selectedNewspaper.classifiedExtraRate || 0,
             adTotal: calc.adTotal,
             serviceCharge: calc.serviceCharge
         };
@@ -1104,8 +1153,9 @@ function updateCartDisplay() {
         </div>
     `).join('');
 
-    const total = adCart.reduce((sum, item) => sum + item.price, 0);
-    cartTotal.textContent = formatCurrency(total);
+    const cartBase = adCart.reduce((sum, item) => sum + item.price, 0);
+    const cartWithDesign = cartBase + (designAddonEnabled ? DESIGN_FEE : 0);
+    cartTotal.textContent = formatCurrency(cartWithDesign);
 }
 
 /**
@@ -1191,8 +1241,10 @@ function goToStep(step) {
     // Update sidebar based on step
     if (step === 2) {
         updateStep2Sidebar();
+        syncStickyPreview(2);
     } else if (step === 3) {
         updateOrderSummary();
+        syncStickyPreview(3);
     }
 
     // Scroll to top
@@ -1321,7 +1373,9 @@ function updateOrderSummary() {
         return sum;
     }, 0);
 
-    const total = adCart.reduce((sum, item) => sum + item.price, 0);
+    const cartSubtotal = adCart.reduce((sum, item) => sum + item.price, 0);
+    const designFeeAmount = designAddonEnabled ? DESIGN_FEE : 0;
+    const total = cartSubtotal + designFeeAmount;
 
     summary.innerHTML = `
         <div class="summary-section">
@@ -1370,6 +1424,12 @@ function updateOrderSummary() {
                 <span class="discount-amount">-${formatCurrency(promoDiscount)}</span>
             </div>
             ` : ''}
+            ${designFeeAmount > 0 ? `
+            <div class="charge-row" style="color:#2563eb;font-weight:500;">
+                <span>Ad Design Service:</span>
+                <span>${formatCurrency(designFeeAmount)}</span>
+            </div>
+            ` : ''}
         </div>
         <div class="summary-total">
             <span>Total Amount:</span>
@@ -1377,14 +1437,16 @@ function updateOrderSummary() {
         </div>
     `;
 
-    // Update submit button text
+    // Update submit button text based on payment method
     const submitText = document.getElementById('submitText');
     const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value;
     const finalTotal = total - promoDiscount;
-    if (paymentMethod === 'card') {
+    if (paymentMethod === 'helapay') {
+        submitText.textContent = 'Pay Now';
+    } else if (paymentMethod === 'card') {
         submitText.textContent = `Pay ${formatCurrency(finalTotal)}`;
     } else {
-        submitText.textContent = 'Submit & Pay Later';
+        submitText.textContent = 'Confirm Booking';
     }
 }
 
@@ -1398,8 +1460,64 @@ function togglePaymentMethod() {
     document.getElementById('bankPayment').style.display = method === 'bank' ? 'block' : 'none';
     const helaEl = document.getElementById('helapayPayment');
     if (helaEl) helaEl.style.display = method === 'helapay' ? 'block' : 'none';
+    // Update button label
+    const submitText = document.getElementById('submitText');
+    if (submitText) {
+        if (method === 'helapay') submitText.textContent = 'Pay Now';
+        else if (method === 'card') submitText.textContent = 'Pay Now';
+        else submitText.textContent = 'Confirm Booking';
+    }
     updateOrderSummary();
 }
+
+/**
+ * Sync classified preview panels shown in steps 2 and 3
+ */
+function syncStickyPreview(stepNum) {
+    const classifiedItem = adCart.find(item => item.adType === 'classified');
+    const panelId = 'classifiedPreviewSticky' + stepNum;
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+
+    if (!classifiedItem || !classifiedItem.details?.text) {
+        panel.style.display = 'none';
+        return;
+    }
+
+    const text = classifiedItem.details.text || '';
+    const np = classifiedItem.details;
+    const lang = (classifiedItem.details.language || 'sinhala').toLowerCase();
+    const widths = (CONFIG.COLUMN_WIDTHS && CONFIG.COLUMN_WIDTHS[lang]) || CONFIG.COLUMN_WIDTHS.english || {};
+    const colW = widths[1] || 3.0;
+    const pxWidth = Math.round(colW * 37.8);
+
+    const colEl = document.getElementById('prevColSticky' + stepNum);
+    const metaEl = document.getElementById('prevMetaSticky' + stepNum);
+    const npNameEl = document.getElementById('prevNpNameSticky' + stepNum);
+
+    if (colEl) { colEl.textContent = text; colEl.style.width = pxWidth + 'px'; }
+    if (npNameEl) npNameEl.textContent = classifiedItem.newspaperName || '';
+
+    if (metaEl) {
+        const wc = text.trim().split(/\s+/).filter(Boolean).length;
+        const free = classifiedItem.details.freeWords || 0;
+        const extra = Math.max(0, wc - free);
+        const parts = [wc + ' word' + (wc !== 1 ? 's' : '')];
+        if (free) parts.push(free + ' free');
+        if (extra > 0) parts.push(extra + ' extra');
+        metaEl.textContent = parts.join(' — ');
+    }
+    panel.style.display = 'block';
+}
+
+function editClassifiedText() {
+    goToStep(1);
+    setTimeout(() => {
+        const el = document.getElementById('classifiedText');
+        if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.focus(); }
+    }, 300);
+}
+window.editClassifiedText = editClassifiedText;
 
 /**
  * Set minimum date
@@ -1539,7 +1657,8 @@ async function handleSubmit(e) {
 
         // Calculate cart total and final amount (needed for PayHere and throughout)
         const cartTotal = adCart.reduce((sum, item) => sum + item.price, 0);
-        const finalTotal = cartTotal - promoDiscount;
+        const designFeeTotal = designAddonEnabled ? DESIGN_FEE : 0;
+        const finalTotal = cartTotal + designFeeTotal - promoDiscount;
 
         // Collect form data
         const formData = {
@@ -1650,6 +1769,8 @@ async function handleSubmit(e) {
                     promoCode: appliedPromoCode?.code || null,
                     promoDiscount: promoDiscount || 0,
                     totalAmount: finalTotal,
+                    designRequested: designAddonEnabled,
+                    designFee: designFeeTotal,
                     paymentMethod: paymentMethod,
                     paymentStatus: formData.payment_status,
                     paymentReference: formData.payment_reference || '',
@@ -1697,7 +1818,8 @@ async function handleSubmit(e) {
 
                 // Save to Firebase (also triggers email via Apps Script)
                 const bookingId = await saveBookingToFirebase(bookingData);
-                payhereBookingId = bookingId; // Store for PayHere callback
+                payhereBookingId = bookingId;
+                lastSubmittedBookingId = bookingId;
                 console.log('✅ Booking saved to Firebase:', bookingId);
 
                 // Increment promo code usage count if promo was applied
@@ -1971,7 +2093,21 @@ function showSuccessModal(quotationNumber, email, paymentMethod) {
                 <div class="bank-row"><span>Branch:</span> <strong>${CONFIG.BANK_DETAILS.branch}</strong></div>
                 <div class="bank-row"><span>Reference:</span> <strong>${quotationNumber}</strong></div>
             </div>
-            <p class="bank-note">Please use your quotation number as the payment reference. Your ad will be processed once payment is confirmed.</p>
+            <p class="bank-note">Please use your quotation number as the payment reference.</p>
+        </div>
+        <div class="receipt-upload-area">
+            <h4>Upload Payment Receipt</h4>
+            <p>Speed up verification by uploading your bank receipt now. Our team will confirm within a few hours.</p>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <label class="receipt-file-label" for="receiptFileInput">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                    Choose File
+                </label>
+                <input type="file" id="receiptFileInput" accept="image/*,.pdf" style="display:none" onchange="previewReceiptFile(this)">
+                <button class="receipt-upload-btn" id="receiptUploadBtn" onclick="uploadReceipt('${quotationNumber}')" disabled>Upload Receipt</button>
+            </div>
+            <div id="receiptThumbWrap"></div>
+            <div id="receiptStatusMsg"></div>
         </div>
     ` : '';
 
@@ -2029,6 +2165,60 @@ function showSuccessModal(quotationNumber, email, paymentMethod) {
     // Clear cart after successful submission
     adCart = [];
 }
+
+function previewReceiptFile(input) {
+    const btn = document.getElementById('receiptUploadBtn');
+    const wrap = document.getElementById('receiptThumbWrap');
+    if (!input.files || !input.files[0]) return;
+    if (btn) btn.disabled = false;
+    const file = input.files[0];
+    if (wrap && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            wrap.innerHTML = `<img src="${e.target.result}" class="receipt-thumb" alt="Receipt preview">`;
+        };
+        reader.readAsDataURL(file);
+    } else if (wrap) {
+        wrap.innerHTML = `<p style="font-size:12px;color:#475569;margin-top:8px;">${file.name}</p>`;
+    }
+}
+window.previewReceiptFile = previewReceiptFile;
+
+async function uploadReceipt(quotationNumber) {
+    const input = document.getElementById('receiptFileInput');
+    const btn = document.getElementById('receiptUploadBtn');
+    const statusEl = document.getElementById('receiptStatusMsg');
+    if (!input || !input.files || !input.files[0]) return;
+
+    const file = input.files[0];
+    const bookingId = lastSubmittedBookingId;
+    if (!bookingId) {
+        if (statusEl) { statusEl.textContent = 'Booking ID not found. Please contact us.'; statusEl.className = 'receipt-status-msg error'; }
+        return;
+    }
+    if (btn) btn.disabled = true;
+    if (statusEl) { statusEl.textContent = 'Uploading...'; statusEl.className = 'receipt-status-msg'; }
+
+    try {
+        const storageRef = storage.ref(`receipts/${bookingId}/${Date.now()}_${file.name}`);
+        const snap = await storageRef.put(file);
+        const url = await snap.ref.getDownloadURL();
+
+        await apiRequest('PATCH', `/api/bookings/${bookingId}`, {
+            receipt_url: url,
+            receipt_uploaded_at: new Date().toISOString(),
+            receipt_status: 'submitted'
+        });
+
+        if (statusEl) { statusEl.textContent = 'Receipt uploaded. Our team will verify and confirm your booking shortly.'; statusEl.className = 'receipt-status-msg success'; }
+        if (btn) btn.textContent = 'Uploaded';
+    } catch (err) {
+        console.error('Receipt upload failed:', err);
+        if (statusEl) { statusEl.textContent = 'Upload failed. Please try again or email the receipt to ' + CONFIG.COMPANY.email; statusEl.className = 'receipt-status-msg error'; }
+        if (btn) btn.disabled = false;
+    }
+}
+window.uploadReceipt = uploadReceipt;
 
 /**
  * Show contact form for full page ads

@@ -95,7 +95,9 @@ router.patch('/:id', verifyFirebaseToken, requireAdmin, async (req, res) => {
         const allowed = ['status', 'payment_status', 'payment_reference', 'notes',
                          'invoice_number', 'quotation_pdf_url',
                          'artwork_status', 'artwork_received_at', 'artwork_approved_at',
-                         'sent_to_publication_at', 'proof_url', 'published_at'];
+                         'sent_to_publication_at', 'proof_url', 'published_at',
+                         'design_requested', 'design_fee',
+                         'receipt_url', 'receipt_uploaded_at', 'receipt_status'];
         for (const key of allowed) {
             if (d[key] !== undefined) {
                 fields.push(`${key} = $${i++}`);

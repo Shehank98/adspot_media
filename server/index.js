@@ -26,6 +26,7 @@ app.use('/api/push-register',   require('./routes/push'));
 app.use('/api/helapay',         require('./routes/helapay'));
 app.use('/api/helapay-webhook', require('./routes/helapayWebhook'));
 app.use('/api/design-requests', require('./routes/design-requests'));
+app.use('/api/settings',        require('./routes/settings'));
 
 // ── Static files (the entire repo root) ──────────────────────────────────────
 const ROOT = path.join(__dirname, '..');
@@ -36,6 +37,8 @@ app.get('/book',        (_, res) => res.sendFile(path.join(ROOT, 'book.html')));
 app.get('/my-bookings', (_, res) => res.sendFile(path.join(ROOT, 'my-bookings.html')));
 app.get('/admin',   (_, res) => res.sendFile(path.join(ROOT, 'admin', 'index.html')));
 app.get('/admin/',  (_, res) => res.sendFile(path.join(ROOT, 'admin', 'index.html')));
+
+app.get('/admin-settings', (_, res) => res.sendFile(path.join(ROOT, 'admin-settings.html')));
 
 // Admin page rewrites (admin-bookings → admin-bookings.html, etc.)
 app.get('/admin-:page', (req, res, next) => {

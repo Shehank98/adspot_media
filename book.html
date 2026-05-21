@@ -66,6 +66,56 @@
     /></noscript>
 
     <!-- End Meta Pixel Code -->
+
+    <style>
+        /* ── Newspaper cards (classified selection) ───────────────────── */
+        #classifiedNewspaperSelect { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+        .np-card { position: relative; border: 2px solid #e2e8f0; border-radius: 12px; padding: 14px 14px 12px; cursor: pointer; transition: border-color .15s, background .15s, box-shadow .15s; background: #fff; display: flex; flex-direction: column; gap: 4px; }
+        .np-card input[type="radio"] { position: absolute; opacity: 0; pointer-events: none; }
+        .np-card:hover { border-color: #93c5fd; background: #f0f7ff; box-shadow: 0 2px 8px rgba(37,99,235,.10); }
+        .np-card.selected, .np-card:has(input:checked) { border-color: #2563eb; background: #eff6ff; box-shadow: 0 2px 10px rgba(37,99,235,.18); }
+        .np-card.selected::after, .np-card:has(input:checked)::after { content: ''; position: absolute; top: 10px; right: 10px; width: 10px; height: 10px; border-radius: 50%; background: #2563eb; }
+        .np-lang { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: .5px; width: fit-content; }
+        .np-lang.si { background: #fef3c7; color: #92400e; }
+        .np-lang.en { background: #dcfce7; color: #166534; }
+        .np-lang.ta { background: #fce7f3; color: #9d174d; }
+        .np-name { font-size: 13.5px; font-weight: 600; color: #0f172a; line-height: 1.3; }
+        .np-rate { font-size: 12px; color: #2563eb; font-weight: 600; }
+        .np-free { font-size: 11px; color: #64748b; }
+        .np-sunday { display: inline-block; margin-top: 2px; padding: 2px 8px; background: #7c3aed; color: #fff; border-radius: 20px; font-size: 10px; font-weight: 600; width: fit-content; }
+
+        /* ── Design service add-on ────────────────────────────────────── */
+        .design-addon-box { margin-top: 16px; border: 1.5px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
+        .design-addon-toggle { display: flex; align-items: center; gap: 14px; padding: 14px 16px; cursor: pointer; background: #fff; transition: background .15s; }
+        .design-addon-toggle:hover { background: #f8fafc; }
+        .design-addon-toggle input[type="checkbox"] { width: 18px; height: 18px; accent-color: #2563eb; flex-shrink: 0; cursor: pointer; }
+        .design-addon-toggle.checked { background: #eff6ff; border-color: #2563eb; }
+        .design-addon-info { flex: 1; }
+        .design-addon-title { display: block; font-weight: 600; font-size: 14px; color: #0f172a; }
+        .design-addon-desc { display: block; font-size: 12px; color: #64748b; margin-top: 2px; }
+        .design-addon-fee { font-size: 14px; font-weight: 700; color: #2563eb; white-space: nowrap; }
+
+        /* ── Sticky classified preview (steps 2 & 3) ─────────────────── */
+        .clf-preview-sticky { background: #fffdf5; border: 1.5px solid #d4b896; border-radius: 12px; padding: 14px 16px; margin-bottom: 20px; }
+        .clf-ps-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-size: 12px; font-weight: 600; color: #6b4c2a; text-transform: uppercase; letter-spacing: .5px; }
+        .clf-ps-hdr button { font-size: 12px; font-weight: 500; color: #2563eb; background: none; border: 1px solid #bfdbfe; border-radius: 6px; padding: 3px 10px; cursor: pointer; }
+        .clf-ps-hdr button:hover { background: #eff6ff; }
+        .clf-prev-col-sticky { font-family: 'Times New Roman', serif; font-size: 8.5pt; line-height: 1.5; background: #fffff8; border: 1px solid #c7b299; border-radius: 4px; padding: 8px 10px; white-space: pre-wrap; word-break: break-word; color: #1a1008; min-height: 36px; }
+        .clf-meta-sticky { font-size: 11px; color: #6b7280; margin-top: 6px; }
+
+        /* ── Receipt upload (success modal) ──────────────────────────── */
+        .receipt-upload-area { border: 1.5px dashed #cbd5e1; border-radius: 10px; padding: 16px; margin-top: 16px; background: #f8fafc; }
+        .receipt-upload-area h4 { font-size: 14px; font-weight: 600; color: #0f172a; margin: 0 0 6px; }
+        .receipt-upload-area p { font-size: 13px; color: #475569; margin: 0 0 12px; }
+        .receipt-file-label { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: #2563eb; color: #fff; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; transition: background .15s; }
+        .receipt-file-label:hover { background: #1d4ed8; }
+        .receipt-upload-btn { margin-left: 10px; padding: 8px 16px; background: #0ea5e9; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; }
+        .receipt-upload-btn:disabled { opacity: .6; cursor: not-allowed; }
+        .receipt-status-msg { margin-top: 10px; font-size: 13px; padding: 8px 12px; border-radius: 8px; }
+        .receipt-status-msg.success { background: #dcfce7; color: #166534; }
+        .receipt-status-msg.error { background: #fee2e2; color: #991b1b; }
+        .receipt-thumb { margin-top: 10px; max-width: 160px; border-radius: 6px; border: 1px solid #e2e8f0; }
+    </style>
 </head>
 <body class="booking-page">
     <!-- Navigation -->
@@ -430,6 +480,18 @@
 
                             <p class="cart-hint" id="classifiedCartHint" style="display: none;">You can add multiple newspapers to your cart</p>
 
+                            <!-- Design Service Add-On -->
+                            <div class="design-addon-box" id="designAddonBox" style="display:none">
+                                <label class="design-addon-toggle" id="designAddonLabel">
+                                    <input type="checkbox" id="designAddonCheck">
+                                    <div class="design-addon-info">
+                                        <span class="design-addon-title">Request Ad Design Service</span>
+                                        <span class="design-addon-desc">Our team will create your ad artwork professionally</span>
+                                    </div>
+                                    <span class="design-addon-fee" id="designAddonFeeLabel">+ Rs. 3,000</span>
+                                </label>
+                            </div>
+
                             <!-- Ad Cart -->
                             <div id="adCart" class="ad-cart" style="display: none;">
                                 <div class="cart-header">
@@ -463,6 +525,16 @@
 
                         <!-- Step 2: Customer Information -->
                         <div class="form-step" data-step="2">
+                            <!-- Classified preview (shown if cart has classified item) -->
+                            <div id="classifiedPreviewSticky2" class="clf-preview-sticky" style="display:none">
+                                <div class="clf-ps-hdr">
+                                    Ad Preview — <span id="prevNpNameSticky2"></span>
+                                    <button onclick="editClassifiedText()">Edit Text</button>
+                                </div>
+                                <div id="prevColSticky2" class="clf-prev-col-sticky"></div>
+                                <div id="prevMetaSticky2" class="clf-meta-sticky"></div>
+                            </div>
+
                             <div class="step-header">
                                 <h2>Your Information</h2>
                                 <p>We will send the quotation and invoice to these details</p>
@@ -519,6 +591,16 @@
 
                         <!-- Step 3: Payment -->
                         <div class="form-step" data-step="3">
+                            <!-- Classified preview (shown if cart has classified item) -->
+                            <div id="classifiedPreviewSticky3" class="clf-preview-sticky" style="display:none">
+                                <div class="clf-ps-hdr">
+                                    Ad Preview — <span id="prevNpNameSticky3"></span>
+                                    <button onclick="editClassifiedText()">Edit Text</button>
+                                </div>
+                                <div id="prevColSticky3" class="clf-prev-col-sticky"></div>
+                                <div id="prevMetaSticky3" class="clf-meta-sticky"></div>
+                            </div>
+
                             <div class="step-header">
                                 <h2>Complete Payment</h2>
                                 <p>Review your order and choose payment method</p>
@@ -616,7 +698,7 @@
                                     Back
                                 </button>
                                 <button type="submit" id="submitBtn" class="btn btn-success btn-lg">
-                                    <span id="submitText">Complete Payment</span>
+                                    <span id="submitText">Confirm Booking</span>
                                     <span id="submitLoader" class="loader" style="display: none;"></span>
                                 </button>
                             </div>
