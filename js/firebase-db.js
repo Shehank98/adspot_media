@@ -522,4 +522,44 @@ window.sendBookingEmails = sendBookingEmails;
 window.sendInvoiceEmail = sendInvoiceEmail;
 window.sendFileUploadNotification = sendFileUploadNotification;
 
+/**
+ * Send manual quotation email to customer via Apps Script
+ */
+async function sendManualQuotationEmail(data) {
+    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
+        console.warn('⚠️ Apps Script URL not configured');
+        return;
+    }
+    try {
+        await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'send_manual_quotation',
+                quotationNumber: data.quotationNumber,
+                customerName: data.customerName,
+                customerEmail: data.customerEmail,
+                customerPhone: data.customerPhone || '',
+                customerCompany: data.customerCompany || '',
+                items: data.items,
+                subtotal: data.subtotal,
+                commission: data.commission || 0,
+                vat: data.vat || 0,
+                serviceCharge: data.serviceCharge || 0,
+                promoCode: data.promoCode || '',
+                promoDiscount: data.promoDiscount || 0,
+                total: data.total,
+                pdfUrl: data.pdfUrl || '',
+                notes: data.notes || ''
+            })
+        });
+        console.log('✅ Manual quotation email sent via Apps Script');
+    } catch (e) {
+        console.error('❌ Failed to send manual quotation email:', e);
+        throw e;
+    }
+}
+window.sendManualQuotationEmail = sendManualQuotationEmail;
+
 console.log('✅ Firebase database operations loaded');

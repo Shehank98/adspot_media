@@ -180,6 +180,9 @@ function showSection(sectionId) {
         case 'customers':
             loadCustomers();
             break;
+        case 'newQuotation':
+            initManualQuotation();
+            break;
     }
 
     // Close mobile sidebar
@@ -2204,4 +2207,374 @@ async function handleSendToPublication(quotationId, quotation, pubGroup) {
         btn.disabled = false;
         btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px"><path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z"/></svg>Send to Publication`;
     }
+}
+
+/* ══════════════════════════════════════════════
+   MANUAL QUOTATION
+══════════════════════════════════════════════ */
+
+let qtItems = []; // { id, newspaper, adType, columns, height, colour, wordCount, calc }
+let qtItemCounter = 0;
+
+function initManualQuotation() {
+    if (qtItems.length === 0) renderQtItems();
+}
+
+function getAllNewspapers() {
+    const list = [];
+    Object.entries(CONFIG.PUBLICATIONS || {}).forEach(([groupId, group]) => {
+        (group.newspapers || []).forEach(p => {
+            list.push({ ...p, groupId, groupName: group.name });
+        });
+    });
+    return list;
+}
+
+function addQtItem() {
+    const id = ++qtItemCounter;
+    qtItems.push({ id, newspaper: null, adType: 'box', columns: 2, height: 5, colour: 'color', wordCount: 20, calc: null });
+    renderQtItems();
+    updateQtTotals();
+}
+
+function removeQtItem(id) {
+    qtItems = qtItems.filter(i => i.id !== id);
+    renderQtItems();
+    updateQtTotals();
+}
+
+function renderQtItems() {
+    const list = document.getElementById('qtItemsList');
+    const empty = document.getElementById('qtEmptyMsg');
+    if (!list) return;
+    if (qtItems.length === 0) {
+        list.innerHTML = '';
+        if (empty) empty.style.display = 'block';
+        return;
+    }
+    if (empty) empty.style.display = 'none';
+    const papers = getAllNewspapers();
+    const paperOptions = papers.map(p =>
+        `<option value="${p.id}">${p.name} (${p.groupName})</option>`
+    ).join('');
+
+    list.innerHTML = qtItems.map(item => {
+        const adType = item.adType || 'box';
+        const paper = papers.find(p => p.id === item.newspaper);
+        const maxCols = paper ? getMaxColumns(paper.language) : 7;
+        const colOptions = Array.from({length: maxCols}, (_, i) => i + 1)
+            .map(c => `<option value="${c}" ${c === item.columns ? 'selected' : ''}>${c} col</option>`).join('');
+
+        const priceHtml = item.calc ? `
+            <div class="qt-price-display">
+                <div>Item Price: <strong>Rs. ${(item.calc.total || 0).toLocaleString('en-LK', {minimumFractionDigits:2})}</strong></div>
+                <div class="qt-price-breakdown">
+                    <span class="qt-price-tag">Ad: Rs. ${(item.calc.adTotal || 0).toLocaleString('en-LK')}</span>
+                    ${item.calc.commission > 0 ? `<span class="qt-price-tag">Commission: Rs. ${item.calc.commission.toLocaleString('en-LK')}</span>` : ''}
+                    ${item.calc.vat > 0 ? `<span class="qt-price-tag">VAT 18%: Rs. ${item.calc.vat.toLocaleString('en-LK')}</span>` : ''}
+                    ${item.calc.serviceCharge > 0 ? `<span class="qt-price-tag">Service: Rs. ${item.calc.serviceCharge}</span>` : ''}
+                </div>
+            </div>` : '';
+
+        return `
+        <div class="qt-item-card" id="qtItem_${item.id}">
+            <div class="qt-item-header">
+                <span class="qt-item-title">Item ${item.id}</span>
+                <button class="qt-item-remove" onclick="removeQtItem(${item.id})" title="Remove">✕</button>
+            </div>
+            <div class="qt-item-grid">
+                <div class="form-group qt-item-full">
+                    <label class="form-label">Newspaper *</label>
+                    <select class="form-input" onchange="updateQtItemField(${item.id},'newspaper',this.value)">
+                        <option value="">— Select newspaper —</option>
+                        ${paperOptions}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ad Type</label>
+                    <select class="form-input" onchange="updateQtItemAdType(${item.id},this.value)">
+                        <option value="box" ${adType==='box'?'selected':''}>Box Ad</option>
+                        <option value="classified" ${adType==='classified'?'selected':''}>Classified Ad</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Publication Date *</label>
+                    <input type="date" class="form-input" value="${item.pubDate || ''}" onchange="updateQtItemField(${item.id},'pubDate',this.value)">
+                </div>
+                ${adType === 'box' ? `
+                <div class="form-group">
+                    <label class="form-label">Columns</label>
+                    <select class="form-input" onchange="updateQtItemField(${item.id},'columns',parseInt(this.value))">
+                        ${colOptions}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Height (cm)</label>
+                    <input type="number" class="form-input" value="${item.height}" min="1" step="0.5"
+                        onchange="updateQtItemField(${item.id},'height',parseFloat(this.value))">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Colour</label>
+                    <select class="form-input" onchange="updateQtItemField(${item.id},'colour',this.value)">
+                        <option value="color" ${item.colour==='color'?'selected':''}>Full Colour</option>
+                        <option value="bw" ${item.colour==='bw'?'selected':''}>Black & White</option>
+                    </select>
+                </div>
+                ` : `
+                <div class="form-group">
+                    <label class="form-label">Word Count</label>
+                    <input type="number" class="form-input" value="${item.wordCount}" min="1"
+                        onchange="updateQtItemField(${item.id},'wordCount',parseInt(this.value))">
+                </div>
+                `}
+            </div>
+            ${priceHtml}
+        </div>`;
+    }).join('');
+
+    // Re-select newspaper values
+    qtItems.forEach(item => {
+        const card = document.getElementById(`qtItem_${item.id}`);
+        if (!card) return;
+        const sel = card.querySelector('select');
+        if (sel && item.newspaper) sel.value = item.newspaper;
+    });
+}
+
+function updateQtItemField(id, field, value) {
+    const item = qtItems.find(i => i.id === id);
+    if (!item) return;
+    item[field] = value;
+    if (field === 'newspaper') {
+        item.calc = null;
+        renderQtItems();
+    }
+    recalcQtItem(id);
+    updateQtTotals();
+}
+
+function updateQtItemAdType(id, adType) {
+    const item = qtItems.find(i => i.id === id);
+    if (!item) return;
+    item.adType = adType;
+    item.calc = null;
+    renderQtItems();
+    recalcQtItem(id);
+    updateQtTotals();
+}
+
+function recalcQtItem(id) {
+    const item = qtItems.find(i => i.id === id);
+    if (!item || !item.newspaper) return;
+    const papers = getAllNewspapers();
+    const paper = papers.find(p => p.id === item.newspaper);
+    if (!paper) return;
+
+    if (item.adType === 'box' && item.height > 0 && item.columns > 0) {
+        item.calc = calculateBoxAdPrice(paper, item.height, item.columns, item.colour || 'color');
+    } else if (item.adType === 'classified' && item.wordCount > 0) {
+        item.calc = calculateClassifiedPrice(paper, item.wordCount);
+    }
+
+    // Update price display in existing card without full re-render
+    const card = document.getElementById(`qtItem_${item.id}`);
+    if (!card || !item.calc) return;
+    let priceEl = card.querySelector('.qt-price-display');
+    const priceHtml = `
+        <div class="qt-price-display">
+            <div>Item Price: <strong>Rs. ${(item.calc.total || 0).toLocaleString('en-LK', {minimumFractionDigits:2})}</strong></div>
+            <div class="qt-price-breakdown">
+                <span class="qt-price-tag">Ad: Rs. ${(item.calc.adTotal || 0).toLocaleString('en-LK')}</span>
+                ${item.calc.commission > 0 ? `<span class="qt-price-tag">Commission: Rs. ${item.calc.commission.toLocaleString('en-LK')}</span>` : ''}
+                ${item.calc.vat > 0 ? `<span class="qt-price-tag">VAT 18%: Rs. ${item.calc.vat.toLocaleString('en-LK')}</span>` : ''}
+                ${item.calc.serviceCharge > 0 ? `<span class="qt-price-tag">Service: Rs. ${item.calc.serviceCharge}</span>` : ''}
+            </div>
+        </div>`;
+    if (priceEl) {
+        priceEl.outerHTML = priceHtml;
+    } else {
+        card.insertAdjacentHTML('beforeend', priceHtml);
+    }
+}
+
+function updateQtTotals() {
+    const box = document.getElementById('qtTotalsBox');
+    const rowsEl = document.getElementById('qtTotalsRows');
+    const grandEl = document.getElementById('qtGrandTotal');
+    if (!box) return;
+
+    const validItems = qtItems.filter(i => i.calc);
+    if (validItems.length === 0) { box.style.display = 'none'; return; }
+
+    let subtotal = 0, totalCommission = 0, totalVat = 0, totalService = 0;
+    validItems.forEach(i => {
+        subtotal += i.calc.adTotal || 0;
+        totalCommission += i.calc.commission || 0;
+        totalVat += i.calc.vat || 0;
+        totalService += i.calc.serviceCharge || 0;
+    });
+
+    const discountPct = parseFloat(document.getElementById('qtDiscountPct')?.value) || 0;
+    const promoCode = document.getElementById('qtPromoCode')?.value?.trim() || '';
+    const discountAmt = discountPct > 0 ? Math.round(subtotal * discountPct / 100) : 0;
+    const grand = subtotal + totalCommission - discountAmt + totalVat + totalService;
+
+    const fmt = n => 'Rs. ' + Number(n).toLocaleString('en-LK', {minimumFractionDigits:2});
+    let rows = `<div class="qt-total-row"><span>Subtotal</span><span class="v">${fmt(subtotal)}</span></div>`;
+    if (totalCommission > 0) rows += `<div class="qt-total-row"><span>Platform Commission (${(CONFIG.CHARGES.boxAdCommission*100).toFixed(0)}%)</span><span class="v">${fmt(totalCommission)}</span></div>`;
+    if (discountAmt > 0) rows += `<div class="qt-total-row discount"><span>Discount${promoCode ? ' · ' + promoCode : ''} (${discountPct}%)</span><span class="v">− ${fmt(discountAmt)}</span></div>`;
+    if (totalVat > 0) rows += `<div class="qt-total-row"><span>VAT (18%)</span><span class="v">${fmt(totalVat)}</span></div>`;
+    if (totalService > 0) rows += `<div class="qt-total-row"><span>Service Charge</span><span class="v">${fmt(totalService)}</span></div>`;
+
+    rowsEl.innerHTML = rows;
+    grandEl.textContent = fmt(grand);
+    box.style.display = 'block';
+}
+
+async function generateAndSendManualQuotation() {
+    const name = document.getElementById('qtCustomerName')?.value?.trim();
+    const email = document.getElementById('qtCustomerEmail')?.value?.trim();
+    if (!name || !email) { showToast('Customer name and email are required', 'error'); return; }
+
+    const validItems = qtItems.filter(i => i.calc && i.pubDate);
+    if (validItems.length === 0) { showToast('Add at least one item with a publication date', 'error'); return; }
+
+    const btn = document.getElementById('qtSendBtn');
+    const origText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span style="margin-right:6px">⏳</span>Generating PDF...';
+
+    try {
+        const papers = getAllNewspapers();
+        const discountPct = parseFloat(document.getElementById('qtDiscountPct')?.value) || 0;
+        const promoCode = document.getElementById('qtPromoCode')?.value?.trim() || '';
+
+        let subtotal = 0, totalCommission = 0, totalVat = 0, totalService = 0;
+        validItems.forEach(i => {
+            subtotal += i.calc.adTotal || 0;
+            totalCommission += i.calc.commission || 0;
+            totalVat += i.calc.vat || 0;
+            totalService += i.calc.serviceCharge || 0;
+        });
+        const discountAmt = discountPct > 0 ? Math.round(subtotal * discountPct / 100) : 0;
+        const grand = subtotal + totalCommission - discountAmt + totalVat + totalService;
+
+        const quotationNumber = 'QT-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.floor(Math.random()*9000+1000);
+        const invoiceNumber = quotationNumber.replace('QT-', 'QTN-');
+
+        const invoiceData = {
+            invoiceNumber,
+            quotationNumber,
+            subtotal,
+            commission: totalCommission,
+            vat: totalVat,
+            serviceCharge: totalService,
+            promoCode: promoCode || null,
+            promoDiscount: discountAmt,
+            total: grand
+        };
+
+        const bookingData = {
+            customerName: name,
+            customerEmail: email,
+            customerPhone: document.getElementById('qtCustomerPhone')?.value?.trim() || '',
+            customerCompany: document.getElementById('qtCustomerCompany')?.value?.trim() || '',
+            customerAddress: document.getElementById('qtCustomerAddress')?.value?.trim() || '',
+            paymentMethod: 'bank',
+            items: validItems.map(i => {
+                const paper = papers.find(p => p.id === i.newspaper);
+                return {
+                    newspaperName: paper?.name || i.newspaper,
+                    adType: i.adType,
+                    pubDate: i.pubDate,
+                    price: i.calc.total,
+                    details: i.adType === 'box'
+                        ? { columns: i.columns, height: i.height, colour: i.colour, adTotal: i.calc.adTotal, commission: i.calc.commission, vat: i.calc.vat }
+                        : { wordCount: i.wordCount, adTotal: i.calc.adTotal, serviceCharge: i.calc.serviceCharge }
+                };
+            })
+        };
+
+        btn.innerHTML = '<span style="margin-right:6px">📄</span>Generating PDF...';
+        let pdfUrl = '';
+        if (typeof generateInvoicePDF === 'function') {
+            pdfUrl = await generateInvoicePDF(invoiceData, bookingData, false); // false = Quotation (unpaid)
+        }
+
+        // Save to Firebase
+        if (typeof db !== 'undefined') {
+            try {
+                await db.collection('bookings').add({
+                    quotationNumber,
+                    invoiceNumber,
+                    customerName: name,
+                    customerEmail: email,
+                    customerPhone: bookingData.customerPhone,
+                    customerCompany: bookingData.customerCompany,
+                    customerAddress: bookingData.customerAddress,
+                    items: bookingData.items,
+                    totalAmount: grand,
+                    subtotalAmount: subtotal,
+                    promoCode: promoCode || null,
+                    promoDiscount: discountAmt,
+                    paymentMethod: 'bank',
+                    paymentStatus: 'pending',
+                    status: 'pending',
+                    quotationPdfUrl: pdfUrl,
+                    source: 'manual_admin',
+                    notes: document.getElementById('qtNotes')?.value?.trim() || '',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            } catch(e) { console.warn('Firebase save failed:', e); }
+        }
+
+        btn.innerHTML = '<span style="margin-right:6px">📧</span>Sending email...';
+
+        // Send email via Apps Script
+        if (typeof sendManualQuotationEmail === 'function') {
+            await sendManualQuotationEmail({
+                quotationNumber,
+                customerName: name,
+                customerEmail: email,
+                customerPhone: bookingData.customerPhone,
+                customerCompany: bookingData.customerCompany,
+                items: bookingData.items,
+                subtotal,
+                commission: totalCommission,
+                vat: totalVat,
+                serviceCharge: totalService,
+                promoCode: promoCode || null,
+                promoDiscount: discountAmt,
+                total: grand,
+                pdfUrl,
+                notes: document.getElementById('qtNotes')?.value?.trim() || ''
+            });
+        }
+
+        showToast(`Quotation ${quotationNumber} sent to ${email}`, 'success');
+        resetQtForm();
+        // Switch to quotations tab to see it
+        setTimeout(() => showSection('quotations'), 1500);
+
+    } catch (e) {
+        console.error('Manual quotation error:', e);
+        showToast('Error: ' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+    }
+}
+
+function resetQtForm() {
+    qtItems = [];
+    qtItemCounter = 0;
+    ['qtCustomerName','qtCustomerEmail','qtCustomerPhone','qtCustomerCompany','qtCustomerAddress','qtPromoCode','qtDiscountPct','qtNotes'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    renderQtItems();
+    updateQtTotals();
+    const box = document.getElementById('qtTotalsBox');
+    if (box) box.style.display = 'none';
 }
