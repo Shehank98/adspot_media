@@ -370,7 +370,7 @@
     }
 
     function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
-    function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
     // ── Load ───────────────────────────────────────────────────────────────────
     async function loadBookings() {
@@ -1013,7 +1013,7 @@
 
     async function adminSendToPublication(groupId, quotationNumber) {
         const toEmail  = (document.getElementById('admin-pub-email-'   + groupId)||{}).value?.trim();
-        const subject  = (document.getElementById('admin-pub-subject-' + groupId)||{}).value?.trim();
+        const subject  = ((document.getElementById('admin-pub-subject-' + groupId)||{}).value?.trim()) || ('Ad Booking – ' + quotationNumber);
         const body     = (document.getElementById('admin-pub-body-'    + groupId)||{}).value?.trim();
         const slipInp  = document.getElementById('admin-slip-' + groupId);
         const slipFile = slipInp && slipInp.files ? slipInp.files[0] : null;
