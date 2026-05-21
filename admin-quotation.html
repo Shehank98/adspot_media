@@ -383,7 +383,11 @@
 
     function getAllNewspapers() {
         if (typeof CONFIG === 'undefined' || !CONFIG.PUBLICATIONS) return [];
-        return Object.values(CONFIG.PUBLICATIONS).flat();
+        const result = [];
+        for (const group of Object.values(CONFIG.PUBLICATIONS)) {
+            if (group.newspapers) result.push(...group.newspapers);
+        }
+        return result;
     }
 
     // ── Items ────────────────────────────────────────────────────────────────
