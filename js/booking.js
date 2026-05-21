@@ -425,6 +425,23 @@ function updateQuickRates() {
  * Initialize booking form
  */
 function initBookingForm() {
+    // Pre-fill contact details from Firebase auth when user is signed in
+    firebase.auth().onAuthStateChanged(function(user) {
+        if (!user) return;
+        const emailField = document.getElementById('customerEmail');
+        const nameField  = document.getElementById('customerName');
+        if (emailField && !emailField.value) {
+            emailField.value = user.email;
+            emailField.setAttribute('readonly', 'true');
+            emailField.style.background = '#f1f5f9';
+            emailField.style.cursor = 'not-allowed';
+            emailField.title = 'Email is tied to your account';
+        }
+        if (nameField && !nameField.value && user.displayName) {
+            nameField.value = user.displayName;
+        }
+    });
+
     // Ad type toggle
     document.querySelectorAll('input[name="adType"]').forEach(radio => {
         radio.addEventListener('change', function() {
@@ -1660,6 +1677,10 @@ async function handleSubmit(e) {
         const designFeeTotal = designAddonEnabled ? DESIGN_FEE : 0;
         const finalTotal = cartTotal + designFeeTotal - promoDiscount;
 
+        // Always use the Firebase-authenticated email so my-bookings always finds the booking
+        const firebaseUser = firebase.auth().currentUser;
+        const authEmail = firebaseUser?.email || '';
+
         // Collect form data
         const formData = {
             quotation_number: quotationNumber,
@@ -1668,7 +1689,8 @@ async function handleSubmit(e) {
             total_amount: adCart.reduce((sum, item) => sum + item.price, 0),
             customer_name: document.getElementById('customerName')?.value,
             customer_company: document.getElementById('customerCompany')?.value,
-            customer_email: document.getElementById('customerEmail')?.value,
+            // Authoritative email = Firebase token email (ignores whatever is typed in the field)
+            customer_email: authEmail || document.getElementById('customerEmail')?.value,
             customer_phone: document.getElementById('customerPhone')?.value,
             customer_address: document.getElementById('customerAddress')?.value,
             notes: document.getElementById('adNotes')?.value,
