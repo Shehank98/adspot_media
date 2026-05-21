@@ -25,6 +25,8 @@ router.get('/', async (req, res) => {
              ORDER BY n.sort_order, n.name`
         );
 
+        console.log(`[publications] groups: ${groups.rows.length}, papers: ${papers.rows.length}`);
+
         // Build CONFIG.PUBLICATIONS-compatible structure
         const result = {};
         for (const g of groups.rows) {
@@ -52,6 +54,17 @@ router.get('/', async (req, res) => {
         res.json(result);
     } catch (err) {
         console.error('GET /api/publications error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── Debug: raw counts (temporary) ────────────────────────────────────────────
+router.get('/debug', async (req, res) => {
+    try {
+        const g = await db.query('SELECT id, name FROM publication_groups LIMIT 10');
+        const n = await db.query('SELECT id, name, group_id FROM newspapers LIMIT 10');
+        res.json({ groups: g.rows, papers: n.rows });
+    } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
