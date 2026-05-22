@@ -926,9 +926,24 @@
         return 'LKR ' + parseFloat(amt).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
+    // Publication group emails loaded from DB — keyed by groupId
+    let pubGroupEmails = {};
+
+    async function loadPubGroupEmails() {
+        try {
+            // /api/publications returns { groupId: { name, contactEmail, newspapers: [] }, ... }
+            const pubs = await fetch('/api/publications').then(r => r.json());
+            Object.entries(pubs).forEach(([groupId, group]) => {
+                if (group.contactEmail) pubGroupEmails[groupId] = group.contactEmail;
+            });
+            console.log('Loaded pub emails:', pubGroupEmails);
+        } catch (e) { console.warn('Could not load publication group emails:', e.message); }
+    }
+
     function getPubEmail(groupId) {
+        // Priority: localStorage override (admin typed a custom email) → DB contact email
         const saved = JSON.parse(localStorage.getItem('adspot_pub_emails') || '{}');
-        return saved[groupId] || '';
+        return saved[groupId] || pubGroupEmails[groupId] || '';
     }
 
     function renderPubSendPanels(booking) {
@@ -1140,8 +1155,9 @@
     }
 
     // ── Init ───────────────────────────────────────────────────────────────────
-    firebase.auth().onAuthStateChanged(user => {
+    firebase.auth().onAuthStateChanged(async user => {
         if (user) {
+            await loadPubGroupEmails();
             loadBookings();
             setTimeout(checkAndDeleteOldFiles, 5000);
         } else {
