@@ -1677,6 +1677,46 @@
     .progress-step .step-label {
         font-size: 0.75rem;
     }
+
+    .ad-type-select-compact {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    .ad-type-card-compact {
+        min-width: unset;
+        width: 100%;
+    }
+    .language-select {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+    .language-btn {
+        width: 100%;
+        min-width: unset;
+        text-align: center;
+    }
+    #classifiedNewspaperSelect {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .payment-methods {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .payment-method {
+        width: 100%;
+    }
+    .booking-main {
+        padding-top: 76px;
+    }
+    .step-header {
+        margin-bottom: 1.5rem;
+    }
+    .form-row {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1832,4 +1872,89 @@
     .total-amount {
         font-size: 1.125rem;
     }
+
+    .booking-progress {
+        gap: 4px;
+    }
+    .progress-step .step-label {
+        font-size: 10px;
+    }
+    .step-num {
+        width: 28px;
+        height: 28px;
+        font-size: 13px;
+    }
+    .progress-line {
+        min-width: 20px;
+    }
+    .bank-info-grid .bank-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+    }
+    #floatingPriceBar {
+        padding: 10px 16px;
+    }
+    .fpb-total {
+        font-size: 18px;
+    }
+}
+
+/* ── Bank details inline (step 3) ─────────────────────────────── */
+.bank-details-inline {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+.bank-details-hdr {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    color: #0f172a;
+    margin-bottom: 12px;
+}
+.bank-info-grid {
+    display: grid;
+    gap: 6px;
+}
+.bank-info-grid .bank-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    padding: 4px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+.bank-info-grid .bank-row:last-child { border-bottom: none; }
+.bank-info-grid .bank-row span { color: #64748b; }
+.bank-info-grid .bank-row strong { color: #0f172a; font-family: 'JetBrains Mono', monospace; letter-spacing: .02em; }
+.bank-ref-note { font-size: 12px; color: #64748b; margin: 10px 0 0; }
+.bank-receipt-section {
+    background: #f0f9ff;
+    border: 1.5px dashed #7dd3fc;
+    border-radius: 12px;
+    padding: 14px 16px;
+}
+.bank-receipt-hdr {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+.bank-receipt-hdr strong { font-size: 14px; color: #0f172a; display: block; }
+.bank-receipt-hint { font-size: 12px; color: #64748b; }
+.receipt-submitted-note {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: #dcfce7;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #166534;
+    font-weight: 500;
 }

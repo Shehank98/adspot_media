@@ -1829,6 +1829,23 @@ async function handleSubmit(e) {
                     }
                 }
 
+                // Upload receipt before booking if bank transfer + file selected
+                let preSubmitReceiptUrl = '';
+                if (paymentMethod === 'bank') {
+                    const receiptInput = document.getElementById('receiptFileInput');
+                    if (receiptInput?.files?.[0]) {
+                        try {
+                            const receiptFile = receiptInput.files[0];
+                            const receiptRef = storage.ref(`receipts/pre_${quotationNumber}/${Date.now()}_${receiptFile.name}`);
+                            const snap = await receiptRef.put(receiptFile);
+                            preSubmitReceiptUrl = await snap.ref.getDownloadURL();
+                            console.log('✅ Receipt pre-uploaded:', preSubmitReceiptUrl);
+                        } catch (err) {
+                            console.warn('Receipt pre-upload failed, continuing:', err);
+                        }
+                    }
+                }
+
                 // Prepare booking data for Firebase
                 const bookingData = {
                     quotationNumber: quotationNumber,
@@ -1858,7 +1875,10 @@ async function handleSubmit(e) {
                     paymentMethod: paymentMethod,
                     paymentStatus: formData.payment_status,
                     paymentReference: formData.payment_reference || '',
-                    notes: formData.notes || ''
+                    notes: formData.notes || '',
+                    receiptUrl: preSubmitReceiptUrl || null,
+                    receiptUploadedAt: preSubmitReceiptUrl ? new Date().toISOString() : null,
+                    receiptStatus: preSubmitReceiptUrl ? 'submitted' : 'none'
                 };
 
                 // Generate unpaid quotation PDF before saving (bank transfer only)
@@ -2137,7 +2157,7 @@ async function handleSubmit(e) {
             return;
         } else {
             // Bank transfer — show success modal immediately
-            showSuccessModal(quotationNumber, formData.customer_email, paymentMethod);
+            showSuccessModal(quotationNumber, formData.customer_email, paymentMethod, preSubmitReceiptUrl);
         }
 
     } catch (error) {
@@ -2153,7 +2173,7 @@ async function handleSubmit(e) {
 /**
  * Show success modal with detailed confirmation
  */
-function showSuccessModal(quotationNumber, email, paymentMethod) {
+function showSuccessModal(quotationNumber, email, paymentMethod, receiptUrl = '') {
     const modal = document.getElementById('successModal');
     const content = modal.querySelector('.modal-content') || modal;
 
@@ -2177,21 +2197,10 @@ function showSuccessModal(quotationNumber, email, paymentMethod) {
                 <div class="bank-row"><span>Branch:</span> <strong>${CONFIG.BANK_DETAILS.branch}</strong></div>
                 <div class="bank-row"><span>Reference:</span> <strong>${quotationNumber}</strong></div>
             </div>
-            <p class="bank-note">Please use your quotation number as the payment reference.</p>
-        </div>
-        <div class="receipt-upload-area">
-            <h4>Upload Payment Receipt</h4>
-            <p>Speed up verification by uploading your bank receipt now. Our team will confirm within a few hours.</p>
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                <label class="receipt-file-label" for="receiptFileInput">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                    Choose File
-                </label>
-                <input type="file" id="receiptFileInput" accept="image/*,.pdf" style="display:none" onchange="previewReceiptFile(this)">
-                <button class="receipt-upload-btn" id="receiptUploadBtn" onclick="uploadReceipt('${quotationNumber}')" disabled>Upload Receipt</button>
-            </div>
-            <div id="receiptThumbWrap"></div>
-            <div id="receiptStatusMsg"></div>
+            ${receiptUrl
+                ? `<div class="receipt-submitted-note"><svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" style="width:16px;height:16px;flex-shrink:0"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Receipt uploaded — we'll verify and confirm your booking shortly.</div>`
+                : `<p class="bank-note">Please complete the bank transfer and use your quotation number as the payment reference.</p>`
+            }
         </div>
     ` : '';
 
@@ -2253,9 +2262,11 @@ function showSuccessModal(quotationNumber, email, paymentMethod) {
 function previewReceiptFile(input) {
     const btn = document.getElementById('receiptUploadBtn');
     const wrap = document.getElementById('receiptThumbWrap');
+    const nameEl = document.getElementById('receiptFileName');
     if (!input.files || !input.files[0]) return;
     if (btn) btn.disabled = false;
     const file = input.files[0];
+    if (nameEl) nameEl.textContent = file.name;
     if (wrap && file.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onload = e => {

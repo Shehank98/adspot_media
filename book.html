@@ -707,11 +707,40 @@
 
                             <!-- Bank Transfer Details -->
                             <div id="bankPayment" class="payment-form">
-                                <div class="bank-details">
-                                    <p class="bank-note">
-                                        Bank transfer details will be provided in your confirmation email after you submit your booking.
-                                        Please use your quotation number as the payment reference.
-                                    </p>
+                                <div class="bank-details-inline">
+                                    <div class="bank-details-hdr">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:20px;height:20px;flex-shrink:0;">
+                                            <path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"/>
+                                        </svg>
+                                        <span>Bank Transfer Details</span>
+                                    </div>
+                                    <div class="bank-info-grid">
+                                        <div class="bank-row"><span>Bank</span><strong>Sampath Bank PLC</strong></div>
+                                        <div class="bank-row"><span>Account Name</span><strong>P S Kavishka</strong></div>
+                                        <div class="bank-row"><span>Account No.</span><strong>1210 5770 0812</strong></div>
+                                        <div class="bank-row"><span>Branch</span><strong>Karagampitiya</strong></div>
+                                    </div>
+                                    <p class="bank-ref-note">Use your <strong>quotation number</strong> as the payment reference after booking.</p>
+                                </div>
+
+                                <div class="bank-receipt-section">
+                                    <div class="bank-receipt-hdr">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2" style="width:18px;height:18px;flex-shrink:0;">
+                                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                                        </svg>
+                                        <div>
+                                            <strong>Upload Payment Receipt</strong>
+                                            <span class="bank-receipt-hint">Optional — helps us verify your payment faster</span>
+                                        </div>
+                                    </div>
+                                    <label class="receipt-file-label" for="receiptFileInput" style="display:inline-flex;margin-top:10px;">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                                        Choose File
+                                    </label>
+                                    <span id="receiptFileName" style="font-size:13px;color:#64748b;margin-left:10px;vertical-align:middle;">No file chosen</span>
+                                    <input type="file" id="receiptFileInput" accept="image/*,.pdf" style="display:none" onchange="previewReceiptFile(this)">
+                                    <div id="receiptThumbWrap" style="margin-top:8px;"></div>
+                                    <div id="receiptStatusMsg"></div>
                                 </div>
                             </div>
 
