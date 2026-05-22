@@ -42,7 +42,17 @@
         .chart-card.full { grid-column: span 2; }
         @media (max-width: 700px) { .chart-card.full { grid-column: span 1; } }
         .chart-title { font-size: 14px; font-weight: 600; color: #0f172a; margin-bottom: 16px; }
-        .chart-wrap { position: relative; }
+        .chart-wrap { position: relative; height: 300px; }
+        .chart-wrap-sm { position: relative; height: 200px; }
+
+        /* ── Earnings row ── */
+        .earnings-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+        @media (max-width: 768px) { .earnings-row { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 440px) { .earnings-row { grid-template-columns: 1fr; } }
+        .stat-card.confirmed { border-left: 3px solid #16a34a; }
+        .stat-card.pending   { border-left: 3px solid #f59e0b; }
+        .stat-card.commission { border-left: 3px solid #2563eb; }
+        .stat-card.design-fee { border-left: 3px solid #8b5cf6; }
 
         /* ── Top customers ── */
         .section-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
@@ -136,26 +146,50 @@
                 </div>
             </div>
 
+            <!-- Earnings breakdown -->
+            <div class="earnings-row">
+                <div class="stat-card confirmed">
+                    <div class="stat-label">Confirmed Revenue</div>
+                    <div class="stat-value" id="s-confirmed">—</div>
+                    <div class="stat-sub" id="s-confirmed-sub"></div>
+                </div>
+                <div class="stat-card pending">
+                    <div class="stat-label">Pending Revenue</div>
+                    <div class="stat-value" id="s-pending">—</div>
+                    <div class="stat-sub" id="s-pending-sub"></div>
+                </div>
+                <div class="stat-card commission">
+                    <div class="stat-label">Est. Commission Earned</div>
+                    <div class="stat-value" id="s-commission">—</div>
+                    <div class="stat-sub" id="s-commission-sub"></div>
+                </div>
+                <div class="stat-card design-fee">
+                    <div class="stat-label">Design Service Revenue</div>
+                    <div class="stat-value" id="s-design">—</div>
+                    <div class="stat-sub" id="s-design-sub"></div>
+                </div>
+            </div>
+
             <!-- Charts -->
             <div class="charts-grid">
                 <div class="chart-card full">
                     <div class="chart-title">Monthly Revenue — last 12 months</div>
-                    <div class="chart-wrap"><canvas id="chartMonthly" height="100"></canvas></div>
+                    <div class="chart-wrap"><canvas id="chartMonthly"></canvas></div>
                 </div>
                 <div class="chart-card">
                     <div class="chart-title">Revenue by Newspaper</div>
-                    <div class="chart-wrap"><canvas id="chartNewspaper" height="200"></canvas></div>
+                    <div class="chart-wrap"><canvas id="chartNewspaper"></canvas></div>
                 </div>
                 <div class="chart-card">
                     <div class="chart-title">Ad Type &amp; Payment Method</div>
-                    <div class="chart-wrap" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                         <div>
                             <div style="font-size:11px;color:#64748b;margin-bottom:8px;font-weight:500;">Ad Type</div>
-                            <canvas id="chartAdType" height="160"></canvas>
+                            <div class="chart-wrap-sm"><canvas id="chartAdType"></canvas></div>
                         </div>
                         <div>
                             <div style="font-size:11px;color:#64748b;margin-bottom:8px;font-weight:500;">Payment Method</div>
-                            <canvas id="chartPayment" height="160"></canvas>
+                            <div class="chart-wrap-sm"><canvas id="chartPayment"></canvas></div>
                         </div>
                     </div>
                 </div>
@@ -208,7 +242,7 @@
     Chart.defaults.color       = '#64748b';
 
     // ── Build analytics ───────────────────────────────────────────────────────
-    function buildDashboard(bookings) {
+    async function buildDashboard(bookings) {
         const now   = new Date();
         const thisM = now.getFullYear() * 100 + now.getMonth();
         const prevM = (now.getMonth() === 0)
@@ -216,6 +250,7 @@
             : now.getFullYear() * 100 + (now.getMonth() - 1);
 
         let total = 0, thisMonth = 0, lastMonth = 0;
+        let confirmedRev = 0, pendingRev = 0, designRev = 0;
         const monthMap   = {};
         const npMap      = {};
         const adTypeMap  = { box: 0, classified: 0 };
@@ -232,6 +267,15 @@
             total    += amt;
             if (ym === thisM) thisMonth += amt;
             if (ym === prevM) lastMonth += amt;
+
+            // Confirmed vs pending
+            const ps = b.payment_status || b.paymentStatus || 'pending';
+            if (ps === 'completed') confirmedRev += amt; else pendingRev += amt;
+
+            // Design service revenue
+            if (b.design_requested || b.designRequested) {
+                designRev += parseFloat(b.design_fee || b.designFee || 0);
+            }
 
             // Monthly
             const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
@@ -259,6 +303,14 @@
             custMap[email].count += 1;
         });
 
+        // Load commission rate from settings
+        let commissionPct = 5;
+        try {
+            const s = await apiRequest('GET', '/api/settings/box_commission_pct');
+            if (s?.value) commissionPct = parseFloat(s.value);
+        } catch (_) {}
+        const commissionEarned = confirmedRev * (commissionPct / 100);
+
         // ── Stats cards ───────────────────────────────────────────────────────
         const avg = bookings.length ? total / bookings.length : 0;
         const momChange = lastMonth > 0 ? ((thisMonth - lastMonth) / lastMonth * 100).toFixed(1) : null;
@@ -276,6 +328,19 @@
         document.getElementById('s-count-sub').textContent  = Object.keys(custMap).length + ' unique customers';
         document.getElementById('s-avg').textContent        = fmtRs(avg);
         document.getElementById('s-avg-sub').textContent    = 'per booking';
+
+        // ── Earnings breakdown cards ──────────────────────────────────────────
+        const confirmedCount = bookings.filter(b => (b.payment_status || b.paymentStatus) === 'completed').length;
+        const pendingCount   = bookings.length - confirmedCount;
+        document.getElementById('s-confirmed').textContent     = fmtRs(confirmedRev);
+        document.getElementById('s-confirmed-sub').textContent = confirmedCount + ' paid bookings';
+        document.getElementById('s-pending').textContent       = fmtRs(pendingRev);
+        document.getElementById('s-pending-sub').textContent   = pendingCount + ' awaiting payment';
+        document.getElementById('s-commission').textContent    = fmtRs(commissionEarned);
+        document.getElementById('s-commission-sub').textContent = commissionPct + '% of confirmed revenue';
+        document.getElementById('s-design').textContent        = fmtRs(designRev);
+        const designCount = bookings.filter(b => b.design_requested || b.designRequested).length;
+        document.getElementById('s-design-sub').textContent    = designCount + ' design bookings';
 
         // ── Monthly revenue chart ─────────────────────────────────────────────
         const months = [];
@@ -299,6 +364,7 @@
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => fmtRs(ctx.raw) } } },
                 scales: { y: { ticks: { callback: v => 'Rs ' + (v/1000).toFixed(0) + 'k' }, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } }
             }
@@ -321,6 +387,7 @@
             options: {
                 indexAxis: 'y',
                 responsive: true,
+                maintainAspectRatio: false,
                 plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => fmtRs(ctx.raw) } } },
                 scales: { x: { ticks: { callback: v => 'Rs ' + (v/1000).toFixed(0) + 'k' }, grid: { color: '#f1f5f9' } }, y: { grid: { display: false } } }
             }
@@ -333,7 +400,7 @@
                 labels: ['Box Ad', 'Classified'],
                 datasets: [{ data: [adTypeMap.box, adTypeMap.classified], backgroundColor: ['#2563eb', '#60a5fa'], borderWidth: 0 }]
             },
-            options: { responsive: true, cutout: '65%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10 } }, tooltip: { callbacks: { label: ctx => fmtRs(ctx.raw) } } } }
+            options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10 } }, tooltip: { callbacks: { label: ctx => fmtRs(ctx.raw) } } } }
         });
 
         // ── Payment method donut ──────────────────────────────────────────────
@@ -345,7 +412,7 @@
                 labels: pmEntries.map(e => e[0].replace('_', ' ')),
                 datasets: [{ data: pmEntries.map(e => e[1]), backgroundColor: pmColors.slice(0, pmEntries.length), borderWidth: 0 }]
             },
-            options: { responsive: true, cutout: '65%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10 } }, tooltip: { callbacks: { label: ctx => fmtRs(ctx.raw) } } } }
+            options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10 } }, tooltip: { callbacks: { label: ctx => fmtRs(ctx.raw) } } } }
         });
 
         // ── Top customers table ───────────────────────────────────────────────
@@ -370,7 +437,7 @@
             const bookings = await apiRequest('GET', '/api/bookings');
             document.getElementById('loadingState').style.display = 'none';
             document.getElementById('dashContent').style.display  = 'block';
-            buildDashboard(bookings);
+            await buildDashboard(bookings);
         } catch (e) {
             document.getElementById('loadingState').innerHTML = '<p style="color:#dc2626">Failed to load data: ' + e.message + '</p>';
             showToast('Load failed: ' + e.message);

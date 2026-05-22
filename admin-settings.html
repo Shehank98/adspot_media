@@ -84,6 +84,62 @@
             </div>
         </div>
 
+        <div class="settings-card">
+            <h2>Commission &amp; Tax Settings</h2>
+
+            <div class="setting-row">
+                <div class="setting-info">
+                    <p class="setting-label">Box Ad Commission Rate</p>
+                    <p class="setting-desc">Your commission percentage on confirmed box ad bookings. Used to calculate commission earned in the Revenue Dashboard.</p>
+                </div>
+                <div class="setting-control">
+                    <input type="number" class="setting-input" id="boxCommInput" value="5" min="0" max="100" step="0.5">
+                    <span style="font-size:13px;color:#475569;">%</span>
+                    <button class="btn-save" id="boxCommBtn" onclick="saveSetting('box_commission_pct', 'boxCommInput', 'boxCommBtn', 'boxCommStatus')">Save</button>
+                    <span class="save-status" id="boxCommStatus">Saved</span>
+                </div>
+            </div>
+
+            <div class="setting-row">
+                <div class="setting-info">
+                    <p class="setting-label">Classified Commission Rate</p>
+                    <p class="setting-desc">Your commission percentage on confirmed classified ad bookings.</p>
+                </div>
+                <div class="setting-control">
+                    <input type="number" class="setting-input" id="clfCommInput" value="5" min="0" max="100" step="0.5">
+                    <span style="font-size:13px;color:#475569;">%</span>
+                    <button class="btn-save" id="clfCommBtn" onclick="saveSetting('classified_commission_pct', 'clfCommInput', 'clfCommBtn', 'clfCommStatus')">Save</button>
+                    <span class="save-status" id="clfCommStatus">Saved</span>
+                </div>
+            </div>
+
+            <div class="setting-row">
+                <div class="setting-info">
+                    <p class="setting-label">VAT Rate</p>
+                    <p class="setting-desc">VAT percentage applied to invoices. Set to 0 to disable VAT on invoices.</p>
+                </div>
+                <div class="setting-control">
+                    <input type="number" class="setting-input" id="vatInput" value="0" min="0" max="100" step="0.5">
+                    <span style="font-size:13px;color:#475569;">%</span>
+                    <button class="btn-save" id="vatBtn" onclick="saveSetting('vat_pct', 'vatInput', 'vatBtn', 'vatStatus')">Save</button>
+                    <span class="save-status" id="vatStatus">Saved</span>
+                </div>
+            </div>
+
+            <div class="setting-row">
+                <div class="setting-info">
+                    <p class="setting-label">Service Charge Rate</p>
+                    <p class="setting-desc">Additional service charge percentage on classified bookings.</p>
+                </div>
+                <div class="setting-control">
+                    <input type="number" class="setting-input" id="scInput" value="0" min="0" max="100" step="0.5">
+                    <span style="font-size:13px;color:#475569;">%</span>
+                    <button class="btn-save" id="scBtn" onclick="saveSetting('service_charge_pct', 'scInput', 'scBtn', 'scStatus')">Save</button>
+                    <span class="save-status" id="scStatus">Saved</span>
+                </div>
+            </div>
+        </div>
+
         <div class="settings-card" id="loadingCard">
             <p style="font-size:14px;color:#64748b;">Loading settings...</p>
         </div>
@@ -114,10 +170,19 @@
         });
 
         async function loadSettings() {
-            try {
-                const res = await apiRequest('GET', '/api/settings/design_fee');
-                if (res?.value) document.getElementById('designFeeInput').value = res.value;
-            } catch (_) {}
+            const settingsMap = {
+                design_fee:               'designFeeInput',
+                box_commission_pct:       'boxCommInput',
+                classified_commission_pct:'clfCommInput',
+                vat_pct:                  'vatInput',
+                service_charge_pct:       'scInput'
+            };
+            await Promise.allSettled(Object.entries(settingsMap).map(async ([key, inputId]) => {
+                try {
+                    const res = await apiRequest('GET', '/api/settings/' + key);
+                    if (res?.value != null) document.getElementById(inputId).value = res.value;
+                } catch (_) {}
+            }));
             document.getElementById('loadingCard').style.display = 'none';
         }
 
