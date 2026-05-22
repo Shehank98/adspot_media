@@ -1766,6 +1766,7 @@ async function handleSubmit(e) {
 
         // Save to database (if available) or use local storage
         let saveSuccess = false;
+        let preSubmitReceiptUrl = '';
 
         // Try to save to Firebase first
         if (typeof saveBookingToFirebase === 'function') {
@@ -1830,7 +1831,6 @@ async function handleSubmit(e) {
                 }
 
                 // Upload receipt before booking if bank transfer + file selected
-                let preSubmitReceiptUrl = '';
                 if (paymentMethod === 'bank') {
                     const receiptInput = document.getElementById('receiptFileInput');
                     if (receiptInput?.files?.[0]) {
