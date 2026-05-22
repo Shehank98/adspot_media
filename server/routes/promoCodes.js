@@ -25,12 +25,12 @@ router.get('/', async (req, res) => {
             });
         }
 
-        // Admin: return all
-        const authHeader = req.headers.authorization || '';
-        if (!authHeader.startsWith('Bearer ')) return res.status(401).json({ error: 'Auth required' });
-
-        const result = await db.query('SELECT * FROM promo_codes ORDER BY created_at DESC');
-        res.json(result.rows);
+        // Admin: return all — require verified admin token
+        verifyFirebaseToken(req, res, async () => {
+            if (!req.isAdmin) return res.status(403).json({ error: 'Admin access required' });
+            const result = await db.query('SELECT * FROM promo_codes ORDER BY created_at DESC');
+            res.json(result.rows);
+        });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
