@@ -125,19 +125,21 @@
             z-index: 200;
             background: #0f172a;
             color: #fff;
-            padding: 12px 20px;
+            padding: 12px 24px;
             display: none;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
-            box-shadow: 0 -4px 20px rgba(0,0,0,.25);
+            gap: 16px;
+            box-shadow: 0 -4px 24px rgba(0,0,0,.3);
         }
         #floatingPriceBar.visible { display: flex; }
-        .fpb-label { font-size: 12px; color: #94a3b8; white-space: nowrap; }
-        .fpb-total { font-size: 20px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
-        .fpb-breakdown { font-size: 11px; color: #64748b; }
-        .fpb-right { text-align: right; }
-        @media (max-width: 500px) { .fpb-breakdown { display: none; } }
+        /* Push page content up so bar doesn't cover buttons */
+        body.booking-page:has(#floatingPriceBar.visible) main { padding-bottom: 68px; }
+        .fpb-left { display: flex; flex-direction: column; gap: 2px; }
+        .fpb-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #64748b; }
+        .fpb-breakdown { font-size: 12px; color: #94a3b8; }
+        .fpb-total { font-size: 22px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        @media (max-width: 520px) { .fpb-breakdown { display: none; } }
     </style>
 </head>
 <body class="booking-page">
@@ -1056,13 +1058,11 @@
 
     <!-- Floating price bar -->
     <div id="floatingPriceBar">
-        <div>
+        <div class="fpb-left">
             <div class="fpb-label">Current Ad Price</div>
             <div class="fpb-breakdown" id="fpbBreakdown"></div>
         </div>
-        <div class="fpb-right">
-            <div class="fpb-total" id="fpbTotal">Rs. 0.00</div>
-        </div>
+        <div class="fpb-total" id="fpbTotal">Rs. 0.00</div>
     </div>
 
     <!-- Maintenance Mode -->

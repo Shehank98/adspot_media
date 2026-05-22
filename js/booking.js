@@ -868,8 +868,6 @@ function updatePrice() {
 
 // ── Floating price bar ─────────────────────────────────────────────────────
 
-let _sidebarVisible = true;
-
 function updateFloatingPriceBar(total, details) {
     const bar = document.getElementById('floatingPriceBar');
     if (!bar) return;
@@ -877,39 +875,21 @@ function updateFloatingPriceBar(total, details) {
 
     document.getElementById('fpbTotal').textContent = formatCurrency(total);
 
-    // Build a short breakdown line (ad total + commission/vat if box ad)
+    // Build short breakdown line
     const adTotalRow = details.find(d => d.label === 'Ad Total');
     const commRow    = details.find(d => d.label && d.label.startsWith('Platform Commission'));
     const vatRow     = details.find(d => d.label && d.label.startsWith('VAT'));
+    const scRow      = details.find(d => d.label === 'Service Charge');
     const parts = [];
     if (adTotalRow) parts.push('Base ' + adTotalRow.value);
     if (commRow)    parts.push('Comm ' + commRow.value);
     if (vatRow)     parts.push('VAT ' + vatRow.value);
+    if (scRow)      parts.push('Service ' + scRow.value);
     const bk = document.getElementById('fpbBreakdown');
     if (bk) bk.textContent = parts.join(' · ');
 
-    if (!_sidebarVisible) bar.classList.add('visible');
-    else bar.classList.remove('visible');
+    bar.classList.add('visible');
 }
-
-// Watch the sidebar — show floating bar when sidebar scrolls off screen
-document.addEventListener('DOMContentLoaded', () => {
-    const sidebar = document.querySelector('.price-sidebar');
-    if (!sidebar) return;
-    const obs = new IntersectionObserver(([entry]) => {
-        _sidebarVisible = entry.isIntersecting;
-        // Refresh visibility based on current price
-        const total = window.currentAdPrice || 0;
-        if (total > 0) {
-            const bar = document.getElementById('floatingPriceBar');
-            if (bar) {
-                if (_sidebarVisible) bar.classList.remove('visible');
-                else bar.classList.add('visible');
-            }
-        }
-    }, { threshold: 0.1 });
-    obs.observe(sidebar);
-});
 
 /**
  * Update comparison section for box ads
@@ -1331,13 +1311,6 @@ function goToStep(step) {
     } else if (step === 3) {
         updateOrderSummary();
         syncStickyPreview(3);
-    }
-
-    // Floating bar: always visible on steps 2 & 3 (sidebar is hidden), hide on step 1
-    const bar = document.getElementById('floatingPriceBar');
-    if (bar) {
-        if (step > 1 && (window.currentAdPrice || 0) > 0) bar.classList.add('visible');
-        else if (step === 1) bar.classList.remove('visible');
     }
 
     // Scroll to top
