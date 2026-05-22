@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const db = require('../db');
-const { verifyFirebaseToken, requireAdmin } = require('../middleware/auth');
+const { verifyFirebaseToken, requireAdmin, optionalAuth } = require('../middleware/auth');
 
 // GET /api/bookings — admin: all bookings; customer: own bookings by email
 router.get('/', verifyFirebaseToken, async (req, res) => {
@@ -40,8 +40,8 @@ router.get('/', verifyFirebaseToken, async (req, res) => {
     }
 });
 
-// POST /api/bookings — create new booking
-router.post('/', verifyFirebaseToken, async (req, res) => {
+// POST /api/bookings — create new booking (guests allowed — no token required)
+router.post('/', optionalAuth, async (req, res) => {
     try {
         const d = req.body;
 
@@ -91,19 +91,21 @@ router.post('/', verifyFirebaseToken, async (req, res) => {
     }
 });
 
-// PATCH /api/bookings/:id/receipt — customer uploads receipt (own booking only)
-router.patch('/:id/receipt', verifyFirebaseToken, async (req, res) => {
+// PATCH /api/bookings/:id/receipt — customer uploads receipt (own booking only, guests allowed)
+router.patch('/:id/receipt', optionalAuth, async (req, res) => {
     try {
         const { id } = req.params;
-        const { receipt_url, receipt_uploaded_at, receipt_status } = req.body;
+        const { receipt_url, receipt_uploaded_at, receipt_status, customer_email } = req.body;
 
-        // Verify the booking belongs to this user
+        // Verify ownership: logged-in user matches uid/email, OR guest matches email from body
+        const emailToCheck = req.userEmail || customer_email || '';
         const check = await db.query(
             `SELECT b.booking_id FROM bookings b
              LEFT JOIN customers c ON c.id = b.customer_id
              WHERE b.booking_id = $1
-               AND (c.firebase_uid = $2 OR LOWER(b.customer_email) = LOWER($3))`,
-            [id, req.uid, req.userEmail]
+               AND ($2::text IS NOT NULL AND c.firebase_uid = $2
+                    OR LOWER(b.customer_email) = LOWER($3))`,
+            [id, req.uid || null, emailToCheck]
         );
         if (!check.rows.length) return res.status(403).json({ error: 'Booking not found or access denied' });
 

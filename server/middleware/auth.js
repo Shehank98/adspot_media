@@ -63,4 +63,38 @@ function requireAdmin(req, res, next) {
     next();
 }
 
-module.exports = { verifyFirebaseToken, requireAdmin };
+/**
+ * Middleware: optionally verify Firebase token.
+ * If no token is present, treats the request as a guest (req.uid = null).
+ * Used for endpoints that must work for both logged-in users AND guests
+ * (e.g. POST /api/bookings — guests can place orders).
+ */
+async function optionalAuth(req, res, next) {
+    const header = req.headers.authorization || '';
+    const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+
+    if (!token) {
+        req.uid = null;
+        req.userEmail = null;
+        req.isGuest = true;
+        return next();
+    }
+
+    try {
+        const decoded = await admin.auth().verifyIdToken(token);
+        req.uid = decoded.uid;
+        req.userEmail = decoded.email || '';
+        req.isGuest = false;
+        next();
+    } catch (err) {
+        if (process.env.NODE_ENV !== 'production' && !process.env.FIREBASE_CLIENT_EMAIL) {
+            req.uid = 'dev';
+            req.userEmail = 'dev@adspot.lk';
+            req.isGuest = false;
+            return next();
+        }
+        return res.status(401).json({ error: 'Invalid token: ' + err.message });
+    }
+}
+
+module.exports = { verifyFirebaseToken, requireAdmin, optionalAuth };

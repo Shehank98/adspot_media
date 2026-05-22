@@ -2299,10 +2299,12 @@ async function uploadReceipt(quotationNumber) {
         const snap = await storageRef.put(file);
         const url = await snap.ref.getDownloadURL();
 
+        const guestEmail = document.getElementById('customerEmail')?.value || '';
         await apiRequest('PATCH', `/api/bookings/${bookingId}/receipt`, {
             receipt_url: url,
             receipt_uploaded_at: new Date().toISOString(),
-            receipt_status: 'submitted'
+            receipt_status: 'submitted',
+            customer_email: guestEmail
         });
 
         if (statusEl) { statusEl.textContent = 'Receipt uploaded. Our team will verify and confirm your booking shortly.'; statusEl.className = 'receipt-status-msg success'; }
