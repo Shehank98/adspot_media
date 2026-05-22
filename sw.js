@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'adspot-v3';
+const CACHE_VERSION = 'adspot-v4';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 
@@ -7,8 +7,10 @@ const STATIC_ASSETS = [
   '/admin/index.html',
   '/admin/dashboard.html',
   '/css/styles.css',
+  '/css/booking.css',
   '/css/pwa.css',
   '/js/config.js',
+  '/js/booking.js',
   '/js/admin.js',
   '/js/supabase.js',
   '/js/admin-customers.js',
