@@ -26,19 +26,21 @@ async function loadServerSettings() {
     );
     const [d1, d2, d3, d4] = results.map(r => r.status === 'fulfilled' ? r.value : null);
 
-    if (d1?.value) {
-        DESIGN_FEE = parseFloat(d1.value) || 3000;
+    if (d1?.value != null) {
+        const v = parseFloat(d1.value);
+        if (!isNaN(v)) DESIGN_FEE = v;
     }
-    if (d2?.value) {
-        COMMISSION_PCT = parseFloat(d2.value) || 5;
-        CONFIG.CHARGES.boxAdCommission = COMMISSION_PCT / 100;
+    if (d2?.value != null) {
+        const v = parseFloat(d2.value);
+        if (!isNaN(v)) { COMMISSION_PCT = v; CONFIG.CHARGES.boxAdCommission = v / 100; }
     }
-    if (d3?.value) {
-        VAT_PCT = parseFloat(d3.value) || 18;
-        CONFIG.CHARGES.vatRate = VAT_PCT / 100;
+    if (d3?.value != null) {
+        const v = parseFloat(d3.value);
+        if (!isNaN(v)) { VAT_PCT = v; CONFIG.CHARGES.vatRate = v / 100; }
     }
-    if (d4?.value) {
-        CONFIG.CHARGES.classifiedServiceCharge = parseFloat(d4.value) || 50;
+    if (d4?.value != null) {
+        const v = parseFloat(d4.value);
+        if (!isNaN(v)) CONFIG.CHARGES.classifiedServiceCharge = v;
     }
 }
 

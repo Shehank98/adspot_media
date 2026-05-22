@@ -2,12 +2,24 @@ const router = require('express').Router();
 const db = require('../db');
 const { verifyFirebaseToken, requireAdmin } = require('../middleware/auth');
 
+// Known defaults — returned when key is not yet seeded in DB
+// This ensures the booking page always gets a valid response even before the seed SQL is run
+const DEFAULTS = {
+    design_fee:                '3000',
+    box_commission_pct:        '5',
+    classified_commission_pct: '5',
+    vat_pct:                   '18',
+    classified_service_charge: '50',
+};
+
 // GET /api/settings/:key — public
 router.get('/:key', async (req, res) => {
     try {
         const result = await db.query('SELECT key, value FROM settings WHERE key = $1', [req.params.key]);
-        if (!result.rows.length) return res.status(404).json({ error: 'Setting not found' });
-        res.json(result.rows[0]);
+        if (result.rows.length) return res.json(result.rows[0]);
+        const def = DEFAULTS[req.params.key];
+        if (def !== undefined) return res.json({ key: req.params.key, value: def });
+        return res.status(404).json({ error: 'Setting not found' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

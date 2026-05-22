@@ -378,10 +378,16 @@ Every page that uses `apiRequest()` or Firebase must load these in order:
 
 ## Audit Summary (Last Checked: 2026-05-22)
 
+### Service Worker Cache
+The site registers a PWA service worker (`sw.js`) that uses **cache-first** for all static JS/CSS files. Any JS code change requires bumping `CACHE_VERSION` in `sw.js` (e.g. v2 → v3) so browsers discard cached old files. API routes (`/api/*`) are always fetched from the network — the SW explicitly skips them.
+
+### Settings GET Fallback
+`/api/settings/:key` returns a hardcoded default (from `DEFAULTS` map in `server/routes/settings.js`) if the key is not in the DB. This means pages work correctly even before the seed SQL is run. When the admin saves a new value from `/admin-settings`, it upserts into the DB and all subsequent GETs return the real stored value.
+
 ### Confirmed Working
 - Booking flow end-to-end (box + classified, bank transfer + HelaPay)
 - Admin booking management (approve, reject, send to publication, upload proof)
-- Settings system (rates load before form initialises)
+- Settings system (rates load before form initialises, server returns defaults for unknown keys)
 - Floating price bar (shows when price > 0)
 - Commission/VAT/service charge all dynamic from DB settings
 - Revenue dashboard (charts stable, earnings row, commission calculated from settings)
