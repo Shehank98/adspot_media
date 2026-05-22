@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/firebase-ui.css">
+    <link rel="stylesheet" href="css/admin-nav.css">
 
     <!-- Meta Pixel -->
     <script>
@@ -170,21 +171,30 @@
     </style>
 </head>
 <body>
-    <nav class="navbar">
+    <nav class="navbar admin-navbar">
         <div class="nav-container">
-            <a href="/" class="logo"><span class="logo-icon">◈</span><span class="logo-text">AdSpot Admin</span></a>
+            <a href="/" class="logo">
+                <span class="logo-icon">◈</span>
+                <span class="logo-text">AdSpot Admin</span>
+            </a>
             <ul class="nav-links">
                 <li><a href="/admin-dashboard">Dashboard</a></li>
-                <li><a href="/admin-bookings">Manage Bookings</a></li>
+                <li><a href="/admin-bookings">Bookings</a></li>
                 <li><a href="/admin-publications">Publications</a></li>
-                <li><a href="/admin-promo-codes">Promo Codes</a></li>
+                <li><a href="/admin-promo-codes">Promos</a></li>
                 <li><a href="/admin-customers" class="active">Customers</a></li>
-                <li><a href="/admin-quotation">New Quotation</a></li>
+                <li><a href="/admin-quotation">Quotation</a></li>
+                <li class="nav-divider"></li>
                 <li><a href="/admin-settings">Settings</a></li>
-                <li><a href="/">Back to Home</a></li>
             </ul>
-            <div class="nav-actions">
-                <div id="userMenu" class="user-menu"><img id="userPhoto" class="user-avatar" src="" alt=""></div>
+            <div class="admin-nav-right">
+                <a href="/" class="admin-nav-home">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9M5 10v9a1 1 0 001 1h4v-5h4v5h4a1 1 0 001-1v-9"/></svg>
+                    Home
+                </a>
+                <div id="userMenu" class="user-menu">
+                    <img id="userPhoto" class="user-avatar" src="" alt="">
+                </div>
             </div>
         </div>
     </nav>

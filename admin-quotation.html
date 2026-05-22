@@ -11,6 +11,7 @@
 
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/firebase-ui.css">
+    <link rel="stylesheet" href="css/admin-nav.css">
 
     <style>
         *, *::before, *::after { box-sizing: border-box; }
@@ -375,7 +376,7 @@
     </style>
 </head>
 <body>
-    <nav class="navbar">
+    <nav class="navbar admin-navbar">
         <div class="nav-container">
             <a href="/" class="logo">
                 <span class="logo-icon">◈</span>
@@ -385,35 +386,19 @@
                 <li><a href="/admin-dashboard">Dashboard</a></li>
                 <li><a href="/admin-bookings">Bookings</a></li>
                 <li><a href="/admin-publications">Publications</a></li>
-                <li><a href="/admin-promo-codes">Promo Codes</a></li>
+                <li><a href="/admin-promo-codes">Promos</a></li>
                 <li><a href="/admin-customers">Customers</a></li>
-                <li><a href="/admin-quotation" class="active">New Quotation</a></li>
+                <li><a href="/admin-quotation" class="active">Quotation</a></li>
+                <li class="nav-divider"></li>
                 <li><a href="/admin-settings">Settings</a></li>
             </ul>
-            <div class="nav-actions">
+            <div class="admin-nav-right">
+                <a href="/" class="admin-nav-home">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9M5 10v9a1 1 0 001 1h4v-5h4v5h4a1 1 0 001-1v-9"/></svg>
+                    Home
+                </a>
                 <div id="userMenu" class="user-menu">
                     <img id="userPhoto" class="user-avatar" src="" alt="">
-                    <div class="user-dropdown">
-                        <button class="user-toggle" id="userToggle">
-                            <span id="userName">Admin</span>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M6 9l6 6 6-6"/></svg>
-                        </button>
-                        <div class="dropdown-menu" id="dropdownMenu">
-                            <div class="user-info-dropdown">
-                                <span id="userEmail" class="user-email-dropdown"></span>
-                            </div>
-                            <div class="dropdown-divider"></div>
-                            <a href="/" class="dropdown-item">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 12h18M12 3l9 9-9 9"/></svg>
-                                Back to Home
-                            </a>
-                            <div class="dropdown-divider"></div>
-                            <button class="dropdown-item" id="signOutBtn">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-                                Sign Out
-                            </button>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

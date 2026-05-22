@@ -1,0 +1,101 @@
+/* ── Admin Navbar ─────────────────────────────────────────────────────────── */
+
+/* Tighten page top-padding to match the shorter admin navbar (56px) */
+.page-wrap,
+.admin-container {
+    padding-top: 72px !important;
+}
+
+.admin-navbar .nav-container {
+    max-width: 100%;
+    padding: 0 24px;
+    height: 56px;
+}
+
+.admin-navbar .logo-text {
+    font-size: 1rem;
+    letter-spacing: 0.01em;
+}
+
+.admin-navbar .logo-icon {
+    font-size: 1.3rem;
+}
+
+.admin-navbar .nav-links {
+    gap: 4px;
+}
+
+.admin-navbar .nav-links a {
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 10px;
+    border-radius: 6px;
+    color: var(--gray-600);
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+}
+
+.admin-navbar .nav-links a:hover {
+    background: var(--gray-100);
+    color: var(--gray-900);
+}
+
+.admin-navbar .nav-links a.active {
+    background: #eff6ff;
+    color: var(--primary);
+    font-weight: 600;
+}
+
+/* Right-side admin actions */
+.admin-nav-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.admin-nav-home {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-500);
+    border: 1px solid var(--gray-200);
+    background: white;
+    text-decoration: none;
+    transition: all 0.15s;
+}
+
+.admin-nav-home:hover {
+    color: var(--gray-800);
+    border-color: var(--gray-300);
+    background: var(--gray-50);
+}
+
+.admin-nav-home svg {
+    flex-shrink: 0;
+}
+
+/* Avatar only — no dropdown text clutter */
+.admin-navbar .user-menu {
+    position: relative;
+}
+
+.admin-navbar .user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--gray-200);
+    cursor: pointer;
+}
+
+/* Divider between main links and utility links */
+.nav-divider {
+    width: 1px;
+    height: 18px;
+    background: var(--gray-200);
+    margin: 0 4px;
+}
