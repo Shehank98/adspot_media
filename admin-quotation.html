@@ -1050,6 +1050,15 @@
             document.getElementById('userName').textContent  = user.displayName || user.email.split('@')[0];
             if (user.photoURL) document.getElementById('userPhoto').src = user.photoURL;
 
+            // Load commission/VAT from settings so displayed rates are accurate
+            await Promise.allSettled([
+                fetch('/api/settings/box_commission_pct').then(r => r.ok ? r.json() : null),
+                fetch('/api/settings/vat_pct').then(r => r.ok ? r.json() : null)
+            ]).then(([r1, r2]) => {
+                if (r1.value?.value) CONFIG.CHARGES.boxAdCommission = parseFloat(r1.value.value) / 100;
+                if (r2.value?.value) CONFIG.CHARGES.vatRate          = parseFloat(r2.value.value) / 100;
+            }).catch(() => {});
+
             // Load live publications from DB, then render initial empty state
             try {
                 if (typeof loadNewspapersFromFirebase === 'function') {

@@ -115,6 +115,29 @@
         .receipt-status-msg.success { background: #dcfce7; color: #166534; }
         .receipt-status-msg.error { background: #fee2e2; color: #991b1b; }
         .receipt-thumb { margin-top: 10px; max-width: 160px; border-radius: 6px; border: 1px solid #e2e8f0; }
+
+        /* ── Floating price bar ───────────────────────────────────────── */
+        #floatingPriceBar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 200;
+            background: #0f172a;
+            color: #fff;
+            padding: 12px 20px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            box-shadow: 0 -4px 20px rgba(0,0,0,.25);
+        }
+        #floatingPriceBar.visible { display: flex; }
+        .fpb-label { font-size: 12px; color: #94a3b8; white-space: nowrap; }
+        .fpb-total { font-size: 20px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+        .fpb-breakdown { font-size: 11px; color: #64748b; }
+        .fpb-right { text-align: right; }
+        @media (max-width: 500px) { .fpb-breakdown { display: none; } }
     </style>
 </head>
 <body class="booking-page">
@@ -1030,6 +1053,17 @@
         window.toggleLanguage = toggleLanguage;
         window.updateLanguage = updateLanguage;
     </script>
+
+    <!-- Floating price bar -->
+    <div id="floatingPriceBar">
+        <div>
+            <div class="fpb-label">Current Ad Price</div>
+            <div class="fpb-breakdown" id="fpbBreakdown"></div>
+        </div>
+        <div class="fpb-right">
+            <div class="fpb-total" id="fpbTotal">Rs. 0.00</div>
+        </div>
+    </div>
 
     <!-- Maintenance Mode -->
     <script src="js/maintenance-config.js"></script>

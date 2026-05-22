@@ -15,6 +15,8 @@ let promoDiscount = 0;
 let payhereBookingId = null;
 let designAddonEnabled = false;
 let DESIGN_FEE = 3000;
+let COMMISSION_PCT = 5;
+let VAT_PCT = 18;
 let lastSubmittedBookingId = null;
 
 document.addEventListener('DOMContentLoaded', async function() {
@@ -388,11 +390,11 @@ function updateQuickRates() {
             </div>
             <div class="rate-item">
                 <span>Commission:</span>
-                <strong>10%</strong>
+                <strong>${COMMISSION_PCT}%</strong>
             </div>
             <div class="rate-item">
                 <span>VAT:</span>
-                <strong>18%</strong>
+                <strong>${VAT_PCT}%</strong>
             </div>
             <div class="rate-item small">
                 <span>Max Height:</span>
@@ -559,17 +561,29 @@ function initBookingForm() {
         updateCartDisplay();
     });
 
-    // Fetch design fee from server
-    fetch('/api/settings/design_fee')
-        .then(r => r.ok ? r.json() : null)
-        .then(data => {
-            if (data?.value) {
-                DESIGN_FEE = parseFloat(data.value) || 3000;
-                const label = document.getElementById('designAddonFeeLabel');
-                if (label) label.textContent = '+ Rs. ' + DESIGN_FEE.toLocaleString();
-            }
-        })
-        .catch(() => {});
+    // Fetch configurable rates from server
+    Promise.allSettled([
+        fetch('/api/settings/design_fee').then(r => r.ok ? r.json() : null),
+        fetch('/api/settings/box_commission_pct').then(r => r.ok ? r.json() : null),
+        fetch('/api/settings/vat_pct').then(r => r.ok ? r.json() : null)
+    ]).then(([r1, r2, r3]) => {
+        const [d1, d2, d3] = [r1.value, r2.value, r3.value];
+        if (d1?.value) {
+            DESIGN_FEE = parseFloat(d1.value) || 3000;
+            const label = document.getElementById('designAddonFeeLabel');
+            if (label) label.textContent = '+ Rs. ' + DESIGN_FEE.toLocaleString();
+        }
+        if (d2?.value) {
+            COMMISSION_PCT = parseFloat(d2.value) || 5;
+            CONFIG.CHARGES.boxAdCommission = COMMISSION_PCT / 100;
+        }
+        if (d3?.value) {
+            VAT_PCT = parseFloat(d3.value) || 18;
+            CONFIG.CHARGES.vatRate = VAT_PCT / 100;
+        }
+        updatePrice();
+        updateQuickRates();
+    }).catch(() => {});
 
     // Full page contact form
     document.getElementById('fullPageContactForm')?.addEventListener('submit', handleFullPageContact);
@@ -790,8 +804,8 @@ function updatePrice() {
             { label: colorOption === 'color' ? 'Color Rate' : 'B&W Rate', value: `${formatCurrency(calc.rate)}/col-cm` },
             { label: 'Calculation', value: `${columns} col x ${height} cm x ${formatCurrency(calc.rate)}` },
             { label: 'Ad Total', value: formatCurrency(calc.adTotal) },
-            { label: 'Platform Commission (5%)', value: formatCurrency(calc.commission) },
-            { label: 'VAT (18%)', value: formatCurrency(calc.vat) }
+            { label: `Platform Commission (${COMMISSION_PCT}%)`, value: formatCurrency(calc.commission) },
+            { label: `VAT (${VAT_PCT}%)`, value: formatCurrency(calc.vat) }
         ];
 
         // Update comparison section
@@ -840,7 +854,55 @@ function updatePrice() {
 
     // Store for cart
     window.currentAdPrice = total;
+
+    // Update floating price bar
+    updateFloatingPriceBar(total, details);
 }
+
+// ── Floating price bar ─────────────────────────────────────────────────────
+
+let _sidebarVisible = true;
+
+function updateFloatingPriceBar(total, details) {
+    const bar = document.getElementById('floatingPriceBar');
+    if (!bar) return;
+    if (total <= 0) { bar.classList.remove('visible'); return; }
+
+    document.getElementById('fpbTotal').textContent = formatCurrency(total);
+
+    // Build a short breakdown line (ad total + commission/vat if box ad)
+    const adTotalRow = details.find(d => d.label === 'Ad Total');
+    const commRow    = details.find(d => d.label && d.label.startsWith('Platform Commission'));
+    const vatRow     = details.find(d => d.label && d.label.startsWith('VAT'));
+    const parts = [];
+    if (adTotalRow) parts.push('Base ' + adTotalRow.value);
+    if (commRow)    parts.push('Comm ' + commRow.value);
+    if (vatRow)     parts.push('VAT ' + vatRow.value);
+    const bk = document.getElementById('fpbBreakdown');
+    if (bk) bk.textContent = parts.join(' · ');
+
+    if (!_sidebarVisible) bar.classList.add('visible');
+    else bar.classList.remove('visible');
+}
+
+// Watch the sidebar — show floating bar when sidebar scrolls off screen
+document.addEventListener('DOMContentLoaded', () => {
+    const sidebar = document.querySelector('.price-sidebar');
+    if (!sidebar) return;
+    const obs = new IntersectionObserver(([entry]) => {
+        _sidebarVisible = entry.isIntersecting;
+        // Refresh visibility based on current price
+        const total = window.currentAdPrice || 0;
+        if (total > 0) {
+            const bar = document.getElementById('floatingPriceBar');
+            if (bar) {
+                if (_sidebarVisible) bar.classList.remove('visible');
+                else bar.classList.add('visible');
+            }
+        }
+    }, { threshold: 0.1 });
+    obs.observe(sidebar);
+});
 
 /**
  * Update comparison section for box ads
@@ -1264,6 +1326,13 @@ function goToStep(step) {
         syncStickyPreview(3);
     }
 
+    // Floating bar: always visible on steps 2 & 3 (sidebar is hidden), hide on step 1
+    const bar = document.getElementById('floatingPriceBar');
+    if (bar) {
+        if (step > 1 && (window.currentAdPrice || 0) > 0) bar.classList.add('visible');
+        else if (step === 1) bar.classList.remove('visible');
+    }
+
     // Scroll to top
     document.querySelector('.booking-form-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -1394,6 +1463,18 @@ function updateOrderSummary() {
     const designFeeAmount = designAddonEnabled ? DESIGN_FEE : 0;
     const total = cartSubtotal + designFeeAmount;
 
+    // Keep floating bar in sync with cart total on steps 2/3
+    if (currentStep > 1) {
+        const bar = document.getElementById('floatingPriceBar');
+        const fpbTotalEl = document.getElementById('fpbTotal');
+        if (bar && fpbTotalEl) {
+            fpbTotalEl.textContent = formatCurrency(total);
+            const fpbBk = document.getElementById('fpbBreakdown');
+            if (fpbBk) fpbBk.textContent = adCart.length + (adCart.length === 1 ? ' ad' : ' ads') + ' in cart';
+            if (total > 0) bar.classList.add('visible');
+        }
+    }
+
     summary.innerHTML = `
         <div class="summary-section">
             <h4>Customer</h4>
@@ -1419,13 +1500,13 @@ function updateOrderSummary() {
             </div>
             ${totalCommission > 0 ? `
             <div class="charge-row">
-                <span>Platform Commission (5%):</span>
+                <span>Platform Commission (${COMMISSION_PCT}%):</span>
                 <span>${formatCurrency(totalCommission)}</span>
             </div>
             ` : ''}
             ${totalVAT > 0 ? `
             <div class="charge-row">
-                <span>VAT (18%):</span>
+                <span>VAT (${VAT_PCT}%):</span>
                 <span>${formatCurrency(totalVAT)}</span>
             </div>
             ` : ''}
