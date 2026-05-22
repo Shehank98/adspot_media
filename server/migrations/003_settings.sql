@@ -5,8 +5,11 @@ CREATE TABLE IF NOT EXISTS settings (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-INSERT INTO settings (key, value) VALUES ('design_fee', '3000')
-    ON CONFLICT (key) DO NOTHING;
+INSERT INTO settings (key, value) VALUES ('design_fee', '3000')                ON CONFLICT (key) DO NOTHING;
+INSERT INTO settings (key, value) VALUES ('box_commission_pct', '5')           ON CONFLICT (key) DO NOTHING;
+INSERT INTO settings (key, value) VALUES ('classified_commission_pct', '5')    ON CONFLICT (key) DO NOTHING;
+INSERT INTO settings (key, value) VALUES ('vat_pct', '18')                     ON CONFLICT (key) DO NOTHING;
+INSERT INTO settings (key, value) VALUES ('classified_service_charge', '50')   ON CONFLICT (key) DO NOTHING;
 
 -- Add design request and receipt columns to bookings
 ALTER TABLE bookings

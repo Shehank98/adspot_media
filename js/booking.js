@@ -19,9 +19,35 @@ let COMMISSION_PCT = 5;
 let VAT_PCT = 18;
 let lastSubmittedBookingId = null;
 
+async function loadServerSettings() {
+    const keys = ['design_fee', 'box_commission_pct', 'vat_pct', 'classified_service_charge'];
+    const results = await Promise.allSettled(
+        keys.map(k => fetch('/api/settings/' + k).then(r => r.ok ? r.json() : null))
+    );
+    const [d1, d2, d3, d4] = results.map(r => r.status === 'fulfilled' ? r.value : null);
+
+    if (d1?.value) {
+        DESIGN_FEE = parseFloat(d1.value) || 3000;
+    }
+    if (d2?.value) {
+        COMMISSION_PCT = parseFloat(d2.value) || 5;
+        CONFIG.CHARGES.boxAdCommission = COMMISSION_PCT / 100;
+    }
+    if (d3?.value) {
+        VAT_PCT = parseFloat(d3.value) || 18;
+        CONFIG.CHARGES.vatRate = VAT_PCT / 100;
+    }
+    if (d4?.value) {
+        CONFIG.CHARGES.classifiedServiceCharge = parseFloat(d4.value) || 50;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async function() {
-    // Load newspapers from Firebase first
-    await initNewspapersFromFirebase();
+    // Load newspapers and server settings concurrently before anything renders
+    await Promise.all([
+        initNewspapersFromFirebase(),
+        loadServerSettings()
+    ]);
 
     initLanguageSelection();
     initBookingForm();
@@ -561,36 +587,9 @@ function initBookingForm() {
         updateCartDisplay();
     });
 
-    // Fetch configurable rates from server
-    Promise.allSettled([
-        fetch('/api/settings/design_fee').then(r => r.ok ? r.json() : null),
-        fetch('/api/settings/box_commission_pct').then(r => r.ok ? r.json() : null),
-        fetch('/api/settings/vat_pct').then(r => r.ok ? r.json() : null),
-        fetch('/api/settings/classified_service_charge').then(r => r.ok ? r.json() : null)
-    ]).then(([r1, r2, r3, r4]) => {
-        const [d1, d2, d3, d4] = [r1.value, r2.value, r3.value, r4.value];
-        if (d1?.value) {
-            DESIGN_FEE = parseFloat(d1.value) || 3000;
-            const label = document.getElementById('designAddonFeeLabel');
-            if (label) label.textContent = '+ Rs. ' + DESIGN_FEE.toLocaleString();
-        }
-        if (d2?.value) {
-            COMMISSION_PCT = parseFloat(d2.value) || 5;
-            CONFIG.CHARGES.boxAdCommission = COMMISSION_PCT / 100;
-        }
-        if (d3?.value) {
-            VAT_PCT = parseFloat(d3.value) || 18;
-            CONFIG.CHARGES.vatRate = VAT_PCT / 100;
-        }
-        if (d4?.value) {
-            CONFIG.CHARGES.classifiedServiceCharge = parseFloat(d4.value) || 50;
-            // Update the inline service charge display if already rendered
-            const scAmountEl = document.getElementById('serviceChargeAmount');
-            if (scAmountEl) scAmountEl.textContent = formatCurrency(CONFIG.CHARGES.classifiedServiceCharge);
-        }
-        updatePrice();
-        updateQuickRates();
-    }).catch(() => {});
+    // Update design fee label now that settings are loaded
+    const designFeeLabel = document.getElementById('designAddonFeeLabel');
+    if (designFeeLabel) designFeeLabel.textContent = '+ Rs. ' + DESIGN_FEE.toLocaleString();
 
     // Full page contact form
     document.getElementById('fullPageContactForm')?.addEventListener('submit', handleFullPageContact);
