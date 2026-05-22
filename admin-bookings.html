@@ -968,14 +968,41 @@
             const subject    = 'Classified Ad – ' + paperNames + ' | Publication Date: ' + dates + ' | Ref: ' + booking.quotationNumber;
             const totalFmt   = 'LKR ' + parseFloat(group.total).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-            const itemLines = group.items.map(i => {
+            const itemLines = group.items.map((i, idx) => {
                 const adText = i.details && i.details.text ? i.details.text : '';
                 const wc     = i.details && i.details.wordCount ? i.details.wordCount : (adText ? adText.trim().split(/\s+/).filter(Boolean).length : 0);
-                const tb     = adText ? '\n     Ad Text   : ' + adText + '\n     Word Count : ' + wc + ' words' : '';
-                return '  • ' + i.newspaperName + ' | ' + fmtPubDate(i.pubDate) + ' | ' + fmtPubAmt(i) + tb;
+                const adType = i.adType === 'classified' ? 'Classified Ad' : 'Box Ad';
+                let line = (idx + 1) + '. ' + i.newspaperName + '\n'
+                         + '   Type          : ' + adType + '\n'
+                         + '   Publication   : ' + fmtPubDate(i.pubDate) + '\n'
+                         + '   Amount        : ' + fmtPubAmt(i);
+                if (adText) {
+                    line += '\n   Ad Text       : ' + adText
+                          + '\n   Word Count    : ' + wc + ' words';
+                }
+                return line;
             }).join('\n\n');
 
-            const body = 'Dear All,\n\nPlease find attached the payment slip for the following classified advertisement(s).\n\nPublication Group : ' + group.groupName + '\nQuotation Ref     : ' + booking.quotationNumber + '\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nADVERTISEMENT DETAILS\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' + itemLines + '\n\nTotal Amount : ' + totalFmt + '\n\nKind regards,\nAdSpot Media Services\nadspot77@gmail.com | 070 642 1998';
+            const body = 'Dear Sir / Madam,\n\n'
+                + 'Please find attached the payment slip for the advertisement booking detailed below.\n\n'
+                + '─────────────────────────────────────────\n'
+                + 'BOOKING REFERENCE\n'
+                + '─────────────────────────────────────────\n'
+                + 'Publication Group  : ' + group.groupName + '\n'
+                + 'Quotation Ref      : ' + booking.quotationNumber + '\n'
+                + 'Customer           : ' + (booking.customerName || '') + '\n'
+                + '─────────────────────────────────────────\n\n'
+                + 'ADVERTISEMENT DETAILS\n\n'
+                + itemLines + '\n\n'
+                + '─────────────────────────────────────────\n'
+                + 'Total Amount       : ' + totalFmt + '\n'
+                + '─────────────────────────────────────────\n\n'
+                + 'Please confirm receipt of this booking and the attached payment slip at your earliest convenience.\n\n'
+                + 'Thank you.\n\n'
+                + 'Warm regards,\n'
+                + 'AdSpot Media Services\n'
+                + 'Tel: 070 642 1998  |  070 161 1411\n'
+                + 'Email: adspot77@gmail.com';
 
             const itemRowsHtml = group.items.map(i => `<div class="pub-item-row"><span style="font-weight:500;">${esc(i.newspaperName)}</span><span style="color:#64748b;">${fmtPubDate(i.pubDate)}</span><span style="font-weight:600;">${fmtPubAmt(i)}</span></div>`).join('');
 
