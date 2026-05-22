@@ -565,9 +565,10 @@ function initBookingForm() {
     Promise.allSettled([
         fetch('/api/settings/design_fee').then(r => r.ok ? r.json() : null),
         fetch('/api/settings/box_commission_pct').then(r => r.ok ? r.json() : null),
-        fetch('/api/settings/vat_pct').then(r => r.ok ? r.json() : null)
-    ]).then(([r1, r2, r3]) => {
-        const [d1, d2, d3] = [r1.value, r2.value, r3.value];
+        fetch('/api/settings/vat_pct').then(r => r.ok ? r.json() : null),
+        fetch('/api/settings/classified_service_charge').then(r => r.ok ? r.json() : null)
+    ]).then(([r1, r2, r3, r4]) => {
+        const [d1, d2, d3, d4] = [r1.value, r2.value, r3.value, r4.value];
         if (d1?.value) {
             DESIGN_FEE = parseFloat(d1.value) || 3000;
             const label = document.getElementById('designAddonFeeLabel');
@@ -580,6 +581,12 @@ function initBookingForm() {
         if (d3?.value) {
             VAT_PCT = parseFloat(d3.value) || 18;
             CONFIG.CHARGES.vatRate = VAT_PCT / 100;
+        }
+        if (d4?.value) {
+            CONFIG.CHARGES.classifiedServiceCharge = parseFloat(d4.value) || 50;
+            // Update the inline service charge display if already rendered
+            const scAmountEl = document.getElementById('serviceChargeAmount');
+            if (scAmountEl) scAmountEl.textContent = formatCurrency(CONFIG.CHARGES.classifiedServiceCharge);
         }
         updatePrice();
         updateQuickRates();

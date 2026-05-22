@@ -129,12 +129,13 @@
             <div class="setting-row">
                 <div class="setting-info">
                     <p class="setting-label">Classified Fixed Service Charge</p>
-                    <p class="setting-desc">Fixed amount (Rs.) added to every classified booking. Currently Rs. 50 — changing this requires a code update in config.js.</p>
+                    <p class="setting-desc">Fixed amount (Rs.) added to every classified ad booking. Appears in the booking price breakdown, rates card, quotation, and invoice.</p>
                 </div>
                 <div class="setting-control">
                     <span style="font-size:13px;color:#475569;">Rs.</span>
-                    <input type="number" class="setting-input" id="clfScInput" value="50" min="0" step="10" disabled style="opacity:.6;cursor:not-allowed;">
-                    <span style="font-size:12px;color:#94a3b8;">Fixed</span>
+                    <input type="number" class="setting-input" id="clfScInput" value="50" min="0" step="10">
+                    <button class="btn-save" id="clfScBtn" onclick="saveSetting('classified_service_charge', 'clfScInput', 'clfScBtn', 'clfScStatus')">Save</button>
+                    <span class="save-status" id="clfScStatus">Saved</span>
                 </div>
             </div>
         </div>
@@ -170,10 +171,11 @@
 
         async function loadSettings() {
             const settingsMap = {
-                design_fee:               'designFeeInput',
-                box_commission_pct:       'boxCommInput',
-                classified_commission_pct:'clfCommInput',
-                vat_pct:                  'vatInput'
+                design_fee:                  'designFeeInput',
+                box_commission_pct:          'boxCommInput',
+                classified_commission_pct:   'clfCommInput',
+                vat_pct:                     'vatInput',
+                classified_service_charge:   'clfScInput'
             };
             await Promise.allSettled(Object.entries(settingsMap).map(async ([key, inputId]) => {
                 try {
