@@ -1,56 +1,76 @@
 /**
- * Invoice PDF Generator — Variant C · Stamped Classified
- * Exact faithful port of adspot-2/project/invoice-c-stamped.jsx + invoice.css
+ * Invoice / Quotation PDF Generator — Minimal Clean Layout
+ * Plain, professional document: clear header, full addresses, and an
+ * itemised cost breakdown (per-line specs + component-level totals).
  */
+
+// Seller / issuer details (kept in one place so they are easy to update)
+const ADSPOT_SELLER = {
+  name: 'AdSpot Media',
+  addressLines: ['130 High Level Road', 'Colombo 06, Sri Lanka'],
+  email: 'adspot77@gmail.com',
+  phones: '070 161 1411 · 070 642 1998',
+  web: 'adspotmedia.lk',
+  reg: 'Reg. No. PV 0023411'
+};
+
+// Bank details shown on unpaid quotations so the customer knows where to pay
+const ADSPOT_BANK = {
+  bank: 'Sampath Bank PLC',
+  name: 'P S Kavishka',
+  account: '1210 5770 0812',
+  branch: 'Karagampitiya'
+};
 
 function buildInvoiceHTML(inv, isPaid) {
   const fmtLKR = n => 'Rs. ' + Number(n || 0).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const fmtShort = n => 'Rs. ' + Number(n || 0).toLocaleString('en-LK');
-  const fmtDate = d => { try { return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); } catch(e) { return d || ''; } };
-  const fmtDateUp = d => fmtDate(d).toUpperCase();
+  const fmtDate = d => { try { return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); } catch (e) { return d || ''; } };
 
-  const itemRows = inv.items.map(it => `
-    <div class="st-item">
-      <div class="st-item-desc" style="padding:10px 12px;border-right:1px solid var(--rule);">
-        <div class="st-item-desc-name">${it.paper} — ${it.adType}</div>
-        <div class="st-item-desc-sub">${it.spec}${it.lang ? ' · ' + it.lang : ''}</div>
-      </div>
-      <span class="st-item-pub">${fmtDate(it.pubDate)}</span>
-      <span class="st-item-qty">${it.qty}</span>
-      <span class="st-item-unit">${fmtShort(it.unitPrice)}</span>
-      <span class="st-item-amt">${fmtShort(it.qty * it.unitPrice)}</span>
-    </div>`).join('');
+  const docLabel = isPaid ? 'INVOICE' : 'QUOTATION';
+  const statusLabel = isPaid ? 'PAID' : 'PAYMENT DUE';
 
-  const totals = (() => {
-    const subtotal = inv.items.reduce((s, i) => s + i.qty * i.unitPrice, 0);
-    const commission = Math.round(subtotal * (inv.commissionPct || 0) / 100);
-    const discount = inv.promo ? Math.round(subtotal * (inv.promo.pct / 100)) : 0;
-    const afterDiscount = subtotal - discount + commission;
-    const vat = Math.round(afterDiscount * (inv.vatPct || 0) / 100);
-    const service = inv.serviceCharge || 0;
-    const total = afterDiscount + vat + service;
-    return { subtotal, commission, discount, vat, service, total };
-  })();
+  // ---- Line items -----------------------------------------------------------
+  const itemRows = (inv.items || []).map((it, i) => `
+    <tr class="li">
+      <td class="li-no">${i + 1}</td>
+      <td class="li-desc">
+        <div class="li-name">${it.paper}</div>
+        <div class="li-sub">${it.adType}${it.lang ? ' · ' + it.lang : ''}${it.pubDate ? ' · Publishes ' + fmtDate(it.pubDate) : ''}</div>
+        ${it.detail ? `<div class="li-spec">${it.detail}</div>` : ''}
+      </td>
+      <td class="li-amt">${fmtLKR(it.base)}</td>
+    </tr>`).join('');
 
-  // Override total with the one passed in (already computed in booking.js)
-  const displayTotal = inv.total || totals.total;
+  // ---- Cost breakdown -------------------------------------------------------
+  const money = {
+    subtotal: inv.subtotal || 0,
+    commission: inv.commission || 0,
+    vat: inv.vat || 0,
+    service: inv.serviceCharge || 0,
+    discount: inv.promoDiscount || 0,
+    total: inv.total || 0
+  };
 
-  const totalRows = [
-    `<div class="st-tr"><span>Subtotal</span><span class="v">${fmtLKR(totals.subtotal)}</span></div>`,
-    totals.commission > 0 ? `<div class="st-tr"><span>Commission (${inv.commissionPct}%)</span><span class="v">${fmtLKR(totals.commission)}</span></div>` : '',
-    totals.discount > 0 ? `<div class="st-tr discount"><span>Discount · ${inv.promo.code}</span><span class="v">− ${fmtLKR(totals.discount)}</span></div>` : '',
-    totals.vat > 0 ? `<div class="st-tr"><span>VAT (${inv.vatPct}%)</span><span class="v">${fmtLKR(totals.vat)}</span></div>` : '',
-    totals.service > 0 ? `<div class="st-tr"><span>Service charge</span><span class="v">${fmtLKR(totals.service)}</span></div>` : '',
+  const breakdownRows = [
+    `<div class="bd-row"><span>Subtotal · advertising</span><span class="bd-v">${fmtLKR(money.subtotal)}</span></div>`,
+    money.commission > 0 ? `<div class="bd-row"><span>Platform commission${inv.commissionPct ? ` (${inv.commissionPct}%)` : ''}</span><span class="bd-v">${fmtLKR(money.commission)}</span></div>` : '',
+    money.vat > 0 ? `<div class="bd-row"><span>VAT${inv.vatPct ? ` (${inv.vatPct}%)` : ''}</span><span class="bd-v">${fmtLKR(money.vat)}</span></div>` : '',
+    money.service > 0 ? `<div class="bd-row"><span>Classified service charge</span><span class="bd-v">${fmtLKR(money.service)}</span></div>` : '',
+    money.discount > 0 ? `<div class="bd-row discount"><span>Discount${inv.promo && inv.promo.code ? ` · ${inv.promo.code}` : ''}</span><span class="bd-v">− ${fmtLKR(money.discount)}</span></div>` : ''
   ].filter(Boolean).join('');
 
-  const stampHTML = isPaid ? `
-    <div class="st-stamp">
-      <div class="st-stamp-inner">
-        <div class="st-stamp-text">PAID</div>
-        <div class="st-stamp-sub">In Full</div>
-        <div class="st-stamp-date">${fmtDateUp(inv.paidAt || new Date())}</div>
+  // ---- Bank block (unpaid quotations only) ----------------------------------
+  const bankBlock = !isPaid ? `
+    <section class="pay">
+      <div class="pay-title">How to pay — bank transfer</div>
+      <div class="pay-grid">
+        <div class="pay-c"><span class="pay-lbl">Bank</span><span class="pay-val">${ADSPOT_BANK.bank}</span></div>
+        <div class="pay-c"><span class="pay-lbl">Account name</span><span class="pay-val">${ADSPOT_BANK.name}</span></div>
+        <div class="pay-c"><span class="pay-lbl">Account no.</span><span class="pay-val">${ADSPOT_BANK.account}</span></div>
+        <div class="pay-c"><span class="pay-lbl">Branch</span><span class="pay-val">${ADSPOT_BANK.branch}</span></div>
       </div>
-    </div>` : '';
+      <div class="pay-note">Please use your reference <strong>${inv.quotationNumber || inv.invoiceNumber}</strong> when making the transfer, then upload your receipt from “My Bookings”.</div>
+    </section>` : '';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -58,475 +78,207 @@ function buildInvoiceHTML(inv, isPaid) {
 <meta charset="UTF-8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500;1,6..72,600;1,6..72,700&family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --ink: #181613;
-  --ink-2: #5C544A;
-  --ink-3: #8a8275;
-  --paper: #FBF8F0;
-  --paper-warm: #F3EDDE;
+  --ink: #111827;
+  --ink-2: #4b5563;
+  --ink-3: #9ca3af;
+  --line: #e5e7eb;
+  --line-2: #d1d5db;
   --accent: #0E6B47;
-  --accent-soft: rgba(14,107,71,0.10);
-  --red: #B83A1F;
-  --rule: rgba(24,22,19,0.18);
-  --rule-strong: rgba(24,22,19,0.55);
-  --font-display: "Newsreader", Georgia, serif;
-  --font-ui: "Geist", -apple-system, sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+  --paper: #ffffff;
+  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: var(--paper-warm); }
+body { background: #f3f4f6; }
 
 .inv {
-  font-family: var(--font-ui);
+  font-family: var(--font);
   color: var(--ink);
   background: var(--paper);
   -webkit-font-smoothing: antialiased;
   width: 794px;
   min-height: 1123px;
-  box-sizing: border-box;
-  position: relative;
+  padding: 52px 56px;
+  display: flex;
+  flex-direction: column;
+  font-size: 12.5px;
+  line-height: 1.5;
 }
 .inv *, .inv *::before, .inv *::after { box-sizing: border-box; }
-
-/* VARIANT C — STAMPED CLASSIFIED */
-.inv-st {
-  background: var(--paper-warm);
-  padding: 56px;
-  font-size: 13px;
-  line-height: 1.5;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  min-height: 1123px;
-}
-.inv-st::before {
-  content: '';
-  position: absolute;
-  inset: 56px;
-  border: 1px solid var(--rule-strong);
-  pointer-events: none;
-}
-.inv-st::after {
-  content: '';
-  position: absolute;
-  inset: 60px;
-  border: 1px solid var(--rule);
-  pointer-events: none;
-}
-
-.st-frame {
-  position: relative;
-  z-index: 1;
-  background: var(--paper);
-  margin: 8px;
-  padding: 32px 36px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
+.num { font-variant-numeric: tabular-nums; }
 
 /* Header */
-.st-hd {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 18px;
-  border-bottom: 3px double var(--ink);
-  margin-bottom: 22px;
+.hd { display: flex; justify-content: space-between; align-items: flex-start; }
+.hd-brand { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+.hd-brand span { color: var(--accent); }
+.hd-tag { font-size: 11px; color: var(--ink-3); margin-top: 2px; letter-spacing: 0.02em; }
+.hd-r { text-align: right; }
+.hd-doc { font-size: 26px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink); }
+.hd-no { font-size: 13px; font-weight: 600; margin-top: 4px; }
+.hd-status {
+  display: inline-block; margin-top: 8px; padding: 3px 10px; border-radius: 4px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
 }
-.st-hd-l { display: flex; align-items: baseline; gap: 8px; }
-.st-hd-brand {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.015em;
-}
-.st-hd-tld {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 16px;
-  font-weight: 300;
-  color: var(--ink-2);
-}
-.st-hd-r {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--ink-2);
-  text-align: right;
-}
-.st-hd-r strong { color: var(--ink); display: block; font-size: 12px; font-weight: 600; }
+.hd-status.paid { background: rgba(14,107,71,0.10); color: var(--accent); }
+.hd-status.due { background: #fef3c7; color: #92400e; }
 
-/* Title row */
-.st-title-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 24px;
-  gap: 24px;
-}
-.st-title-l { display: flex; flex-direction: column; gap: 4px; }
-.st-kicker {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
-  color: var(--red);
-}
-.st-title {
-  font-family: var(--font-display);
-  font-size: 64px;
-  font-weight: 500;
-  line-height: 0.9;
-  letter-spacing: -0.035em;
-  margin: 0;
-  font-style: italic;
-}
-.st-title-r {
-  text-align: right;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--ink-2);
-}
+.rule { height: 2px; background: var(--ink); margin: 20px 0 0; }
 
-/* Stamp */
-.st-stamp {
-  position: absolute;
-  top: 200px;
-  right: 90px;
-  width: 150px;
-  height: 150px;
-  transform: rotate(-12deg);
-  z-index: 3;
-  pointer-events: none;
-}
-.st-stamp-inner {
-  width: 100%;
-  height: 100%;
-  border: 3px solid var(--accent);
-  border-radius: 50%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  opacity: 0.88;
-}
-.st-stamp-inner::before {
-  content: '';
-  position: absolute;
-  inset: 4px;
-  border: 1px solid var(--accent);
-  border-radius: 50%;
-}
-.st-stamp-text {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 32px;
-  font-weight: 700;
-  color: var(--accent);
-  line-height: 0.9;
-  letter-spacing: -0.02em;
-  text-align: center;
-}
-.st-stamp-sub {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  color: var(--accent);
-  margin-top: 4px;
-}
-.st-stamp-date {
-  font-family: var(--font-mono);
-  font-size: 8.5px;
-  color: var(--accent);
-  margin-top: 2px;
-  letter-spacing: 0.08em;
-}
-
-/* Meta grid */
-.st-meta {
-  border: 1px solid var(--ink);
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  margin-bottom: 20px;
-}
-.st-meta-c {
-  padding: 10px 14px;
-  border-right: 1px solid var(--rule);
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-.st-meta-c:last-child { border-right: 0; }
-.st-meta-lbl {
-  font-family: var(--font-mono);
-  font-size: 8.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--ink-3);
-}
-.st-meta-val {
-  font-size: 12.5px;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-}
+/* Meta strip */
+.meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-top: 18px; }
+.meta-c { display: flex; flex-direction: column; gap: 2px; }
+.meta-lbl { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 600; }
+.meta-val { font-size: 12.5px; font-weight: 500; }
 
 /* Parties */
-.st-parties {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border: 1px solid var(--ink);
-  border-bottom: 0;
-  margin-bottom: 0;
-}
-.st-party {
-  padding: 14px 16px;
-  border-right: 1px solid var(--ink);
-}
-.st-party:last-child { border-right: 0; }
-.st-party-lbl {
-  font-family: var(--font-mono);
-  font-size: 8.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--ink-3);
-  margin-bottom: 4px;
-}
-.st-party-name {
-  font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  line-height: 1.15;
-  margin-bottom: 2px;
-}
-.st-party-line {
-  color: var(--ink-2);
-  font-size: 11.5px;
-  line-height: 1.5;
-}
+.parties { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 26px; }
+.party-lbl { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 600; margin-bottom: 6px; }
+.party-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.party-line { color: var(--ink-2); font-size: 12px; line-height: 1.55; }
 
-/* Items */
-.st-items { border: 1px solid var(--ink); margin-bottom: 16px; }
-.st-items-head {
-  display: grid;
-  grid-template-columns: 1fr 90px 70px 90px 90px;
-  background: var(--ink);
-  color: var(--paper);
-  font-family: var(--font-mono);
-  font-size: 9.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
+/* Items table */
+.items { width: 100%; border-collapse: collapse; margin-top: 28px; }
+.items thead th {
+  font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600;
+  color: var(--ink-2); text-align: left; padding: 0 0 8px; border-bottom: 1.5px solid var(--ink);
 }
-.st-items-head span { padding: 8px 12px; border-right: 1px solid var(--rule-strong); }
-.st-items-head span:last-child { border-right: 0; }
-.st-items-head span:nth-child(n+3) { text-align: right; }
-.st-item {
-  display: grid;
-  grid-template-columns: 1fr 90px 70px 90px 90px;
-  border-top: 1px solid var(--rule);
-}
-.st-item > span { padding: 10px 12px; border-right: 1px solid var(--rule); font-variant-numeric: tabular-nums; }
-.st-item > span:last-child { border-right: 0; }
-.st-item-desc {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-.st-item-desc-name { font-weight: 500; font-size: 13px; }
-.st-item-desc-sub { font-size: 10.5px; color: var(--ink-3); }
-.st-item-pub, .st-item-qty, .st-item-unit, .st-item-amt {
-  text-align: right;
-  font-size: 12px;
-  align-content: center;
-}
-.st-item-amt { font-weight: 600; }
+.items thead th.r { text-align: right; }
+.items th.c-no { width: 30px; }
+.items th.c-amt { width: 130px; }
+.li td { padding: 12px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.li-no { color: var(--ink-3); font-size: 12px; }
+.li-name { font-weight: 600; font-size: 13px; }
+.li-sub { color: var(--ink-2); font-size: 11.5px; margin-top: 1px; }
+.li-spec { color: var(--ink-3); font-size: 11px; margin-top: 3px; }
+.li-amt { text-align: right; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-/* Totals */
-.st-totals { display: flex; justify-content: flex-end; margin-bottom: 12px; }
-.st-totals-inner {
-  width: 320px;
-  border: 1px solid var(--ink);
+/* Breakdown */
+.summary { display: flex; justify-content: flex-end; margin-top: 20px; }
+.bd { width: 340px; }
+.bd-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 12.5px; color: var(--ink-2); }
+.bd-v { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
+.bd-row.discount, .bd-row.discount .bd-v { color: var(--accent); }
+.bd-total {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-top: 8px; padding-top: 12px; border-top: 2px solid var(--ink);
 }
-.st-tr {
-  display: flex;
-  justify-content: space-between;
-  padding: 6px 14px;
-  font-size: 12.5px;
-  color: var(--ink-2);
-  border-bottom: 1px solid var(--rule);
-}
-.st-tr:last-child { border-bottom: 0; }
-.st-tr .v { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
-.st-tr.discount, .st-tr.discount .v { color: var(--accent); }
-.st-tr-grand {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  padding: 10px 14px;
-  background: var(--ink);
-  color: var(--paper);
-}
-.st-tr-grand-l {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-}
-.st-tr-grand-v {
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
-}
+.bd-total-l { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.bd-total-v { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+
+/* Payment / bank */
+.pay { margin-top: 30px; border: 1px solid var(--line-2); border-radius: 8px; padding: 16px 18px; }
+.pay-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink); margin-bottom: 12px; }
+.pay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; }
+.pay-c { display: flex; flex-direction: column; gap: 1px; }
+.pay-lbl { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); font-weight: 600; }
+.pay-val { font-size: 12.5px; font-weight: 600; }
+.pay-note { margin-top: 12px; font-size: 11px; color: var(--ink-2); line-height: 1.5; }
+.pay-note strong { color: var(--ink); }
 
 /* Footer */
-.st-foot {
-  margin-top: auto;
-  padding-top: 14px;
-  border-top: 3px double var(--ink);
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 16px;
-  font-family: var(--font-mono);
-  font-size: 9.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--ink-2);
+.foot {
+  margin-top: auto; padding-top: 18px; border-top: 1px solid var(--line);
+  display: flex; justify-content: space-between; align-items: flex-end;
+  font-size: 10.5px; color: var(--ink-3); line-height: 1.6;
 }
-.st-foot-c { display: flex; flex-direction: column; gap: 2px; }
-.st-foot-c strong {
-  color: var(--ink);
-  font-family: var(--font-ui);
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: none;
-  letter-spacing: 0;
-}
-.st-foot-c.right { text-align: right; }
-.st-foot-c.center { text-align: center; }
-.st-foot-thanks {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 15px;
-  color: var(--ink);
-  text-transform: none;
-  letter-spacing: 0;
-}
+.foot-thanks { font-size: 13px; font-weight: 600; color: var(--ink); }
+.foot-r { text-align: right; }
 </style>
 </head>
 <body>
-<div class="inv inv-st">
-  ${stampHTML}
-  <div class="st-frame">
+<div class="inv">
 
-    <header class="st-hd">
-      <div class="st-hd-l">
-        <span class="st-hd-brand">AdSpot</span>
-        <span class="st-hd-tld">media</span>
-      </div>
-      <div class="st-hd-r">
-        <strong>AdSpot Media</strong>
-        <span>130 High Level Rd · Colombo 06</span>
-        <span>adspot77@gmail.com · 070 161 1411</span>
-      </div>
-    </header>
+  <header class="hd">
+    <div class="hd-l">
+      <div class="hd-brand">AdSpot<span>.</span>Media</div>
+      <div class="hd-tag">Newspaper Advertising · Sri Lanka</div>
+    </div>
+    <div class="hd-r">
+      <div class="hd-doc">${docLabel}</div>
+      <div class="hd-no num">${inv.invoiceNumber || ''}</div>
+      <div class="hd-status ${isPaid ? 'paid' : 'due'}">${statusLabel}</div>
+    </div>
+  </header>
 
-    <div class="st-title-row">
-      <div class="st-title-l">
-        <span class="st-kicker">— ${isPaid ? 'Tax Invoice · Receipt' : 'Quotation · Payment Due'} —</span>
-        <h1 class="st-title">${isPaid ? 'Invoice' : 'Quotation'}</h1>
-      </div>
-      <div class="st-title-r">
-        <div style="font-family:var(--font-display);font-size:22px;font-weight:600;font-style:normal;letter-spacing:-0.01em;color:var(--ink);">${inv.invoiceNumber}</div>
-        <div style="margin-top:4px;">Ref · ${inv.quotationNumber}</div>
-        <div>Issued · ${fmtDateUp(inv.issueDate)}</div>
+  <div class="rule"></div>
+
+  <section class="meta">
+    <div class="meta-c">
+      <span class="meta-lbl">${isPaid ? 'Invoice No.' : 'Quotation No.'}</span>
+      <span class="meta-val num">${isPaid ? inv.invoiceNumber : (inv.quotationNumber || inv.invoiceNumber)}</span>
+    </div>
+    <div class="meta-c">
+      <span class="meta-lbl">Reference</span>
+      <span class="meta-val num">${inv.quotationNumber || inv.invoiceNumber || '—'}</span>
+    </div>
+    <div class="meta-c">
+      <span class="meta-lbl">${isPaid ? 'Paid on' : 'Issued'}</span>
+      <span class="meta-val">${fmtDate(isPaid ? (inv.paidAt || inv.issueDate) : inv.issueDate)}</span>
+    </div>
+    <div class="meta-c">
+      <span class="meta-lbl">Payment method</span>
+      <span class="meta-val">${inv.paymentMethod === 'helapay' ? 'HelaPay QR' : 'Bank Transfer'}</span>
+    </div>
+  </section>
+
+  <section class="parties">
+    <div>
+      <div class="party-lbl">From</div>
+      <div class="party-name">${ADSPOT_SELLER.name}</div>
+      ${ADSPOT_SELLER.addressLines.map(l => `<div class="party-line">${l}</div>`).join('')}
+      <div class="party-line">${ADSPOT_SELLER.email}</div>
+      <div class="party-line">${ADSPOT_SELLER.phones}</div>
+      <div class="party-line">${ADSPOT_SELLER.reg}</div>
+    </div>
+    <div>
+      <div class="party-lbl">Bill to</div>
+      <div class="party-name">${inv.customer.name || '—'}</div>
+      ${inv.customer.company ? `<div class="party-line" style="font-weight:500;color:var(--ink);">${inv.customer.company}</div>` : ''}
+      ${inv.customer.address ? `<div class="party-line">${inv.customer.address}</div>` : ''}
+      <div class="party-line">${inv.customer.email || ''}</div>
+      ${inv.customer.phone ? `<div class="party-line">${inv.customer.phone}</div>` : ''}
+    </div>
+  </section>
+
+  <table class="items">
+    <thead>
+      <tr>
+        <th class="c-no">#</th>
+        <th>Description</th>
+        <th class="c-amt r">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${itemRows}
+    </tbody>
+  </table>
+
+  <section class="summary">
+    <div class="bd">
+      ${breakdownRows}
+      <div class="bd-total">
+        <span class="bd-total-l">${isPaid ? 'Total Paid' : 'Total Due'}</span>
+        <span class="bd-total-v">${fmtLKR(money.total)}</span>
       </div>
     </div>
+  </section>
 
-    <section class="st-meta">
-      <div class="st-meta-c">
-        <span class="st-meta-lbl">Invoice №</span>
-        <span class="st-meta-val">${inv.invoiceNumber}</span>
-      </div>
-      <div class="st-meta-c">
-        <span class="st-meta-lbl">Reference</span>
-        <span class="st-meta-val">${inv.quotationNumber}</span>
-      </div>
-      <div class="st-meta-c">
-        <span class="st-meta-lbl">Issued</span>
-        <span class="st-meta-val">${fmtDate(inv.issueDate)}</span>
-      </div>
-      <div class="st-meta-c">
-        <span class="st-meta-lbl">Payment</span>
-        <span class="st-meta-val">${inv.paymentMethod === 'helapay' ? 'HelaPay' : 'Bank Transfer'}</span>
-      </div>
-    </section>
+  ${bankBlock}
 
-    <section class="st-parties">
-      <div class="st-party">
-        <div class="st-party-lbl">From</div>
-        <div class="st-party-name">AdSpot Media</div>
-        <div class="st-party-line">130 High Level Road, Colombo 06, Sri Lanka</div>
-        <div class="st-party-line">adspot77@gmail.com</div>
-        <div class="st-party-line">070 161 1411 / 070 642 1998</div>
-      </div>
-      <div class="st-party">
-        <div class="st-party-lbl">Bill to</div>
-        <div class="st-party-name">${inv.customer.name}</div>
-        ${inv.customer.company ? `<div class="st-party-line" style="font-weight:500;color:var(--ink);">${inv.customer.company}</div>` : ''}
-        ${inv.customer.address ? `<div class="st-party-line">${inv.customer.address}</div>` : ''}
-        <div class="st-party-line">${inv.customer.email}</div>
-        ${inv.customer.phone ? `<div class="st-party-line">${inv.customer.phone}</div>` : ''}
-      </div>
-    </section>
+  <footer class="foot">
+    <div>
+      <div class="foot-thanks">Thank you for advertising with us.</div>
+      <div>${ADSPOT_SELLER.name} · ${ADSPOT_SELLER.reg}</div>
+    </div>
+    <div class="foot-r">
+      <div>${ADSPOT_SELLER.email}</div>
+      <div>${ADSPOT_SELLER.phones}</div>
+      <div>${ADSPOT_SELLER.web}</div>
+    </div>
+  </footer>
 
-    <section class="st-items">
-      <div class="st-items-head">
-        <span>Publication</span>
-        <span>Pub. date</span>
-        <span style="text-align:right;">Qty</span>
-        <span style="text-align:right;">Unit</span>
-        <span style="text-align:right;">Amount</span>
-      </div>
-      ${itemRows}
-    </section>
-
-    <section class="st-totals">
-      <div class="st-totals-inner">
-        ${totalRows}
-        <div class="st-tr-grand">
-          <span class="st-tr-grand-l">Total Due</span>
-          <span class="st-tr-grand-v">${fmtLKR(displayTotal)}</span>
-        </div>
-      </div>
-    </section>
-
-    <footer class="st-foot">
-      <div class="st-foot-c">
-        <strong>070 161 1411</strong>
-        <span>· 070 642 1998</span>
-      </div>
-      <div class="st-foot-c center">
-        <span class="st-foot-thanks">Thank you for advertising with us.</span>
-        <span>Reg. PV 0023411</span>
-      </div>
-      <div class="st-foot-c right">
-        <strong>adspot77@gmail.com</strong>
-        <span>· adspotmedia.lk</span>
-      </div>
-    </footer>
-
-  </div>
 </div>
 </body>
 </html>`;
@@ -537,20 +289,40 @@ async function generateInvoicePDF(invoiceData, bookingData, isPaid = true) {
     if (typeof jspdf === 'undefined') throw new Error('jsPDF not loaded');
     if (typeof html2canvas === 'undefined') throw new Error('html2canvas not loaded');
 
-    const fmtDate = d => { try { return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); } catch(e) { return ''; } };
+    const fmtShort = n => 'Rs. ' + Number(n || 0).toLocaleString('en-LK');
 
-    // Build spec string from item.details
-    const buildSpec = item => {
-      const d = item.details || {};
+    // Detail fields may be nested under item.details (booking + admin quotation
+    // builder) or flat on the item itself (admin-quotation.html). Support both.
+    const buildDetail = (item, d) => {
       const parts = [];
-      if (d.columns && d.height) parts.push(`${d.columns} col × ${d.height}cm`);
-      else if (d.size) parts.push(d.size);
-      if (d.colour || d.color) {
-        const c = d.colour || d.color;
-        parts.push(c === 'colour' || c === 'color' || c === 'full' ? 'Full colour' : c);
+      if (item.adType === 'box') {
+        if (d.columns && d.height) parts.push(`${d.columns} col × ${d.height} cm`);
+        if (d.area && d.rate) parts.push(`${d.area} cm² @ ${fmtShort(d.rate)}/cm²`);
+        else if (d.size) parts.push(d.size);
+        const c = d.colour || d.color || d.colorOption;
+        if (c) parts.push(c === 'colour' || c === 'color' || c === 'full' ? 'Full colour' : (c === 'bw' ? 'Black & white' : c));
+      } else {
+        if (d.wordCount != null) parts.push(`${d.wordCount} words`);
+        const extra = Math.max(0, (d.wordCount || 0) - (d.freeWords || 0));
+        if (extra > 0 && d.extraRate) parts.push(`${d.freeWords || 0} free + ${extra} extra @ ${fmtShort(d.extraRate)}/word`);
+        else if (d.freeWords != null) parts.push(`within ${d.freeWords} free words`);
       }
       return parts.join(' · ');
     };
+
+    const items = (bookingData.items || []).map(item => {
+      const d = item.details || item; // nested or flat
+      return {
+        paper: item.newspaperName || '',
+        adType: item.adType === 'box' ? 'Box Advertisement' : 'Classified Advertisement',
+        lang: d.language || '',
+        detail: buildDetail(item, d),
+        pubDate: item.pubDate,
+        // "Amount" column shows the advertising base; commission / VAT / service
+        // are itemised separately in the breakdown so subtotal reconciles.
+        base: (d.adTotal != null ? d.adTotal : item.price) || 0
+      };
+    });
 
     const inv = {
       invoiceNumber: invoiceData.invoiceNumber,
@@ -565,23 +337,18 @@ async function generateInvoicePDF(invoiceData, bookingData, isPaid = true) {
         email: bookingData.customerEmail || '',
         phone: bookingData.customerPhone || ''
       },
-      items: (bookingData.items || []).map(item => ({
-        paper: item.newspaperName || '',
-        adType: item.adType === 'box' ? 'Box Ad' : 'Classified Ad',
-        spec: buildSpec(item),
-        lang: item.details?.language || '',
-        pubDate: item.pubDate,
-        qty: 1,
-        unitPrice: item.price || 0
-      })),
+      items,
+      // Absolute money values (accurate) + percentages for labels
+      subtotal: invoiceData.subtotal || 0,
+      commission: invoiceData.commission || 0,
+      vat: invoiceData.vat || 0,
+      serviceCharge: invoiceData.serviceCharge || 0,
+      promoDiscount: invoiceData.promoDiscount || 0,
+      promo: invoiceData.promoCode && invoiceData.promoDiscount > 0 ? { code: invoiceData.promoCode } : null,
       commissionPct: invoiceData.commission && invoiceData.subtotal
         ? Math.round((invoiceData.commission / invoiceData.subtotal) * 100) : 0,
       vatPct: invoiceData.vat && invoiceData.subtotal
         ? Math.round((invoiceData.vat / (invoiceData.subtotal - (invoiceData.promoDiscount || 0) + (invoiceData.commission || 0))) * 100) : 0,
-      serviceCharge: invoiceData.serviceCharge || 0,
-      promo: invoiceData.promoCode && invoiceData.promoDiscount > 0
-        ? { code: invoiceData.promoCode, pct: Math.round((invoiceData.promoDiscount / invoiceData.subtotal) * 100) }
-        : null,
       total: invoiceData.total || 0
     };
 
@@ -592,15 +359,15 @@ async function generateInvoicePDF(invoiceData, bookingData, isPaid = true) {
 
     // Wait for Google Fonts to load
     await new Promise(r => setTimeout(r, 1200));
-    try { await document.fonts.ready; } catch(e) {}
+    try { await document.fonts.ready; } catch (e) {}
 
-    const el = container.querySelector('.inv-st');
+    const el = container.querySelector('.inv');
     const canvas = await html2canvas(el, {
       scale: 2,
       useCORS: true,
       allowTaint: true,
       logging: false,
-      backgroundColor: '#F3EDDE',
+      backgroundColor: '#ffffff',
       width: 794,
       windowWidth: 794
     });
@@ -628,4 +395,4 @@ async function generateInvoicePDF(invoiceData, bookingData, isPaid = true) {
 }
 
 window.generateInvoicePDF = generateInvoicePDF;
-console.log('✅ Invoice PDF generator (Variant C · Stamped Classified) loaded');
+console.log('✅ Invoice PDF generator (Minimal Clean Layout) loaded');
