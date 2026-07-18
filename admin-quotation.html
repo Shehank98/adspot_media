@@ -1358,9 +1358,12 @@
 
         firebase.auth().onAuthStateChanged(async user => {
             if (!user) return;
-            document.getElementById('userEmail').textContent = user.email;
-            document.getElementById('userName').textContent  = user.displayName || user.email.split('@')[0];
-            if (user.photoURL) document.getElementById('userPhoto').src = user.photoURL;
+            const ueEl = document.getElementById('userEmail');
+            if (ueEl) ueEl.textContent = user.email;
+            const unEl = document.getElementById('userName');
+            if (unEl) unEl.textContent = user.displayName || user.email.split('@')[0];
+            const upEl = document.getElementById('userPhoto');
+            if (upEl && user.photoURL) upEl.src = user.photoURL;
 
             // Load commission/VAT/service charge from settings so displayed rates are accurate
             await Promise.allSettled([
