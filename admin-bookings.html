@@ -334,7 +334,8 @@
     <script src="js/firebase-config.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/firebase-db.js"></script>
-    <script src="js/invoice-pdf.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/invoice-pdf.js?v=6"></script>
 
     <script>
     let allBookings   = [];
@@ -803,6 +804,14 @@
                 await apiRequest('PATCH', '/api/bookings/' + currentBooking.id, { invoice_number: invoiceNumber });
             }
 
+            // Live VAT rate so the invoice shows the correct % (e.g. 18, not a
+            // figure back-calculated from mixed amounts)
+            let vatPctSetting;
+            try {
+                const s = await fetch('/api/settings/vat_pct', { cache: 'no-store' }).then(r => r.ok ? r.json() : null);
+                if (s && s.value != null) vatPctSetting = Math.round(parseFloat(s.value));
+            } catch (_) {}
+
             const invoiceData = {
                 invoiceNumber, quotationNumber: currentBooking.quotationNumber,
                 bookingId: currentBooking.id,
@@ -813,6 +822,7 @@
                 subtotal:      currentBooking.subtotalAmount || currentBooking.totalAmount,
                 commission:    currentBooking.commission    || 0,
                 vat:           currentBooking.vat           || 0,
+                vatPct:        vatPctSetting,
                 serviceCharge: currentBooking.serviceCharge || 0,
                 promoCode:     currentBooking.promoCode     || '',
                 promoDiscount: currentBooking.promoDiscount || 0,

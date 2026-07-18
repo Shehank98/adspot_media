@@ -251,8 +251,15 @@ function buildInvoiceDoc(invoiceData, bookingData, isPaid = true) {
       promo: invoiceData.promoCode && invoiceData.promoDiscount > 0 ? { code: invoiceData.promoCode } : null,
       commissionPct: invoiceData.commission && invoiceData.subtotal
         ? Math.round((invoiceData.commission / invoiceData.subtotal) * 100) : 0,
-      vatPct: invoiceData.vat && invoiceData.subtotal
-        ? Math.round((invoiceData.vat / (invoiceData.subtotal - (invoiceData.promoDiscount || 0) + (invoiceData.commission || 0))) * 100) : 0,
+      // Use the actual configured VAT rate, not one back-calculated from
+      // amounts (which rounds wrong when the base includes commission or
+      // no-VAT classified items). Prefer an explicit rate, then the live
+      // CONFIG setting, then a last-resort derivation.
+      vatPct: invoiceData.vatPct != null ? invoiceData.vatPct
+        : ((typeof CONFIG !== 'undefined' && CONFIG.CHARGES && CONFIG.CHARGES.vatRate)
+            ? Math.round(CONFIG.CHARGES.vatRate * 100)
+            : (invoiceData.vat && invoiceData.subtotal
+                ? Math.round((invoiceData.vat / invoiceData.subtotal) * 100) : 0)),
       total: invoiceData.total || 0
     };
 
