@@ -106,7 +106,7 @@ function drawInvoice(doc, inv, isPaid) {
   const billLines = [
     inv.customer.company ? { t: inv.customer.company, ink: true } : null,
     inv.customer.address ? { t: inv.customer.address } : null,
-    { t: inv.customer.email },
+    (inv.customer.email && inv.customer.email !== 'TBD') ? { t: inv.customer.email } : null,
     inv.customer.phone ? { t: inv.customer.phone } : null
   ].filter(Boolean);
   const yA = drawParty(ML, 'FROM', ADSPOT_SELLER.name, fromLines);
@@ -188,8 +188,9 @@ function drawInvoice(doc, inv, isPaid) {
   T(ADSPOT_SELLER.web, MR, fy + 13, { size: 7.5, color: INK3, align: 'right' });
 }
 
-async function generateInvoicePDF(invoiceData, bookingData, isPaid = true) {
-  try {
+// Build the jsPDF document for an invoice/quotation (shared by the upload and
+// download paths).
+function buildInvoiceDoc(invoiceData, bookingData, isPaid = true) {
     if (typeof jspdf === 'undefined') throw new Error('jsPDF not loaded');
 
     const fmtShort = n => 'Rs. ' + Number(n || 0).toLocaleString('en-LK');
@@ -258,7 +259,13 @@ async function generateInvoicePDF(invoiceData, bookingData, isPaid = true) {
     const { jsPDF } = jspdf;
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     drawInvoice(doc, inv, isPaid);
+    return doc;
+}
 
+// Build the PDF and upload it to Firebase Storage; returns the download URL.
+async function generateInvoicePDF(invoiceData, bookingData, isPaid = true) {
+  try {
+    const doc = buildInvoiceDoc(invoiceData, bookingData, isPaid);
     const blob = doc.output('blob');
     const path = `invoices/${invoiceData.invoiceNumber}.pdf`;
     console.log('📤 Uploading PDF:', path);
@@ -266,12 +273,19 @@ async function generateInvoicePDF(invoiceData, bookingData, isPaid = true) {
     const url = await snap.ref.getDownloadURL();
     console.log('✅ PDF uploaded:', url);
     return url;
-
   } catch (err) {
     console.error('❌ Invoice PDF error:', err);
     throw err;
   }
 }
 
+// Build the PDF and trigger a local download in the browser (no upload / email
+// needed) — used when a customer has no email on file.
+function downloadInvoicePDF(invoiceData, bookingData, isPaid = true, filename) {
+  const doc = buildInvoiceDoc(invoiceData, bookingData, isPaid);
+  doc.save(filename || `${invoiceData.invoiceNumber || invoiceData.quotationNumber || 'quotation'}.pdf`);
+}
+
 window.generateInvoicePDF = generateInvoicePDF;
+window.downloadInvoicePDF = downloadInvoicePDF;
 console.log('✅ Invoice PDF generator (native vector) loaded');

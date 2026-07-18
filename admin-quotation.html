@@ -535,9 +535,9 @@
                     <input type="text" id="qtName" class="form-input" placeholder="Kamal Perera">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Email Address *</label>
+                    <label class="form-label">Email Address</label>
                     <div class="lookup-row">
-                        <input type="email" id="qtEmail" class="form-input" placeholder="customer@email.com">
+                        <input type="email" id="qtEmail" class="form-input" placeholder="Leave blank to download (marked TBD)">
                     </div>
                 </div>
                 <div class="form-group">
@@ -653,7 +653,7 @@
         <!-- Send -->
         <button class="btn-send" id="qtSendBtn" onclick="sendQuotation()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-            Generate &amp; Send Quotation
+            Generate Quotation
         </button>
     </main>
 
@@ -671,7 +671,7 @@
     <script src="js/auth.js"></script>
     <script src="js/config.js"></script>
     <script src="js/firebase-db.js"></script>
-    <script src="js/invoice-pdf.js?v=5"></script>
+    <script src="js/invoice-pdf.js?v=6"></script>
 
     <script>
     // ─── State ────────────────────────────────────────────────────────────────
@@ -1204,8 +1204,8 @@
     async function sendQuotation() {
         const name  = document.getElementById('qtName').value.trim();
         const email = document.getElementById('qtEmail').value.trim();
+        const hasEmail = !!email;
         if (!name)  { showToast('Please enter the customer name.', 'error'); return; }
-        if (!email) { showToast('Please enter the customer email.', 'error'); return; }
         if (!items.length) { showToast('Please add at least one ad item.', 'error'); return; }
 
         const btn = document.getElementById('qtSendBtn');
@@ -1274,19 +1274,23 @@
                 items: mappedItems
             };
 
+            // Upload a copy for our records (works with or without an email).
             let pdfUrl = '';
             if (typeof generateInvoicePDF === 'function') {
-                pdfUrl = await generateInvoicePDF(invoiceData, bookingData, false);
+                try { pdfUrl = await generateInvoicePDF(invoiceData, bookingData, false); }
+                catch (e) { console.warn('PDF upload failed:', e); }
             }
 
-            btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Saving &amp; Sending…`;
+            btn.innerHTML = hasEmail
+                ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Saving &amp; Sending…`
+                : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg> Preparing download…`;
 
-            // Save to PostgreSQL
+            // Save to PostgreSQL (email stored as TBD when not provided)
             try {
                 await apiRequest('POST', '/api/quotations', {
                     quotationNumber,
                     customerName:    name,
-                    customerEmail:   email,
+                    customerEmail:   email || 'TBD',
                     customerPhone:   bookingData.customerPhone,
                     customerCompany: bookingData.customerCompany,
                     items:           mappedItems,
@@ -1302,26 +1306,33 @@
                 });
             } catch (e) { console.warn('Quotation save failed:', e); }
 
-            // Send email
-            if (typeof sendManualQuotationEmail === 'function') {
-                await sendManualQuotationEmail({
-                    quotationNumber,
-                    customerName:    name,
-                    customerEmail:   email,
-                    customerPhone:   bookingData.customerPhone,
-                    customerCompany: bookingData.customerCompany,
-                    items:           mappedItems,
-                    subtotal, commission, vat,
-                    serviceCharge:  svc,
-                    promoCode:      invoiceData.promoCode,
-                    promoDiscount:  discAmt,
-                    total:          grand,
-                    notes:          document.getElementById('qtNotes').value.trim(),
-                    pdfUrl
-                });
+            if (hasEmail) {
+                // Email the quotation to the customer
+                if (typeof sendManualQuotationEmail === 'function') {
+                    await sendManualQuotationEmail({
+                        quotationNumber,
+                        customerName:    name,
+                        customerEmail:   email,
+                        customerPhone:   bookingData.customerPhone,
+                        customerCompany: bookingData.customerCompany,
+                        items:           mappedItems,
+                        subtotal, commission, vat,
+                        serviceCharge:  svc,
+                        promoCode:      invoiceData.promoCode,
+                        promoDiscount:  discAmt,
+                        total:          grand,
+                        notes:          document.getElementById('qtNotes').value.trim(),
+                        pdfUrl
+                    });
+                }
+                showToast('Quotation ' + quotationNumber + ' sent to ' + email, 'success');
+            } else {
+                // No email on file — download the PDF so the admin can share it manually
+                if (typeof downloadInvoicePDF === 'function') {
+                    downloadInvoicePDF(invoiceData, bookingData, false, quotationNumber + '.pdf');
+                }
+                showToast('Quotation ' + quotationNumber + ' downloaded — customer marked TBD (no email).', 'success');
             }
-
-            showToast('Quotation ' + quotationNumber + ' sent to ' + email, 'success');
             resetForm();
 
         } catch (e) {
@@ -1329,7 +1340,7 @@
             showToast('Error: ' + e.message, 'error');
         } finally {
             btn.disabled = false;
-            btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Generate &amp; Send Quotation`;
+            btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Generate Quotation`;
         }
     }
 
