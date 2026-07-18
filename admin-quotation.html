@@ -373,6 +373,113 @@
             transition: background .15s;
         }
         .btn-lookup:hover { background: #f1f5f9; }
+
+        /* ── Visual refresh ── */
+        body { background: #f8fafc; }
+        .card {
+            box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 4px 16px rgba(15,23,42,.04);
+            border-radius: 16px;
+            border-color: #eef2f7;
+        }
+        .card-title { font-size: 15px; display: inline-flex; align-items: center; gap: 8px; }
+        .card-title::before {
+            content: '';
+            width: 4px; height: 15px; border-radius: 3px;
+            background: linear-gradient(180deg, #3b82f6, #2563eb);
+        }
+        .page-header h1 { font-size: 28px; letter-spacing: -.02em; }
+        .btn-send {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            box-shadow: 0 6px 18px rgba(37,99,235,.30);
+            border-radius: 12px;
+        }
+        .btn-send:hover { background: linear-gradient(135deg, #2563eb, #1e40af); }
+        .summary-card { box-shadow: 0 10px 30px rgba(15,23,42,.18); border-radius: 16px; }
+
+        /* ── Classified composer ── */
+        .wc-badge {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 1px 8px;
+            border-radius: 20px;
+            background: #eef2ff;
+            color: #4338ca;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+        .chip-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+        .paper-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 999px;
+            background: #fff;
+            font-size: 13px;
+            font-weight: 500;
+            color: #334155;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all .15s;
+        }
+        .paper-chip:hover { border-color: #cbd5e1; background: #f8fafc; }
+        .paper-chip.active {
+            background: #2563eb;
+            border-color: #2563eb;
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(37,99,235,.28);
+        }
+        .paper-chip .chip-sun {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            padding: 1px 5px;
+            border-radius: 6px;
+            background: rgba(245,158,11,.16);
+            color: #b45309;
+        }
+        .paper-chip.active .chip-sun { background: rgba(255,255,255,.25); color: #fff; }
+        .paper-chip .chip-price { font-size: 11px; opacity: .7; }
+
+        .chip-row { display: flex; flex-wrap: wrap; gap: 8px; min-height: 20px; }
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px 6px 12px;
+            border-radius: 999px;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1d4ed8;
+            font-size: 12.5px;
+            font-weight: 500;
+        }
+        .chip button {
+            background: none; border: none; cursor: pointer;
+            color: #1d4ed8; font-size: 15px; line-height: 1;
+            padding: 0; opacity: .6;
+        }
+        .chip button:hover { opacity: 1; }
+        .chip-empty { font-size: 12.5px; color: #94a3b8; }
+
+        .clf-compose-foot {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            margin-top: 18px;
+            padding-top: 16px;
+            border-top: 1px solid #f1f5f9;
+            flex-wrap: wrap;
+        }
+        .clf-compose-summary { font-size: 13px; color: #64748b; }
+        .clf-compose-summary strong { color: #0f172a; font-variant-numeric: tabular-nums; }
+        .clf-compose-summary .cs-total { color: #2563eb; font-size: 15px; }
+        #clfAddBtn:disabled { opacity: .5; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -448,13 +555,61 @@
             </div>
         </div>
 
+        <!-- Classified composer: one ad → multiple papers + dates -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Classified — one ad, many papers</span>
+                <span class="card-badge">Auto-price</span>
+            </div>
+            <div class="grid-2">
+                <div class="form-group col-span-2">
+                    <label class="form-label">Ad Text <span id="clfWc" class="wc-badge">0 words</span></label>
+                    <textarea id="clfText" class="form-textarea" placeholder="Type or paste the classified ad text once — we'll price it for every paper and date you pick…" oninput="onClfTextInput()"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <select id="clfCategory" class="form-select">
+                        <option value="jobs">Jobs / Vacancies</option>
+                        <option value="property">Property / Real Estate</option>
+                        <option value="vehicles">Vehicles</option>
+                        <option value="matrimonial">Matrimonial</option>
+                        <option value="education">Education</option>
+                        <option value="services">Services</option>
+                        <option value="general" selected>General</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Add publication date</label>
+                    <div class="lookup-row">
+                        <input type="date" id="clfDateInput" class="form-input">
+                        <button type="button" class="btn-lookup" onclick="addClfDate()">Add date</button>
+                    </div>
+                </div>
+                <div class="form-group col-span-2">
+                    <label class="form-label">Publication dates</label>
+                    <div id="clfDates" class="chip-row"></div>
+                </div>
+                <div class="form-group col-span-2">
+                    <label class="form-label">Newspapers <span style="text-transform:none;font-weight:400;color:#94a3b8;">(tap to select — pick as many as you like)</span></label>
+                    <div id="clfPapers" class="chip-grid"><span class="chip-empty">Loading newspapers…</span></div>
+                </div>
+            </div>
+            <div class="clf-compose-foot">
+                <div class="clf-compose-summary" id="clfComposeSummary">Enter the ad, then pick newspapers and dates to see the total.</div>
+                <button type="button" class="btn-add-item" id="clfAddBtn" onclick="addClassifiedInsertions()" disabled>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 5v14M5 12h14"/></svg>
+                    Add to quotation
+                </button>
+            </div>
+        </div>
+
         <!-- Ad Items -->
         <div class="card">
             <div class="card-header">
                 <span class="card-title">Ad Items</span>
                 <button class="btn-add-item" onclick="addItem()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 5v14M5 12h14"/></svg>
-                    Add Item
+                    Add box / single ad
                 </button>
             </div>
             <div id="itemsContainer">
@@ -821,6 +976,136 @@
         recalcTotals();
     }
 
+    // ─── Classified composer (one ad → many papers + dates) ──────────────────
+    let clfDates = [];
+
+    function clfWordCount() {
+        const t = (document.getElementById('clfText')?.value || '').trim();
+        return t ? t.split(/\s+/).filter(w => w.length > 0).length : 0;
+    }
+
+    function onClfTextInput() {
+        const w = clfWordCount();
+        const badge = document.getElementById('clfWc');
+        if (badge) badge.textContent = w + ' word' + (w === 1 ? '' : 's');
+        renderClfComposeSummary();
+    }
+
+    function fmtNiceDate(d) {
+        try { return new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); }
+        catch (_) { return d; }
+    }
+
+    function renderClfPapers() {
+        const c = document.getElementById('clfPapers');
+        if (!c) return;
+        const papers = getNewspaperList().filter(p => (parseFloat(p.classifiedBase) || 0) > 0);
+        if (!papers.length) { c.innerHTML = '<span class="chip-empty">No classified-enabled newspapers found.</span>'; return; }
+        c.innerHTML = papers.map(p => `
+            <button type="button" class="paper-chip" data-name="${p.name}" onclick="toggleClfPaper(this)">
+                ${p.name}
+                ${p.isSundayPaper ? '<span class="chip-sun">Sun</span>' : ''}
+                <span class="chip-price">Rs. ${(parseFloat(p.classifiedBase) || 0).toLocaleString()}</span>
+            </button>`).join('');
+    }
+
+    function toggleClfPaper(btn) { btn.classList.toggle('active'); renderClfComposeSummary(); }
+
+    function getClfSelectedPapers() {
+        return [...document.querySelectorAll('#clfPapers .paper-chip.active')].map(b => b.dataset.name);
+    }
+
+    function addClfDate() {
+        const inp = document.getElementById('clfDateInput');
+        const v = inp && inp.value;
+        if (!v) { showToast('Pick a date first', 'error'); return; }
+        if (!clfDates.includes(v)) clfDates.push(v);
+        clfDates.sort();
+        if (inp) inp.value = '';
+        renderClfDates();
+        renderClfComposeSummary();
+    }
+
+    function removeClfDate(v) { clfDates = clfDates.filter(d => d !== v); renderClfDates(); renderClfComposeSummary(); }
+
+    function renderClfDates() {
+        const c = document.getElementById('clfDates');
+        if (!c) return;
+        if (!clfDates.length) { c.innerHTML = '<span class="chip-empty">No dates yet — add at least one.</span>'; return; }
+        c.innerHTML = clfDates.map(d => `<span class="chip">${fmtNiceDate(d)}<button type="button" onclick="removeClfDate('${d}')" title="Remove">×</button></span>`).join('');
+    }
+
+    function renderClfComposeSummary() {
+        const el = document.getElementById('clfComposeSummary');
+        const btn = document.getElementById('clfAddBtn');
+        const words = clfWordCount();
+        const papers = getClfSelectedPapers();
+        if (!words || !papers.length || !clfDates.length) {
+            if (el) el.textContent = 'Enter the ad, then pick newspapers and dates to see the total.';
+            if (btn) btn.disabled = true;
+            return;
+        }
+        let total = 0;
+        const npList = getNewspaperList();
+        papers.forEach(name => {
+            const np = npList.find(n => n.name === name);
+            if (!np) return;
+            total += calcClassified(np, words).total * clfDates.length;
+        });
+        const count = papers.length * clfDates.length;
+        if (el) el.innerHTML = `<strong>${count}</strong> insertion${count === 1 ? '' : 's'} · ${papers.length} paper${papers.length === 1 ? '' : 's'} × ${clfDates.length} date${clfDates.length === 1 ? '' : 's'} · <strong class="cs-total">${fmtRs(total)}</strong>`;
+        if (btn) btn.disabled = false;
+    }
+
+    function addClassifiedInsertions() {
+        const words = clfWordCount();
+        const text = document.getElementById('clfText')?.value || '';
+        const category = document.getElementById('clfCategory')?.value || 'general';
+        const papers = getClfSelectedPapers();
+        if (!words) { showToast('Enter the ad text first', 'error'); return; }
+        if (!papers.length) { showToast('Select at least one newspaper', 'error'); return; }
+        if (!clfDates.length) { showToast('Add at least one publication date', 'error'); return; }
+
+        let added = 0;
+        papers.forEach(name => {
+            clfDates.forEach(date => {
+                const item = {
+                    id: ++itemCounter,
+                    newspaper: name,
+                    adType: 'classified',
+                    text: text,
+                    wordCount: words,
+                    category: category,
+                    height: 4, columns: 2, colorOption: 'black',
+                    pubDate: date,
+                    price: 0,
+                    _adTotal: 0, _commission: 0, _vat: 0, _svc: 0
+                };
+                recalcItem(item);
+                items.push(item);
+                added++;
+            });
+        });
+        renderItems();
+        recalcTotals();
+        showToast(`Added ${added} classified insertion${added === 1 ? '' : 's'}`, 'success');
+
+        // Reset the composer for the next ad
+        const txt = document.getElementById('clfText');
+        if (txt) txt.value = '';
+        document.querySelectorAll('#clfPapers .paper-chip.active').forEach(b => b.classList.remove('active'));
+        clfDates = [];
+        onClfTextInput();
+        renderClfDates();
+        renderClfComposeSummary();
+        document.getElementById('itemsContainer')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    window.onClfTextInput = onClfTextInput;
+    window.toggleClfPaper = toggleClfPaper;
+    window.addClfDate = addClfDate;
+    window.removeClfDate = removeClfDate;
+    window.addClassifiedInsertions = addClassifiedInsertions;
+
     // ─── Totals ───────────────────────────────────────────────────────────────
     function recalcTotals() {
         if (!items.length) {
@@ -1095,6 +1380,11 @@
                 }
             } catch (_) {}
             renderItems();
+            renderClfPapers();
+            renderClfDates();
+            // Default the date picker minimum to today
+            const clfDateInput = document.getElementById('clfDateInput');
+            if (clfDateInput) clfDateInput.min = new Date().toISOString().split('T')[0];
         });
     });
     </script>
