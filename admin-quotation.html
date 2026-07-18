@@ -1356,7 +1356,8 @@
             firebase.auth().signOut().then(() => { window.location.href = '/'; });
         });
 
-        firebase.auth().onAuthStateChanged(async user => {
+        // Nav display only — never let this block pricing data from loading.
+        firebase.auth().onAuthStateChanged(user => {
             if (!user) return;
             const ueEl = document.getElementById('userEmail');
             if (ueEl) ueEl.textContent = user.email;
@@ -1364,32 +1365,37 @@
             if (unEl) unEl.textContent = user.displayName || user.email.split('@')[0];
             const upEl = document.getElementById('userPhoto');
             if (upEl && user.photoURL) upEl.src = user.photoURL;
+        });
 
-            // Load commission/VAT/service charge from settings so displayed rates are accurate
-            await Promise.allSettled([
+        // Load live settings + publications independently of auth/nav so a
+        // change made in admin Settings always applies here.
+        loadQuotationData();
+    });
+
+    // Loads admin-configurable rates/settings and live publications, then
+    // renders. Kept out of the auth handler so nothing can block it.
+    async function loadQuotationData() {
+        try {
+            const [r1, r2, r3] = await Promise.allSettled([
                 fetch('/api/settings/box_commission_pct', { cache: 'no-store' }).then(r => r.ok ? r.json() : null),
                 fetch('/api/settings/vat_pct', { cache: 'no-store' }).then(r => r.ok ? r.json() : null),
                 fetch('/api/settings/classified_service_charge', { cache: 'no-store' }).then(r => r.ok ? r.json() : null)
-            ]).then(([r1, r2, r3]) => {
-                if (r1.value?.value) CONFIG.CHARGES.boxAdCommission        = parseFloat(r1.value.value) / 100;
-                if (r2.value?.value) CONFIG.CHARGES.vatRate                = parseFloat(r2.value.value) / 100;
-                if (r3.value?.value) CONFIG.CHARGES.classifiedServiceCharge = parseFloat(r3.value.value);
-            }).catch(() => {});
+            ]);
+            if (r1.value?.value != null) CONFIG.CHARGES.boxAdCommission         = parseFloat(r1.value.value) / 100;
+            if (r2.value?.value != null) CONFIG.CHARGES.vatRate                 = parseFloat(r2.value.value) / 100;
+            if (r3.value?.value != null) CONFIG.CHARGES.classifiedServiceCharge = parseFloat(r3.value.value);
+        } catch (_) {}
 
-            // Load live publications from DB, then render initial empty state
-            try {
-                if (typeof loadNewspapersFromFirebase === 'function') {
-                    await loadNewspapersFromFirebase();
-                }
-            } catch (_) {}
-            renderItems();
-            renderClfPapers();
-            renderClfDates();
-            // Default the date picker minimum to today
-            const clfDateInput = document.getElementById('clfDateInput');
-            if (clfDateInput) clfDateInput.min = new Date().toISOString().split('T')[0];
-        });
-    });
+        try {
+            if (typeof loadNewspapersFromFirebase === 'function') await loadNewspapersFromFirebase();
+        } catch (_) {}
+
+        renderItems();
+        renderClfPapers();
+        renderClfDates();
+        const clfDateInput = document.getElementById('clfDateInput');
+        if (clfDateInput) clfDateInput.min = new Date().toISOString().split('T')[0];
+    }
     </script>
 
     <script src="js/maintenance-config.js"></script>

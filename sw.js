@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'adspot-v10';
+const CACHE_VERSION = 'adspot-v11';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 
