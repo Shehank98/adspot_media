@@ -2924,6 +2924,37 @@ html, body {
     color: var(--gray-500);
 }
 
+.next-steps {
+    text-align: left;
+    background: #f0f9f4;
+    border: 1px solid #cbe9d6;
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg) var(--space-lg) var(--space-lg) var(--space-md);
+    margin-bottom: var(--space-lg);
+}
+
+.next-steps h4 {
+    margin: 0 0 var(--space-sm) var(--space-sm);
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--primary, #0E6B47);
+}
+
+.next-steps ol {
+    margin: 0;
+    padding-left: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.next-steps li {
+    color: var(--gray-700);
+    font-size: 0.9375rem;
+    line-height: 1.5;
+}
+
 .confirmation-item {
     display: grid;
     grid-template-columns: 1fr auto;

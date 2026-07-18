@@ -1159,19 +1159,18 @@ function addToCart() {
         cartItem.description = `Classified: ${words} words (${CONFIG.CLASSIFIED_CATEGORIES[category]?.name || category})`;
     }
 
-    // Check if same newspaper already in cart
+    // Check if same newspaper already in cart — update it in place instead of
+    // blocking with a native confirm() dialog.
     const existingIndex = adCart.findIndex(item => item.newspaperId === cartItem.newspaperId && item.adType === cartItem.adType);
     if (existingIndex >= 0) {
-        if (!confirm(`You already have a ${adType} ad for ${selectedNewspaper.name}. Replace it?`)) {
-            return;
-        }
         adCart[existingIndex] = cartItem;
+        updateCartDisplay();
+        showNotification(`Updated your ${selectedNewspaper.name} ad`, 'success');
     } else {
         adCart.push(cartItem);
+        updateCartDisplay();
+        showNotification(`Added ${selectedNewspaper.name} to cart!`, 'success');
     }
-
-    updateCartDisplay();
-    showNotification(`Added ${selectedNewspaper.name} to cart!`, 'success');
 }
 
 /**
@@ -1203,11 +1202,19 @@ function updateCartDisplay() {
                 <span class="cart-item-date">${formatDate(item.pubDate)}</span>
             </div>
             <div class="cart-item-price">${formatCurrency(item.price)}</div>
-            <button type="button" class="cart-item-remove" onclick="removeFromCart(${item.id})" title="Remove">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M18 6L6 18M6 6l12 12"/>
-                </svg>
-            </button>
+            <div class="cart-item-actions">
+                <button type="button" class="cart-item-edit" onclick="editCartItem(${item.id})" title="Edit">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                </button>
+                <button type="button" class="cart-item-remove" onclick="removeFromCart(${item.id})" title="Remove">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
         </div>
     `).join('');
 
@@ -1225,6 +1232,90 @@ function removeFromCart(itemId) {
     showNotification('Item removed from cart', 'info');
 }
 window.removeFromCart = removeFromCart;
+
+/**
+ * Load a cart item back into the Step 1 form for editing.
+ * Removes it from the cart so the customer reconfigures and re-adds it.
+ */
+function editCartItem(itemId) {
+    const item = adCart.find(i => i.id === itemId);
+    if (!item) return;
+    const d = item.details || {};
+
+    // Remove from cart first so re-adding creates a clean entry
+    adCart = adCart.filter(i => i.id !== itemId);
+    updateCartDisplay();
+
+    // Jump back to Step 1
+    goToStep(1);
+
+    // Restore ad type
+    const typeRadio = document.querySelector(`input[name="adType"][value="${item.adType}"]`);
+    if (typeRadio) typeRadio.checked = true;
+    toggleAdOptions();
+
+    // Restore language (rebuilds newspaper tables/grids, resets selectedNewspaper)
+    const lang = item.newspaperLanguage || d.language;
+    if (lang) {
+        const langBtn = document.querySelector(`.language-btn[data-language="${lang}"]`);
+        if (langBtn) {
+            document.querySelectorAll('.language-btn').forEach(b => b.classList.remove('active'));
+            langBtn.classList.add('active');
+            selectedLanguage = lang;
+            updateNewspapersByLanguage(lang);
+        }
+    }
+
+    // Re-select the specific newspaper
+    const paper = (typeof getNewspaperById === 'function') ? getNewspaperById(item.newspaperId) : null;
+    if (paper) { selectedNewspaper = paper; selectedGroup = paper.groupId; }
+
+    if (item.adType === 'box') {
+        if (d.colorOption) document.getElementById('colorOption').value = d.colorOption;
+        if (d.height != null) document.getElementById('adHeight').value = d.height;
+        // Columns must be set after updateColumnOptions (triggered by language/type)
+        updateColumnOptions();
+        if (d.columns != null) document.getElementById('adColumns').value = d.columns;
+        // Pre-fill the publication date used by the date modal
+        const pd = document.getElementById('pubDate');
+        if (pd && item.pubDate) pd.value = item.pubDate;
+        window.currentAdPrice = item.price;
+        updateComparisonSection();
+        updatePrice();
+        // Highlight the paper's row in the comparison table
+        const row = document.querySelector(`#comparisonTableBody .btn-add-to-cart[data-paper-id="${item.newspaperId}"]`)?.closest('tr');
+        if (row) { document.querySelectorAll('#comparisonTableBody tr').forEach(r => r.classList.remove('selected')); row.classList.add('selected'); }
+        showNotification(`Editing your ${item.newspaperName} ad — adjust it, then click “Add” on that newspaper to put it back in your cart.`, 'info');
+    } else {
+        // Classified
+        if (d.category) { const c = document.getElementById('classifiedCategory'); if (c) c.value = d.category; }
+        const txt = document.getElementById('classifiedText');
+        if (txt) txt.value = d.text || '';
+        // Check the classified newspaper radio for this paper
+        const radio = document.querySelector(`input[name="classifiedNewspaper"][value="${item.newspaperId}"]`);
+        if (radio) {
+            radio.checked = true;
+            document.querySelectorAll('#classifiedNewspaperSelect .np-card').forEach(cd => cd.classList.remove('selected'));
+            radio.closest('.np-card')?.classList.add('selected');
+        }
+        const cDate = document.getElementById('classifiedDate');
+        if (cDate && item.pubDate) cDate.value = item.pubDate;
+        const addonBox = document.getElementById('designAddonBox');
+        if (addonBox) addonBox.style.display = 'block';
+        updateWordCount();
+        updatePrice();
+        showNotification(`Editing your ${item.newspaperName} classified — adjust it, then click “Add Classified to Cart”.`, 'info');
+    }
+
+    // Scroll to the config so the customer sees the restored values
+    setTimeout(() => {
+        const target = item.adType === 'box'
+            ? document.getElementById('boxAdConfig')
+            : document.getElementById('classifiedConfig');
+        target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 200);
+}
+window.editCartItem = editCartItem;
 
 /**
  * Update sidebar for step 2 to show cart items
@@ -2167,6 +2258,29 @@ function showSuccessModal(quotationNumber, email, paymentMethod, receiptUrl = ''
         </div>
     `).join('');
 
+    const isPaid = paymentMethod === 'card' || paymentMethod === 'helapay';
+    const nextSteps = isPaid ? `
+        <div class="next-steps">
+            <h4>What happens next</h4>
+            <ol>
+                <li>Your payment is confirmed and your booking is locked in.</li>
+                <li>We've emailed your invoice (PDF) to <strong>${email}</strong>.</li>
+                <li>Our team places your ad and you'll get a proof once it's published.</li>
+            </ol>
+        </div>
+    ` : `
+        <div class="next-steps">
+            <h4>What happens next</h4>
+            <ol>
+                <li>We've emailed your quotation (PDF) to <strong>${email}</strong>.</li>
+                <li>Transfer the total to the bank account below, using <strong>${quotationNumber}</strong> as the reference.</li>
+                <li>${receiptUrl
+                    ? 'Your receipt is in — we\'ll verify it and confirm your booking shortly.'
+                    : 'Upload your payment receipt so we can verify and confirm faster.'}</li>
+            </ol>
+        </div>
+    `;
+
     const bankDetails = paymentMethod === 'bank' ? `
         <div class="bank-details-box">
             <h4>Bank Transfer Details</h4>
@@ -2219,11 +2333,14 @@ function showSuccessModal(quotationNumber, email, paymentMethod, receiptUrl = ''
                 ${itemsList}
             </div>
 
+            ${nextSteps}
+
             ${bankDetails}
 
             <div class="success-actions">
-                <a href="index.html" class="btn btn-primary">Return to Home</a>
+                <a href="my-bookings.html" class="btn btn-primary">${paymentMethod === 'bank' ? 'Track Booking & Upload Receipt' : 'Track My Booking'}</a>
                 <button class="btn btn-ghost" onclick="printBookingConfirmation()">Print Confirmation</button>
+                <a href="index.html" class="btn btn-ghost">Return to Home</a>
             </div>
 
             <p class="contact-info">

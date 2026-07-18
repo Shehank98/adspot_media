@@ -377,7 +377,7 @@
                                                 </tr>
                                             </thead>
                                             <tbody id="comparisonTableBody">
-                                                <!-- Populated by JavaScript -->
+                                                <tr><td colspan="5" style="text-align:center;padding:1.5rem;color:#9ca3af;">Loading newspapers…</td></tr>
                                             </tbody>
                                         </table>
                                     </div>
@@ -429,7 +429,7 @@
                                 <div class="form-group">
                                     <label class="form-label">Select Newspaper</label>
                                     <div class="newspaper-grid" id="classifiedNewspaperSelect">
-                                        <!-- Populated by JavaScript -->
+                                        <p style="padding:1rem;color:#9ca3af;">Loading newspapers…</p>
                                     </div>
                                 </div>
 
@@ -464,7 +464,7 @@
                                         </div>
                                         <div class="breakdown-row" id="serviceChargeRow" style="display: none;">
                                             <span>Service Charge:</span>
-                                            <strong id="serviceChargeAmount">Rs. 100.00</strong>
+                                            <strong id="serviceChargeAmount">Rs. 0.00</strong>
                                         </div>
                                         <div class="breakdown-total">
                                             <span>Classified Total:</span>
@@ -744,6 +744,12 @@
                                 </div>
                             </div>
 
+                            <p class="checkout-reassurance">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="width:15px;height:15px;flex-shrink:0;">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                </svg>
+                                <span>We'll email your quotation PDF right away. Your booking is confirmed once payment is verified.</span>
+                            </p>
                             <div class="form-actions">
                                 <button type="button" class="btn btn-ghost prev-step">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
