@@ -159,8 +159,10 @@
                 window.location.href = '/';
                 return;
             }
-            document.getElementById('userMenu').style.display = 'flex';
-            document.getElementById('userEmail').textContent = user.email;
+            const umEl = document.getElementById('userMenu');
+            if (umEl) umEl.style.display = 'flex';
+            const ueEl = document.getElementById('userEmail');
+            if (ueEl) ueEl.textContent = user.email;
 
             await loadSettings();
         });

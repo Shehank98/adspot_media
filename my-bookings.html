@@ -598,10 +598,14 @@
 
         firebase.auth().onAuthStateChanged(user => {
             if (!user) { window.location.href = '/'; return; }
-            document.getElementById('userMenu').style.display = '';
-            document.getElementById('userEmail').textContent = user.email;
-            document.getElementById('userName').textContent  = user.displayName || user.email.split('@')[0];
-            if (user.photoURL) document.getElementById('userPhoto').src = user.photoURL;
+            const umEl = document.getElementById('userMenu');
+            if (umEl) umEl.style.display = '';
+            const ueEl = document.getElementById('userEmail');
+            if (ueEl) ueEl.textContent = user.email;
+            const unEl = document.getElementById('userName');
+            if (unEl) unEl.textContent = user.displayName || user.email.split('@')[0];
+            const upEl = document.getElementById('userPhoto');
+            if (upEl && user.photoURL) upEl.src = user.photoURL;
             loadBookings();
         });
     });
