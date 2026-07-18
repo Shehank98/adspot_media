@@ -51,9 +51,11 @@ function buildInvoiceHTML(inv, isPaid) {
     total: inv.total || 0
   };
 
-  // Commission is folded into the advertising subtotal — never shown as its
-  // own line to the customer.
-  const displaySubtotal = money.subtotal + money.commission;
+  // Derive the advertising subtotal from the authoritative total so the
+  // breakdown always reconciles (subtotal + VAT + service − discount = total)
+  // regardless of what value the caller passed as `subtotal`. Commission is
+  // folded into this figure and never shown as its own line.
+  const displaySubtotal = money.total - money.vat - money.service + money.discount;
   const breakdownRows = [
     `<div class="bd-row"><span>Subtotal · advertising</span><span class="bd-v">${fmtLKR(displaySubtotal)}</span></div>`,
     money.vat > 0 ? `<div class="bd-row"><span>VAT${inv.vatPct ? ` (${inv.vatPct}%)` : ''}</span><span class="bd-v">${fmtLKR(money.vat)}</span></div>` : '',
@@ -64,7 +66,7 @@ function buildInvoiceHTML(inv, isPaid) {
   // ---- Bank block (unpaid quotations only) ----------------------------------
   const bankBlock = !isPaid ? `
     <section class="pay">
-      <div class="pay-title">How to pay — bank transfer</div>
+      <div class="pay-title">How to pay by bank transfer</div>
       <div class="pay-grid">
         <div class="pay-c"><span class="pay-lbl">Bank</span><span class="pay-val">${ADSPOT_BANK.bank}</span></div>
         <div class="pay-c"><span class="pay-lbl">Account name</span><span class="pay-val">${ADSPOT_BANK.name}</span></div>
@@ -78,9 +80,6 @@ function buildInvoiceHTML(inv, isPaid) {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
   --ink: #111827;
@@ -90,7 +89,7 @@ function buildInvoiceHTML(inv, isPaid) {
   --line-2: #d1d5db;
   --accent: #0E6B47;
   --paper: #ffffff;
-  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: #f3f4f6; }
@@ -102,11 +101,11 @@ body { background: #f3f4f6; }
   -webkit-font-smoothing: antialiased;
   width: 794px;
   min-height: 1123px;
-  padding: 52px 56px;
+  padding: 44px 52px;
   display: flex;
   flex-direction: column;
   font-size: 12.5px;
-  line-height: 1.5;
+  line-height: 1.45;
 }
 .inv *, .inv *::before, .inv *::after { box-sizing: border-box; }
 .num { font-variant-numeric: tabular-nums; }
@@ -126,22 +125,22 @@ body { background: #f3f4f6; }
 .hd-status.paid { background: rgba(14,107,71,0.10); color: var(--accent); }
 .hd-status.due { background: #fef3c7; color: #92400e; }
 
-.rule { height: 2px; background: var(--ink); margin: 20px 0 0; }
+.rule { height: 2px; background: var(--ink); margin: 16px 0 0; }
 
 /* Meta strip */
-.meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-top: 18px; }
+.meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-top: 16px; }
 .meta-c { display: flex; flex-direction: column; gap: 2px; }
 .meta-lbl { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 600; }
 .meta-val { font-size: 12.5px; font-weight: 500; }
 
 /* Parties */
-.parties { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 26px; }
+.parties { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 20px; }
 .party-lbl { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 600; margin-bottom: 6px; }
 .party-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
 .party-line { color: var(--ink-2); font-size: 12px; line-height: 1.55; }
 
 /* Items table */
-.items { width: 100%; border-collapse: collapse; margin-top: 28px; }
+.items { width: 100%; border-collapse: collapse; margin-top: 22px; }
 .items thead th {
   font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600;
   color: var(--ink-2); text-align: left; padding: 0 0 8px; border-bottom: 1.5px solid var(--ink);
@@ -149,7 +148,7 @@ body { background: #f3f4f6; }
 .items thead th.r { text-align: right; }
 .items th.c-no { width: 30px; }
 .items th.c-amt { width: 130px; }
-.li td { padding: 12px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.li td { padding: 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
 .li-no { color: var(--ink-3); font-size: 12px; }
 .li-name { font-weight: 600; font-size: 13px; }
 .li-sub { color: var(--ink-2); font-size: 11.5px; margin-top: 1px; }
@@ -157,7 +156,7 @@ body { background: #f3f4f6; }
 .li-amt { text-align: right; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* Breakdown */
-.summary { display: flex; justify-content: flex-end; margin-top: 20px; }
+.summary { display: flex; justify-content: flex-end; margin-top: 16px; }
 .bd { width: 340px; }
 .bd-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 12.5px; color: var(--ink-2); }
 .bd-v { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
@@ -170,8 +169,8 @@ body { background: #f3f4f6; }
 .bd-total-v { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
 
 /* Payment / bank */
-.pay { margin-top: 30px; border: 1px solid var(--line-2); border-radius: 8px; padding: 16px 18px; }
-.pay-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink); margin-bottom: 12px; }
+.pay { margin-top: 20px; border: 1px solid var(--line-2); border-radius: 8px; padding: 14px 18px; }
+.pay-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink); margin-bottom: 10px; }
 .pay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; }
 .pay-c { display: flex; flex-direction: column; gap: 1px; }
 .pay-lbl { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); font-weight: 600; }
@@ -360,8 +359,8 @@ async function generateInvoicePDF(invoiceData, bookingData, isPaid = true) {
     container.innerHTML = buildInvoiceHTML(inv, isPaid);
     document.body.appendChild(container);
 
-    // Wait for Google Fonts to load
-    await new Promise(r => setTimeout(r, 1200));
+    // Uses system fonts (no web-font dependency) — a short settle is enough
+    await new Promise(r => setTimeout(r, 300));
     try { await document.fonts.ready; } catch (e) {}
 
     const el = container.querySelector('.inv');
@@ -380,8 +379,17 @@ async function generateInvoicePDF(invoiceData, bookingData, isPaid = true) {
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pw = doc.internal.pageSize.getWidth();
     const ph = doc.internal.pageSize.getHeight();
+    const data = canvas.toDataURL('image/jpeg', 0.95);
     const imgH = (canvas.height / canvas.width) * pw;
-    doc.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pw, Math.min(imgH, ph));
+    if (imgH <= ph + 0.5) {
+      // Fits on one page — full width, natural height (no distortion)
+      doc.addImage(data, 'JPEG', 0, 0, pw, imgH);
+    } else {
+      // Taller than one page — scale down to fit, preserving aspect ratio and
+      // centering horizontally, so the invoice is never vertically squished.
+      const scaledW = (canvas.width / canvas.height) * ph;
+      doc.addImage(data, 'JPEG', (pw - scaledW) / 2, 0, scaledW, ph);
+    }
 
     const blob = doc.output('blob');
     const path = `invoices/${invoiceData.invoiceNumber}.pdf`;
