@@ -22,7 +22,7 @@ let lastSubmittedBookingId = null;
 async function loadServerSettings() {
     const keys = ['design_fee', 'box_commission_pct', 'vat_pct', 'classified_service_charge'];
     const results = await Promise.allSettled(
-        keys.map(k => fetch('/api/settings/' + k).then(r => r.ok ? r.json() : null))
+        keys.map(k => fetch('/api/settings/' + k, { cache: 'no-store' }).then(r => r.ok ? r.json() : null))
     );
     const [d1, d2, d3, d4] = results.map(r => r.status === 'fulfilled' ? r.value : null);
 

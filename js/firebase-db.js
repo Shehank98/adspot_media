@@ -16,7 +16,8 @@ async function apiRequest(method, path, body) {
 
     const opts = {
         method,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store' // always get fresh admin-configurable data, never a stale cached copy
     };
     if (token) opts.headers['Authorization'] = 'Bearer ' + token;
     if (body) opts.body = JSON.stringify(body);
@@ -146,7 +147,7 @@ async function getUserBookings() {
 // ── Newspapers — fetch from Railway PostgreSQL via API ────────────────────────
 async function loadNewspapersFromFirebase() {
     try {
-        const publications = await fetch('/api/publications').then(r => r.json());
+        const publications = await fetch('/api/publications', { cache: 'no-store' }).then(r => r.json());
 
         if (typeof CONFIG !== 'undefined') {
             CONFIG.PUBLICATIONS = publications;

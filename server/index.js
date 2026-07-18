@@ -13,6 +13,16 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // ── API Routes ────────────────────────────────────────────────────────────────
+// Never cache API responses — rates, commission, VAT and other settings are
+// admin-configurable and must reflect immediately, not serve a stale copy from
+// the browser or an edge/proxy cache.
+app.use('/api', (_, res, next) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    next();
+});
+
 app.get('/api/health', (_, res) => res.json({ ok: true, ts: new Date().toISOString() }));
 
 app.use('/api/publications',     require('./routes/publications'));

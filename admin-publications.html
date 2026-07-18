@@ -939,7 +939,8 @@
             const res = await fetch(path, {
                 method,
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                body: body ? JSON.stringify(body) : undefined
+                body: body ? JSON.stringify(body) : undefined,
+                cache: 'no-store'
             });
             if (!res.ok) {
                 const txt = await res.text();
@@ -960,7 +961,7 @@
         // ── Load all publications ───────────────────────────────────────
         async function loadPublications() {
             try {
-                const data = await fetch('/api/publications').then(r => r.json());
+                const data = await fetch('/api/publications', { cache: 'no-store' }).then(r => r.json());
                 allData = data;
                 renderPublications();
                 updateStats();
