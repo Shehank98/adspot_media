@@ -417,10 +417,6 @@ function updateQuickRates() {
                 <strong>Rs. ${selectedNewspaper.colorRate}/sq cm</strong>
             </div>
             <div class="rate-item">
-                <span>Commission:</span>
-                <strong>${COMMISSION_PCT}%</strong>
-            </div>
-            <div class="rate-item">
                 <span>VAT:</span>
                 <strong>${VAT_PCT}%</strong>
             </div>
@@ -809,10 +805,7 @@ function updatePrice() {
             { label: 'Newspaper', value: selectedNewspaper.name },
             { label: 'Size', value: `${columns} col x ${height} cm (H)` },
             { label: 'Column Width', value: `${calc.columnWidth.toFixed(1)} cm (${selectedNewspaper.language})` },
-            { label: colorOption === 'color' ? 'Color Rate' : 'B&W Rate', value: `${formatCurrency(calc.rate)}/col-cm` },
-            { label: 'Calculation', value: `${columns} col x ${height} cm x ${formatCurrency(calc.rate)}` },
-            { label: 'Ad Total', value: formatCurrency(calc.adTotal) },
-            { label: `Platform Commission (${COMMISSION_PCT}%)`, value: formatCurrency(calc.commission) },
+            { label: 'Ad Total', value: formatCurrency(calc.adTotal + calc.commission) },
             { label: `VAT (${VAT_PCT}%)`, value: formatCurrency(calc.vat) }
         ];
 
@@ -878,12 +871,10 @@ function updateFloatingPriceBar(total, details) {
 
     // Build short breakdown line
     const adTotalRow = details.find(d => d.label === 'Ad Total');
-    const commRow    = details.find(d => d.label && d.label.startsWith('Platform Commission'));
     const vatRow     = details.find(d => d.label && d.label.startsWith('VAT'));
     const scRow      = details.find(d => d.label === 'Service Charge');
     const parts = [];
     if (adTotalRow) parts.push('Base ' + adTotalRow.value);
-    if (commRow)    parts.push('Comm ' + commRow.value);
     if (vatRow)     parts.push('VAT ' + vatRow.value);
     if (scRow)      parts.push('Service ' + scRow.value);
     const bk = document.getElementById('fpbBreakdown');
@@ -1411,19 +1402,14 @@ function updateOrderSummary() {
     const customerName = document.getElementById('customerName')?.value;
     const customerEmail = document.getElementById('customerEmail')?.value;
 
+    // Ad subtotal includes platform commission for box ads (commission is not
+    // shown to the customer as a separate line).
     const subtotal = adCart.reduce((sum, item) => {
         if (item.adType === 'box') {
-            return sum + item.details.adTotal;
+            return sum + item.details.adTotal + (item.details.commission || 0);
         } else {
             return sum + item.details.adTotal;
         }
-    }, 0);
-
-    const totalCommission = adCart.reduce((sum, item) => {
-        if (item.adType === 'box') {
-            return sum + (item.details.commission || 0);
-        }
-        return sum;
     }, 0);
 
     const totalVAT = adCart.reduce((sum, item) => {
@@ -1470,7 +1456,7 @@ function updateOrderSummary() {
                         <span>${item.description}</span>
                         <small>${formatDate(item.pubDate)}</small>
                     </div>
-                    <div class="item-price">${formatCurrency(item.details.adTotal)}</div>
+                    <div class="item-price">${formatCurrency(item.details.adTotal + (item.adType === 'box' ? (item.details.commission || 0) : 0))}</div>
                 </div>
             `).join('')}
         </div>
@@ -1479,12 +1465,6 @@ function updateOrderSummary() {
                 <span>Ad Subtotal:</span>
                 <span>${formatCurrency(subtotal)}</span>
             </div>
-            ${totalCommission > 0 ? `
-            <div class="charge-row">
-                <span>Platform Commission (${COMMISSION_PCT}%):</span>
-                <span>${formatCurrency(totalCommission)}</span>
-            </div>
-            ` : ''}
             ${totalVAT > 0 ? `
             <div class="charge-row">
                 <span>VAT (${VAT_PCT}%):</span>

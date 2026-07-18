@@ -51,9 +51,11 @@ function buildInvoiceHTML(inv, isPaid) {
     total: inv.total || 0
   };
 
+  // Commission is folded into the advertising subtotal — never shown as its
+  // own line to the customer.
+  const displaySubtotal = money.subtotal + money.commission;
   const breakdownRows = [
-    `<div class="bd-row"><span>Subtotal · advertising</span><span class="bd-v">${fmtLKR(money.subtotal)}</span></div>`,
-    money.commission > 0 ? `<div class="bd-row"><span>Platform commission${inv.commissionPct ? ` (${inv.commissionPct}%)` : ''}</span><span class="bd-v">${fmtLKR(money.commission)}</span></div>` : '',
+    `<div class="bd-row"><span>Subtotal · advertising</span><span class="bd-v">${fmtLKR(displaySubtotal)}</span></div>`,
     money.vat > 0 ? `<div class="bd-row"><span>VAT${inv.vatPct ? ` (${inv.vatPct}%)` : ''}</span><span class="bd-v">${fmtLKR(money.vat)}</span></div>` : '',
     money.service > 0 ? `<div class="bd-row"><span>Classified service charge</span><span class="bd-v">${fmtLKR(money.service)}</span></div>` : '',
     money.discount > 0 ? `<div class="bd-row discount"><span>Discount${inv.promo && inv.promo.code ? ` · ${inv.promo.code}` : ''}</span><span class="bd-v">− ${fmtLKR(money.discount)}</span></div>` : ''
@@ -297,7 +299,7 @@ async function generateInvoicePDF(invoiceData, bookingData, isPaid = true) {
       const parts = [];
       if (item.adType === 'box') {
         if (d.columns && d.height) parts.push(`${d.columns} col × ${d.height} cm`);
-        if (d.area && d.rate) parts.push(`${d.area} cm² @ ${fmtShort(d.rate)}/cm²`);
+        if (d.area) parts.push(`${d.area} cm²`);
         else if (d.size) parts.push(d.size);
         const c = d.colour || d.color || d.colorOption;
         if (c) parts.push(c === 'colour' || c === 'color' || c === 'full' ? 'Full colour' : (c === 'bw' ? 'Black & white' : c));
@@ -318,9 +320,10 @@ async function generateInvoicePDF(invoiceData, bookingData, isPaid = true) {
         lang: d.language || '',
         detail: buildDetail(item, d),
         pubDate: item.pubDate,
-        // "Amount" column shows the advertising base; commission / VAT / service
-        // are itemised separately in the breakdown so subtotal reconciles.
-        base: (d.adTotal != null ? d.adTotal : item.price) || 0
+        // "Amount" column shows the advertising cost with platform commission
+        // baked in (commission is not shown to the customer as a separate line).
+        // VAT / service charge remain itemised in the breakdown below.
+        base: (d.adTotal != null ? d.adTotal + (d.commission || 0) : item.price) || 0
       };
     });
 
