@@ -1,7 +1,7 @@
 /**
- * Invoice / Quotation PDF Generator — Minimal Clean Layout
- * Plain, professional document: clear header, full addresses, and an
- * itemised cost breakdown (per-line specs + component-level totals).
+ * Invoice / Quotation PDF Generator — Native vector PDF (jsPDF)
+ * Draws the invoice directly with jsPDF primitives (real text + lines), so the
+ * output is crisp, selectable, small, and never stretched/rasterised.
  */
 
 // Seller / issuer details (kept in one place so they are easy to update)
@@ -22,273 +22,175 @@ const ADSPOT_BANK = {
   branch: 'Karagampitiya'
 };
 
-function buildInvoiceHTML(inv, isPaid) {
+/**
+ * Draw the invoice/quotation onto a jsPDF document (A4, mm units).
+ */
+function drawInvoice(doc, inv, isPaid) {
   const fmtLKR = n => 'Rs. ' + Number(n || 0).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const fmtDate = d => { try { return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); } catch (e) { return d || ''; } };
+
+  // Geometry (mm) and palette (RGB)
+  const ML = 15, MR = 195, CW = MR - ML;
+  const INK = [17, 24, 39], INK2 = [75, 85, 99], INK3 = [156, 163, 175];
+  const LINE = [229, 231, 235], LINE2 = [209, 213, 219], ACCENT = [14, 107, 71];
+  const DUEBG = [254, 243, 199], DUETX = [146, 64, 14], PAIDBG = [224, 238, 232];
+
+  const T = (txt, x, y, o = {}) => {
+    const { size = 9, style = 'normal', color = INK, align = 'left', charSpace = 0 } = o;
+    doc.setFont('helvetica', style);
+    doc.setFontSize(size);
+    doc.setTextColor(color[0], color[1], color[2]);
+    doc.text(String(txt), x, y, { align, charSpace });
+  };
+  const rule = (x1, y1, x2, y2, c = LINE, w = 0.3) => {
+    doc.setDrawColor(c[0], c[1], c[2]); doc.setLineWidth(w); doc.line(x1, y1, x2, y2);
+  };
+  const textW = (txt, size, style = 'normal') => {
+    doc.setFont('helvetica', style); doc.setFontSize(size); return doc.getTextWidth(String(txt));
+  };
 
   const docLabel = isPaid ? 'INVOICE' : 'QUOTATION';
   const statusLabel = isPaid ? 'PAID' : 'PAYMENT DUE';
 
-  // ---- Line items -----------------------------------------------------------
-  const itemRows = (inv.items || []).map((it, i) => `
-    <tr class="li">
-      <td class="li-no">${i + 1}</td>
-      <td class="li-desc">
-        <div class="li-name">${it.paper}</div>
-        <div class="li-sub">${it.adType}${it.lang ? ' · ' + it.lang : ''}${it.pubDate ? ' · Publishes ' + fmtDate(it.pubDate) : ''}</div>
-        ${it.detail ? `<div class="li-spec">${it.detail}</div>` : ''}
-      </td>
-      <td class="li-amt">${fmtLKR(it.base)}</td>
-    </tr>`).join('');
+  // ── Header ──────────────────────────────────────────────────────────────
+  const by = 20;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
+  let bx = ML;
+  doc.setTextColor(...INK); doc.text('AdSpot', bx, by); bx += doc.getTextWidth('AdSpot');
+  doc.setTextColor(...ACCENT); doc.text('.', bx, by); bx += doc.getTextWidth('.');
+  doc.setTextColor(...INK); doc.text('Media', bx, by);
+  T('Newspaper Advertising · Sri Lanka', ML, by + 5, { size: 8, color: INK3 });
 
-  // ---- Cost breakdown -------------------------------------------------------
-  const money = {
-    subtotal: inv.subtotal || 0,
-    commission: inv.commission || 0,
-    vat: inv.vat || 0,
-    service: inv.serviceCharge || 0,
-    discount: inv.promoDiscount || 0,
-    total: inv.total || 0
+  T(docLabel, MR, by - 1, { size: 19, style: 'bold', align: 'right', charSpace: 0.3 });
+  T(inv.invoiceNumber || '', MR, by + 5, { size: 9.5, style: 'bold', align: 'right' });
+  const stFS = 7.5, stW = textW(statusLabel, stFS, 'bold') + 6, stH = 5.4, stX = MR - stW, stY = by + 8;
+  doc.setFillColor(...(isPaid ? PAIDBG : DUEBG));
+  doc.roundedRect(stX, stY, stW, stH, 1.2, 1.2, 'F');
+  T(statusLabel, stX + 3, stY + 3.7, { size: stFS, style: 'bold', color: isPaid ? ACCENT : DUETX, charSpace: 0.3 });
+
+  let y = by + 18;
+  rule(ML, y, MR, y, INK, 0.6);
+
+  // ── Meta strip ──────────────────────────────────────────────────────────
+  y += 9;
+  const meta = [
+    { l: isPaid ? 'INVOICE NO.' : 'QUOTATION NO.', v: isPaid ? inv.invoiceNumber : (inv.quotationNumber || inv.invoiceNumber) },
+    { l: 'REFERENCE', v: inv.quotationNumber || inv.invoiceNumber || '-' },
+    { l: isPaid ? 'PAID ON' : 'ISSUED', v: fmtDate(isPaid ? (inv.paidAt || inv.issueDate) : inv.issueDate) },
+    { l: 'PAYMENT METHOD', v: inv.paymentMethod === 'helapay' ? 'HelaPay QR' : 'Bank Transfer' }
+  ];
+  const colW = CW / 4;
+  meta.forEach((c, i) => {
+    const x = ML + i * colW;
+    T(c.l, x, y, { size: 6.5, color: INK3, style: 'bold', charSpace: 0.3 });
+    T(c.v, x, y + 4.6, { size: 9, style: 'normal' });
+  });
+
+  // ── Parties ─────────────────────────────────────────────────────────────
+  y += 14;
+  const drawParty = (x, label, name, lines) => {
+    let yy = y;
+    T(label, x, yy, { size: 6.5, color: INK3, style: 'bold', charSpace: 0.3 }); yy += 5.4;
+    T(name, x, yy, { size: 11.5, style: 'bold' }); yy += 5;
+    lines.forEach(ln => {
+      if (!ln) return;
+      T(ln.t, x, yy, { size: 8.5, color: ln.ink ? INK : INK2, style: ln.ink ? 'bold' : 'normal' });
+      yy += 4.3;
+    });
+    return yy;
   };
+  const fromLines = [
+    ...ADSPOT_SELLER.addressLines.map(t => ({ t })),
+    { t: ADSPOT_SELLER.email }, { t: ADSPOT_SELLER.phones }, { t: ADSPOT_SELLER.reg }
+  ];
+  const billLines = [
+    inv.customer.company ? { t: inv.customer.company, ink: true } : null,
+    inv.customer.address ? { t: inv.customer.address } : null,
+    { t: inv.customer.email },
+    inv.customer.phone ? { t: inv.customer.phone } : null
+  ].filter(Boolean);
+  const yA = drawParty(ML, 'FROM', ADSPOT_SELLER.name, fromLines);
+  const yB = drawParty(ML + CW / 2, 'BILL TO', inv.customer.name || '-', billLines);
+  y = Math.max(yA, yB) + 8;
 
-  // Derive the advertising subtotal from the authoritative total so the
-  // breakdown always reconciles (subtotal + VAT + service − discount = total)
-  // regardless of what value the caller passed as `subtotal`. Commission is
-  // folded into this figure and never shown as its own line.
+  // ── Items table ─────────────────────────────────────────────────────────
+  T('#', ML, y, { size: 6.5, color: INK2, style: 'bold' });
+  T('DESCRIPTION', ML + 8, y, { size: 6.5, color: INK2, style: 'bold', charSpace: 0.3 });
+  T('AMOUNT', MR, y, { size: 6.5, color: INK2, style: 'bold', align: 'right', charSpace: 0.3 });
+  y += 2.5; rule(ML, y, MR, y, INK, 0.5); y += 0.5;
+
+  (inv.items || []).forEach((it, i) => {
+    let ty = y + 4.6;
+    T(String(i + 1), ML, ty, { size: 8.5, color: INK3 });
+    T(it.paper || '', ML + 8, ty, { size: 9.5, style: 'bold' });
+    T(fmtLKR(it.base), MR, ty, { size: 9.5, align: 'right' });
+    ty += 4;
+    const sub = `${it.adType}${it.lang ? ' · ' + it.lang : ''}${it.pubDate ? ' · Publishes ' + fmtDate(it.pubDate) : ''}`;
+    T(sub, ML + 8, ty, { size: 8, color: INK2 }); ty += 3.7;
+    if (it.detail) { T(it.detail, ML + 8, ty, { size: 7.5, color: INK3 }); ty += 3.7; }
+    y = ty + 2.6;
+    rule(ML, y, MR, y, LINE, 0.3); y += 0.3;
+  });
+
+  // ── Cost breakdown (right-aligned) ───────────────────────────────────────
+  y += 5;
+  const bxL = MR - 92;
+  const money = {
+    vat: inv.vat || 0, service: inv.serviceCharge || 0,
+    discount: inv.promoDiscount || 0, total: inv.total || 0
+  };
+  // Derive advertising subtotal from the authoritative total so it reconciles
   const displaySubtotal = money.total - money.vat - money.service + money.discount;
-  const breakdownRows = [
-    `<div class="bd-row"><span>Subtotal · advertising</span><span class="bd-v">${fmtLKR(displaySubtotal)}</span></div>`,
-    money.vat > 0 ? `<div class="bd-row"><span>VAT${inv.vatPct ? ` (${inv.vatPct}%)` : ''}</span><span class="bd-v">${fmtLKR(money.vat)}</span></div>` : '',
-    money.service > 0 ? `<div class="bd-row"><span>Classified service charge</span><span class="bd-v">${fmtLKR(money.service)}</span></div>` : '',
-    money.discount > 0 ? `<div class="bd-row discount"><span>Discount${inv.promo && inv.promo.code ? ` · ${inv.promo.code}` : ''}</span><span class="bd-v">− ${fmtLKR(money.discount)}</span></div>` : ''
-  ].filter(Boolean).join('');
+  const rows = [['Subtotal · advertising', fmtLKR(displaySubtotal), false]];
+  if (money.vat > 0) rows.push([`VAT${inv.vatPct ? ` (${inv.vatPct}%)` : ''}`, fmtLKR(money.vat), false]);
+  if (money.service > 0) rows.push(['Classified service charge', fmtLKR(money.service), false]);
+  if (money.discount > 0) rows.push([`Discount${inv.promo && inv.promo.code ? ' · ' + inv.promo.code : ''}`, '- ' + fmtLKR(money.discount), true]);
+  rows.forEach(r => {
+    T(r[0], bxL, y, { size: 9, color: r[2] ? ACCENT : INK2 });
+    T(r[1], MR, y, { size: 9, align: 'right', color: r[2] ? ACCENT : INK });
+    y += 5.3;
+  });
+  y += 2; rule(bxL, y, MR, y, INK, 0.6); y += 6.6;
+  T(isPaid ? 'TOTAL PAID' : 'TOTAL DUE', bxL, y, { size: 9, style: 'bold', charSpace: 0.3 });
+  T(fmtLKR(money.total), MR, y, { size: 15, style: 'bold', align: 'right' });
+  y += 4;
 
-  // ---- Bank block (unpaid quotations only) ----------------------------------
-  const bankBlock = !isPaid ? `
-    <section class="pay">
-      <div class="pay-title">How to pay by bank transfer</div>
-      <div class="pay-grid">
-        <div class="pay-c"><span class="pay-lbl">Bank</span><span class="pay-val">${ADSPOT_BANK.bank}</span></div>
-        <div class="pay-c"><span class="pay-lbl">Account name</span><span class="pay-val">${ADSPOT_BANK.name}</span></div>
-        <div class="pay-c"><span class="pay-lbl">Account no.</span><span class="pay-val">${ADSPOT_BANK.account}</span></div>
-        <div class="pay-c"><span class="pay-lbl">Branch</span><span class="pay-val">${ADSPOT_BANK.branch}</span></div>
-      </div>
-      <div class="pay-note">Please use your reference <strong>${inv.quotationNumber || inv.invoiceNumber}</strong> when making the transfer, then upload your receipt from “My Bookings”.</div>
-    </section>` : '';
+  // ── Bank block (unpaid quotations only) ──────────────────────────────────
+  if (!isPaid) {
+    y += 8;
+    const noteStr = `Please use your reference ${inv.quotationNumber || inv.invoiceNumber} when making the transfer, then upload your receipt from "My Bookings".`;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
+    const noteLines = doc.splitTextToSize(noteStr, CW - 12);
+    const boxH = 32 + noteLines.length * 3.4;
+    doc.setDrawColor(...LINE2); doc.setLineWidth(0.3);
+    doc.roundedRect(ML, y, CW, boxH, 2, 2, 'S');
+    let iy = y + 6;
+    T('HOW TO PAY BY BANK TRANSFER', ML + 6, iy, { size: 8, style: 'bold', charSpace: 0.3 }); iy += 6.5;
+    const cL = ML + 6, cR = ML + CW / 2 + 2;
+    T('BANK', cL, iy, { size: 6.5, color: INK3, style: 'bold', charSpace: 0.2 });
+    T('ACCOUNT NAME', cR, iy, { size: 6.5, color: INK3, style: 'bold', charSpace: 0.2 }); iy += 4;
+    T(ADSPOT_BANK.bank, cL, iy, { size: 9, style: 'bold' });
+    T(ADSPOT_BANK.name, cR, iy, { size: 9, style: 'bold' }); iy += 6.5;
+    T('ACCOUNT NO.', cL, iy, { size: 6.5, color: INK3, style: 'bold', charSpace: 0.2 });
+    T('BRANCH', cR, iy, { size: 6.5, color: INK3, style: 'bold', charSpace: 0.2 }); iy += 4;
+    T(ADSPOT_BANK.account, cL, iy, { size: 9, style: 'bold' });
+    T(ADSPOT_BANK.branch, cR, iy, { size: 9, style: 'bold' }); iy += 5.5;
+    noteLines.forEach((ln, k) => T(ln, ML + 6, iy + k * 3.4, { size: 7.5, color: INK2 }));
+  }
 
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<style>
-:root {
-  --ink: #111827;
-  --ink-2: #4b5563;
-  --ink-3: #9ca3af;
-  --line: #e5e7eb;
-  --line-2: #d1d5db;
-  --accent: #0E6B47;
-  --paper: #ffffff;
-  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: #f3f4f6; }
-
-.inv {
-  font-family: var(--font);
-  color: var(--ink);
-  background: var(--paper);
-  -webkit-font-smoothing: antialiased;
-  width: 794px;
-  min-height: 1123px;
-  padding: 44px 52px;
-  display: flex;
-  flex-direction: column;
-  font-size: 12.5px;
-  line-height: 1.45;
-}
-.inv *, .inv *::before, .inv *::after { box-sizing: border-box; }
-.num { font-variant-numeric: tabular-nums; }
-
-/* Header */
-.hd { display: flex; justify-content: space-between; align-items: flex-start; }
-.hd-brand { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
-.hd-brand span { color: var(--accent); }
-.hd-tag { font-size: 11px; color: var(--ink-3); margin-top: 2px; letter-spacing: 0.02em; }
-.hd-r { text-align: right; }
-.hd-doc { font-size: 26px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink); }
-.hd-no { font-size: 13px; font-weight: 600; margin-top: 4px; }
-.hd-status {
-  display: inline-block; margin-top: 8px; padding: 3px 10px; border-radius: 4px;
-  font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
-}
-.hd-status.paid { background: rgba(14,107,71,0.10); color: var(--accent); }
-.hd-status.due { background: #fef3c7; color: #92400e; }
-
-.rule { height: 2px; background: var(--ink); margin: 16px 0 0; }
-
-/* Meta strip */
-.meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-top: 16px; }
-.meta-c { display: flex; flex-direction: column; gap: 2px; }
-.meta-lbl { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 600; }
-.meta-val { font-size: 12.5px; font-weight: 500; }
-
-/* Parties */
-.parties { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 20px; }
-.party-lbl { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 600; margin-bottom: 6px; }
-.party-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
-.party-line { color: var(--ink-2); font-size: 12px; line-height: 1.55; }
-
-/* Items table */
-.items { width: 100%; border-collapse: collapse; margin-top: 22px; }
-.items thead th {
-  font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600;
-  color: var(--ink-2); text-align: left; padding: 0 0 8px; border-bottom: 1.5px solid var(--ink);
-}
-.items thead th.r { text-align: right; }
-.items th.c-no { width: 30px; }
-.items th.c-amt { width: 130px; }
-.li td { padding: 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
-.li-no { color: var(--ink-3); font-size: 12px; }
-.li-name { font-weight: 600; font-size: 13px; }
-.li-sub { color: var(--ink-2); font-size: 11.5px; margin-top: 1px; }
-.li-spec { color: var(--ink-3); font-size: 11px; margin-top: 3px; }
-.li-amt { text-align: right; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
-
-/* Breakdown */
-.summary { display: flex; justify-content: flex-end; margin-top: 16px; }
-.bd { width: 340px; }
-.bd-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 12.5px; color: var(--ink-2); }
-.bd-v { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
-.bd-row.discount, .bd-row.discount .bd-v { color: var(--accent); }
-.bd-total {
-  display: flex; justify-content: space-between; align-items: baseline;
-  margin-top: 8px; padding-top: 12px; border-top: 2px solid var(--ink);
-}
-.bd-total-l { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-.bd-total-v { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
-
-/* Payment / bank */
-.pay { margin-top: 20px; border: 1px solid var(--line-2); border-radius: 8px; padding: 14px 18px; }
-.pay-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink); margin-bottom: 10px; }
-.pay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; }
-.pay-c { display: flex; flex-direction: column; gap: 1px; }
-.pay-lbl { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); font-weight: 600; }
-.pay-val { font-size: 12.5px; font-weight: 600; }
-.pay-note { margin-top: 12px; font-size: 11px; color: var(--ink-2); line-height: 1.5; }
-.pay-note strong { color: var(--ink); }
-
-/* Footer */
-.foot {
-  margin-top: auto; padding-top: 18px; border-top: 1px solid var(--line);
-  display: flex; justify-content: space-between; align-items: flex-end;
-  font-size: 10.5px; color: var(--ink-3); line-height: 1.6;
-}
-.foot-thanks { font-size: 13px; font-weight: 600; color: var(--ink); }
-.foot-r { text-align: right; }
-</style>
-</head>
-<body>
-<div class="inv">
-
-  <header class="hd">
-    <div class="hd-l">
-      <div class="hd-brand">AdSpot<span>.</span>Media</div>
-      <div class="hd-tag">Newspaper Advertising · Sri Lanka</div>
-    </div>
-    <div class="hd-r">
-      <div class="hd-doc">${docLabel}</div>
-      <div class="hd-no num">${inv.invoiceNumber || ''}</div>
-      <div class="hd-status ${isPaid ? 'paid' : 'due'}">${statusLabel}</div>
-    </div>
-  </header>
-
-  <div class="rule"></div>
-
-  <section class="meta">
-    <div class="meta-c">
-      <span class="meta-lbl">${isPaid ? 'Invoice No.' : 'Quotation No.'}</span>
-      <span class="meta-val num">${isPaid ? inv.invoiceNumber : (inv.quotationNumber || inv.invoiceNumber)}</span>
-    </div>
-    <div class="meta-c">
-      <span class="meta-lbl">Reference</span>
-      <span class="meta-val num">${inv.quotationNumber || inv.invoiceNumber || '—'}</span>
-    </div>
-    <div class="meta-c">
-      <span class="meta-lbl">${isPaid ? 'Paid on' : 'Issued'}</span>
-      <span class="meta-val">${fmtDate(isPaid ? (inv.paidAt || inv.issueDate) : inv.issueDate)}</span>
-    </div>
-    <div class="meta-c">
-      <span class="meta-lbl">Payment method</span>
-      <span class="meta-val">${inv.paymentMethod === 'helapay' ? 'HelaPay QR' : 'Bank Transfer'}</span>
-    </div>
-  </section>
-
-  <section class="parties">
-    <div>
-      <div class="party-lbl">From</div>
-      <div class="party-name">${ADSPOT_SELLER.name}</div>
-      ${ADSPOT_SELLER.addressLines.map(l => `<div class="party-line">${l}</div>`).join('')}
-      <div class="party-line">${ADSPOT_SELLER.email}</div>
-      <div class="party-line">${ADSPOT_SELLER.phones}</div>
-      <div class="party-line">${ADSPOT_SELLER.reg}</div>
-    </div>
-    <div>
-      <div class="party-lbl">Bill to</div>
-      <div class="party-name">${inv.customer.name || '—'}</div>
-      ${inv.customer.company ? `<div class="party-line" style="font-weight:500;color:var(--ink);">${inv.customer.company}</div>` : ''}
-      ${inv.customer.address ? `<div class="party-line">${inv.customer.address}</div>` : ''}
-      <div class="party-line">${inv.customer.email || ''}</div>
-      ${inv.customer.phone ? `<div class="party-line">${inv.customer.phone}</div>` : ''}
-    </div>
-  </section>
-
-  <table class="items">
-    <thead>
-      <tr>
-        <th class="c-no">#</th>
-        <th>Description</th>
-        <th class="c-amt r">Amount</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${itemRows}
-    </tbody>
-  </table>
-
-  <section class="summary">
-    <div class="bd">
-      ${breakdownRows}
-      <div class="bd-total">
-        <span class="bd-total-l">${isPaid ? 'Total Paid' : 'Total Due'}</span>
-        <span class="bd-total-v">${fmtLKR(money.total)}</span>
-      </div>
-    </div>
-  </section>
-
-  ${bankBlock}
-
-  <footer class="foot">
-    <div>
-      <div class="foot-thanks">Thank you for advertising with us.</div>
-      <div>${ADSPOT_SELLER.name} · ${ADSPOT_SELLER.reg}</div>
-    </div>
-    <div class="foot-r">
-      <div>${ADSPOT_SELLER.email}</div>
-      <div>${ADSPOT_SELLER.phones}</div>
-      <div>${ADSPOT_SELLER.web}</div>
-    </div>
-  </footer>
-
-</div>
-</body>
-</html>`;
+  // ── Footer (anchored near page bottom) ───────────────────────────────────
+  const fy = 280;
+  rule(ML, fy, MR, fy, LINE, 0.3);
+  T('Thank you for advertising with us.', ML, fy + 5, { size: 9.5, style: 'bold' });
+  T(`${ADSPOT_SELLER.name} · ${ADSPOT_SELLER.reg}`, ML, fy + 9.5, { size: 7.5, color: INK3 });
+  T(ADSPOT_SELLER.email, MR, fy + 5, { size: 7.5, color: INK3, align: 'right' });
+  T(ADSPOT_SELLER.phones, MR, fy + 9, { size: 7.5, color: INK3, align: 'right' });
+  T(ADSPOT_SELLER.web, MR, fy + 13, { size: 7.5, color: INK3, align: 'right' });
 }
 
 async function generateInvoicePDF(invoiceData, bookingData, isPaid = true) {
   try {
     if (typeof jspdf === 'undefined') throw new Error('jsPDF not loaded');
-    if (typeof html2canvas === 'undefined') throw new Error('html2canvas not loaded');
 
     const fmtShort = n => 'Rs. ' + Number(n || 0).toLocaleString('en-LK');
 
@@ -320,8 +222,8 @@ async function generateInvoicePDF(invoiceData, bookingData, isPaid = true) {
         detail: buildDetail(item, d),
         pubDate: item.pubDate,
         // "Amount" column shows the advertising cost with platform commission
-        // baked in (commission is not shown to the customer as a separate line).
-        // VAT / service charge remain itemised in the breakdown below.
+        // baked in (commission is not shown as a separate line). VAT / service
+        // charge remain itemised in the breakdown below.
         base: (d.adTotal != null ? d.adTotal + (d.commission || 0) : item.price) || 0
       };
     });
@@ -340,7 +242,6 @@ async function generateInvoicePDF(invoiceData, bookingData, isPaid = true) {
         phone: bookingData.customerPhone || ''
       },
       items,
-      // Absolute money values (accurate) + percentages for labels
       subtotal: invoiceData.subtotal || 0,
       commission: invoiceData.commission || 0,
       vat: invoiceData.vat || 0,
@@ -354,42 +255,9 @@ async function generateInvoicePDF(invoiceData, bookingData, isPaid = true) {
       total: invoiceData.total || 0
     };
 
-    const container = document.createElement('div');
-    container.style.cssText = 'position:fixed;left:-9999px;top:0;z-index:-9999;width:794px;';
-    container.innerHTML = buildInvoiceHTML(inv, isPaid);
-    document.body.appendChild(container);
-
-    // Uses system fonts (no web-font dependency) — a short settle is enough
-    await new Promise(r => setTimeout(r, 300));
-    try { await document.fonts.ready; } catch (e) {}
-
-    const el = container.querySelector('.inv');
-    const canvas = await html2canvas(el, {
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      logging: false,
-      backgroundColor: '#ffffff',
-      width: 794,
-      windowWidth: 794
-    });
-    document.body.removeChild(container);
-
     const { jsPDF } = jspdf;
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const pw = doc.internal.pageSize.getWidth();
-    const ph = doc.internal.pageSize.getHeight();
-    const data = canvas.toDataURL('image/jpeg', 0.95);
-    const imgH = (canvas.height / canvas.width) * pw;
-    if (imgH <= ph + 0.5) {
-      // Fits on one page — full width, natural height (no distortion)
-      doc.addImage(data, 'JPEG', 0, 0, pw, imgH);
-    } else {
-      // Taller than one page — scale down to fit, preserving aspect ratio and
-      // centering horizontally, so the invoice is never vertically squished.
-      const scaledW = (canvas.width / canvas.height) * ph;
-      doc.addImage(data, 'JPEG', (pw - scaledW) / 2, 0, scaledW, ph);
-    }
+    drawInvoice(doc, inv, isPaid);
 
     const blob = doc.output('blob');
     const path = `invoices/${invoiceData.invoiceNumber}.pdf`;
@@ -406,4 +274,4 @@ async function generateInvoicePDF(invoiceData, bookingData, isPaid = true) {
 }
 
 window.generateInvoicePDF = generateInvoicePDF;
-console.log('✅ Invoice PDF generator (Minimal Clean Layout) loaded');
+console.log('✅ Invoice PDF generator (native vector) loaded');
