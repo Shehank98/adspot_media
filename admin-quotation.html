@@ -1197,20 +1197,18 @@
             return;
         }
 
-        let adTotal = 0, commission = 0, svc = 0;
+        let adTotal = 0, commission = 0, vat = 0, svc = 0;
         items.forEach(it => {
             adTotal    += it._adTotal    || 0;
             commission += it._commission || 0;
+            vat        += it._vat        || 0;
             svc        += it._svc        || 0;
         });
 
-        // Discount is applied BEFORE tax: it reduces the ad cost, then VAT is
-        // charged on the discounted amount (so waiving commission and giving a
-        // discount tally correctly).
-        const vatRate  = (typeof CONFIG !== 'undefined' && CONFIG.CHARGES) ? CONFIG.CHARGES.vatRate : 0.18;
+        // Discount is a % of the ad cost, shown before the VAT line so it
+        // offsets the commission cleanly. VAT stays on the ad cost.
         const discPct  = parseFloat(document.getElementById('qtDiscountPct').value) || 0;
         const discAmt  = Math.round(adTotal * discPct / 100);
-        const vat      = Math.round((adTotal - discAmt) * vatRate);
         const subtotal = adTotal + commission;           // advertising subtotal (commission folded, hidden on PDF)
         const grand    = adTotal + commission - discAmt + vat + svc;
 
@@ -1242,7 +1240,7 @@
             </div>`;
         if (discAmt > 0) rowsHTML += `
             <div class="summary-row sr-discount">
-                <span>Discount (${discPct}%, before tax)</span>
+                <span>Discount (${discPct}%)</span>
                 <span class="sr-val">- ${fmtRs(discAmt)}</span>
             </div>`;
         if (vat > 0) rowsHTML += `
@@ -1296,17 +1294,17 @@
         btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Generating PDF…`;
 
         try {
-            let adTotal = 0, commission = 0, svc = 0;
+            let adTotal = 0, commission = 0, vat = 0, svc = 0;
             items.forEach(it => {
                 adTotal    += it._adTotal    || 0;
                 commission += it._commission || 0;
+                vat        += it._vat        || 0;
                 svc        += it._svc        || 0;
             });
-            // Discount applied BEFORE tax (reduces the ad cost, VAT on the rest)
-            const vatRate  = (typeof CONFIG !== 'undefined' && CONFIG.CHARGES) ? CONFIG.CHARGES.vatRate : 0.18;
+            // Discount is a % of the ad cost, shown before the VAT line so it
+            // offsets the commission cleanly. VAT stays on the ad cost.
             const discPct  = parseFloat(document.getElementById('qtDiscountPct').value) || 0;
             const discAmt  = Math.round(adTotal * discPct / 100);
-            const vat      = Math.round((adTotal - discAmt) * vatRate);
             const subtotal = adTotal + commission;
             const grand    = adTotal + commission - discAmt + vat + svc;
 
