@@ -142,9 +142,10 @@ function drawInvoice(doc, inv, isPaid) {
   // Derive advertising subtotal from the authoritative total so it reconciles
   const displaySubtotal = money.total - money.vat - money.service + money.discount;
   const rows = [['Subtotal · advertising', fmtLKR(displaySubtotal), false]];
+  // Discount is shown before VAT — it reduces the taxable amount
+  if (money.discount > 0) rows.push([`Discount${inv.promo && inv.promo.code ? ' · ' + inv.promo.code : ''}`, '- ' + fmtLKR(money.discount), true]);
   if (money.vat > 0) rows.push([`VAT${inv.vatPct ? ` (${inv.vatPct}%)` : ''}`, fmtLKR(money.vat), false]);
   if (money.service > 0) rows.push(['Classified service charge', fmtLKR(money.service), false]);
-  if (money.discount > 0) rows.push([`Discount${inv.promo && inv.promo.code ? ' · ' + inv.promo.code : ''}`, '- ' + fmtLKR(money.discount), true]);
   rows.forEach(r => {
     T(r[0], bxL, y, { size: 9, color: r[2] ? ACCENT : INK2 });
     T(r[1], MR, y, { size: 9, align: 'right', color: r[2] ? ACCENT : INK });
