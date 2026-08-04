@@ -480,6 +480,40 @@
         .clf-compose-summary strong { color: #0f172a; font-variant-numeric: tabular-nums; }
         .clf-compose-summary .cs-total { color: #2563eb; font-size: 15px; }
         #clfAddBtn:disabled { opacity: .5; cursor: not-allowed; }
+
+        /* ── Document type tabs ── */
+        .doc-tabs {
+            display: inline-flex;
+            gap: 4px;
+            padding: 4px;
+            background: #e2e8f0;
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+        .doc-tab {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 9px 20px;
+            border: none;
+            background: transparent;
+            border-radius: 9px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #64748b;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all .15s;
+        }
+        .doc-tab:hover { color: #334155; }
+        .doc-tab.active {
+            background: #fff;
+            color: #0f172a;
+            box-shadow: 0 1px 3px rgba(15,23,42,.12);
+        }
+        .doc-tab.active#tabInvoice { color: #0E6B47; }
+        .doc-tabs-hint { font-size: 12.5px; color: #64748b; margin: 0 0 24px; }
+        .doc-tabs-hint strong { color: #0f172a; }
     </style>
 </head>
 <body>
@@ -514,14 +548,27 @@
     <main class="page-wrap">
         <div class="page-header">
             <div>
-                <h1>New Quotation</h1>
-                <p class="page-header-sub">Create a quotation and send it to the customer by email.</p>
+                <h1 id="docTitle">New Quotation</h1>
+                <p class="page-header-sub" id="docSub">Create a quotation and send it to the customer by email.</p>
             </div>
             <a href="/admin-bookings" class="btn-back">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
                 Bookings
             </a>
         </div>
+
+        <!-- Document type tabs -->
+        <div class="doc-tabs">
+            <button type="button" class="doc-tab active" id="tabQuotation" onclick="setDocMode('quotation')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+                Quotation
+            </button>
+            <button type="button" class="doc-tab" id="tabInvoice" onclick="setDocMode('invoice')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M9 12l2 2 4-4M12 22a10 10 0 100-20 10 10 0 000 20z"/></svg>
+                Invoice (paid)
+            </button>
+        </div>
+        <p class="doc-tabs-hint" id="docTabsHint">Send a quotation first; after the customer pays, switch to <strong>Invoice</strong> and generate the paid invoice from the same details.</p>
 
         <!-- Customer Details -->
         <div class="card">
@@ -671,13 +718,30 @@
     <script src="js/auth.js"></script>
     <script src="js/config.js"></script>
     <script src="js/firebase-db.js"></script>
-    <script src="js/invoice-pdf.js?v=6"></script>
+    <script src="js/invoice-pdf.js?v=7"></script>
 
     <script>
     // ─── State ────────────────────────────────────────────────────────────────
     let items = [];
     let itemCounter = 0;
     let allCustomers = [];
+    let docMode = 'quotation'; // 'quotation' | 'invoice'
+
+    const SEND_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>';
+
+    function setDocMode(mode) {
+        docMode = mode === 'invoice' ? 'invoice' : 'quotation';
+        const isInv = docMode === 'invoice';
+        document.getElementById('tabQuotation').classList.toggle('active', !isInv);
+        document.getElementById('tabInvoice').classList.toggle('active', isInv);
+        document.getElementById('docTitle').textContent = isInv ? 'New Invoice' : 'New Quotation';
+        document.getElementById('docSub').textContent = isInv
+            ? 'Generate a paid invoice for a customer who has already paid.'
+            : 'Create a quotation and send it to the customer by email.';
+        const btn = document.getElementById('qtSendBtn');
+        if (btn) btn.innerHTML = SEND_ICON + (isInv ? ' Generate Invoice' : ' Generate Quotation');
+    }
+    window.setDocMode = setDocMode;
 
     // ─── Utilities ────────────────────────────────────────────────────────────
     function fmtRs(n) {
@@ -720,14 +784,16 @@
     }
 
     // ─── Pricing logic (mirrors config.js exactly) ────────────────────────────
-    function calcBoxAd(np, height, columns, colorOption) {
+    function calcBoxAd(np, height, columns, colorOption, posPct = 0) {
         const area = height * columns;
         const rate = colorOption === 'color' ? np.colorRate : np.bwRate;
-        const adTotal  = area * rate;
+        const baseAdTotal = area * rate;                    // H × W × rate
+        const posSurcharge = baseAdTotal * ((posPct || 0) / 100); // special position %
+        const adTotal    = baseAdTotal + posSurcharge;      // ad cost incl. position
         const commission = adTotal * CONFIG.CHARGES.boxAdCommission;
         const vat        = adTotal * CONFIG.CHARGES.vatRate;
         const total      = adTotal + commission + vat;
-        return { area, rate, adTotal, commission, vat, total };
+        return { area, rate, baseAdTotal, posSurcharge, posPct: posPct || 0, adTotal, commission, vat, total };
     }
 
     function calcClassified(np, wordCount) {
@@ -746,10 +812,15 @@
         if (!np) return '';
 
         if (item.adType === 'box') {
-            const c = calcBoxAd(np, item.height, item.columns, item.colorOption);
+            const c = calcBoxAd(np, item.height, item.columns, item.colorOption, item.positionPct || 0);
             const commPct  = Math.round(CONFIG.CHARGES.boxAdCommission * 100);
             const vatPct   = Math.round(CONFIG.CHARGES.vatRate * 100);
             const colorLbl = item.colorOption === 'black' ? 'B&W' : 'Colour';
+            const posRow = c.posPct > 0 ? `
+                    <tr>
+                        <td>${item.positionLabel || 'Special position'} (+${c.posPct}%)</td>
+                        <td>${fmtRs(c.posSurcharge)}</td>
+                    </tr>` : '';
             return `
                 <div class="breakdown-title">Rate Calculation</div>
                 <table class="breakdown-table">
@@ -763,8 +834,9 @@
                     </tr>
                     <tr>
                         <td>Ad cost (${c.area} × ${fmtRs(c.rate)})</td>
-                        <td>${fmtRs(c.adTotal)}</td>
+                        <td>${fmtRs(c.baseAdTotal)}</td>
                     </tr>
+                    ${posRow}
                     <tr>
                         <td>Commission (${commPct}% of ad cost)</td>
                         <td>${fmtRs(c.commission)}</td>
@@ -820,7 +892,7 @@
             return;
         }
         if (item.adType === 'box') {
-            const c = calcBoxAd(np, item.height, item.columns, item.colorOption);
+            const c = calcBoxAd(np, item.height, item.columns, item.colorOption, item.positionPct || 0);
             item._adTotal    = c.adTotal;
             item._commission = c.commission;
             item._vat        = c.vat;
@@ -864,6 +936,16 @@
                         <option value="black" ${item.colorOption==='black'?'selected':''}>Black &amp; White</option>
                         <option value="color" ${item.colorOption==='color'?'selected':''}>Full Colour</option>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Position</label>
+                    <input type="text" class="form-input" value="${item.positionLabel || ''}" placeholder="e.g. Front Page"
+                        onchange="updateItem(${item.id},'positionLabel',this.value)">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Position extra %</label>
+                    <input type="number" class="form-input" value="${item.positionPct || 0}" min="0" step="5"
+                        onchange="updateItem(${item.id},'positionPct',+this.value)">
                 </div>` : `
                 <div class="form-group" style="grid-column: 1 / -1;">
                     <label class="form-label">Ad Text
@@ -917,6 +999,8 @@
             height: 4,
             columns: 2,
             colorOption: 'black',
+            positionLabel: '',
+            positionPct: 0,
             pubDate: '',
             price: 0,
             _adTotal: 0, _commission: 0, _vat: 0, _svc: 0
@@ -1225,12 +1309,16 @@
             const discAmt  = Math.round(subtotal * discPct / 100);
             const grand    = subtotal - discAmt;
 
+            const isPaid  = docMode === 'invoice';
+            const docNoun = isPaid ? 'Invoice' : 'Quotation';
             const quotationNumber = (typeof generateQuotationNumber === 'function')
                 ? generateQuotationNumber()
                 : 'QT-' + Date.now();
-            const invoiceNumber = (typeof generateInvoiceNumber === 'function')
-                ? generateInvoiceNumber()
-                : 'INV-' + Date.now();
+            const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+            // Invoice gets its own INV- number; quotation uses the quotation number as its doc number
+            const invoiceNumber = isPaid
+                ? 'INV-' + stamp + '-' + Math.floor(1000 + Math.random() * 9000)
+                : quotationNumber;
 
             const mappedItems = items.map(it => {
               const np = getNewspaperList().find(n => n.name === it.newspaper);
@@ -1243,6 +1331,8 @@
                 height: it.height,
                 columns: it.columns,
                 colorOption: it.colorOption,
+                positionLabel: it.positionLabel || '',
+                positionPct: it.positionPct || 0,
                 wordCount: it.wordCount,
                 freeWords: np ? (np.classifiedFreeWords || 0) : 0,
                 extraRate: np ? (np.classifiedExtraRate || 0) : 0,
@@ -1277,7 +1367,7 @@
             // Upload a copy for our records (works with or without an email).
             let pdfUrl = '';
             if (typeof generateInvoicePDF === 'function') {
-                try { pdfUrl = await generateInvoicePDF(invoiceData, bookingData, false); }
+                try { pdfUrl = await generateInvoicePDF(invoiceData, bookingData, isPaid); }
                 catch (e) { console.warn('PDF upload failed:', e); }
             }
 
@@ -1285,30 +1375,63 @@
                 ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Saving &amp; Sending…`
                 : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg> Preparing download…`;
 
-            // Save to PostgreSQL (email stored as TBD when not provided)
+            const notes = document.getElementById('qtNotes').value.trim();
+
+            // Save to PostgreSQL (email stored as TBD when not provided).
+            // Invoices go to /api/invoices, quotations to /api/quotations.
             try {
-                await apiRequest('POST', '/api/quotations', {
-                    quotationNumber,
-                    customerName:    name,
-                    customerEmail:   email || 'TBD',
-                    customerPhone:   bookingData.customerPhone,
-                    customerCompany: bookingData.customerCompany,
-                    items:           mappedItems,
-                    subtotal, commission, vat,
-                    serviceCharge:  svc,
-                    promoCode:      invoiceData.promoCode,
-                    promoDiscount:  discAmt,
-                    total:          grand,
-                    notes:          document.getElementById('qtNotes').value.trim(),
-                    pdfUrl,
-                    source: 'manual_admin',
-                    status: 'pending'
-                });
-            } catch (e) { console.warn('Quotation save failed:', e); }
+                if (isPaid) {
+                    await apiRequest('POST', '/api/invoices', {
+                        invoiceNumber, quotationNumber,
+                        customerName:    name,
+                        customerEmail:   email || 'TBD',
+                        customerPhone:   bookingData.customerPhone,
+                        customerCompany: bookingData.customerCompany,
+                        customerAddress: bookingData.customerAddress,
+                        items:           mappedItems,
+                        subtotal: adTotal, commission, vat,
+                        vatPct: (CONFIG && CONFIG.CHARGES) ? Math.round(CONFIG.CHARGES.vatRate * 100) : undefined,
+                        serviceCharge:  svc,
+                        promoCode:      invoiceData.promoCode,
+                        promoDiscount:  discAmt,
+                        total:          grand,
+                        paymentMethod:  'bank',
+                        pdfUrl,
+                        status: 'sent'
+                    });
+                } else {
+                    await apiRequest('POST', '/api/quotations', {
+                        quotationNumber,
+                        customerName:    name,
+                        customerEmail:   email || 'TBD',
+                        customerPhone:   bookingData.customerPhone,
+                        customerCompany: bookingData.customerCompany,
+                        items:           mappedItems,
+                        subtotal, commission, vat,
+                        serviceCharge:  svc,
+                        promoCode:      invoiceData.promoCode,
+                        promoDiscount:  discAmt,
+                        total:          grand,
+                        notes,
+                        pdfUrl,
+                        source: 'manual_admin',
+                        status: 'pending'
+                    });
+                }
+            } catch (e) { console.warn(docNoun + ' save failed:', e); }
 
             if (hasEmail) {
-                // Email the quotation to the customer
-                if (typeof sendManualQuotationEmail === 'function') {
+                // Email the document to the customer
+                if (isPaid && typeof sendInvoiceEmail === 'function') {
+                    await sendInvoiceEmail(bookingData, {
+                        invoiceNumber, quotationNumber,
+                        subtotal: adTotal, commission, vat,
+                        serviceCharge: svc,
+                        promoCode: invoiceData.promoCode,
+                        promoDiscount: discAmt,
+                        total: grand, pdfUrl, paymentMethod: 'bank'
+                    });
+                } else if (!isPaid && typeof sendManualQuotationEmail === 'function') {
                     await sendManualQuotationEmail({
                         quotationNumber,
                         customerName:    name,
@@ -1321,17 +1444,17 @@
                         promoCode:      invoiceData.promoCode,
                         promoDiscount:  discAmt,
                         total:          grand,
-                        notes:          document.getElementById('qtNotes').value.trim(),
+                        notes,
                         pdfUrl
                     });
                 }
-                showToast('Quotation ' + quotationNumber + ' sent to ' + email, 'success');
+                showToast(docNoun + ' ' + invoiceNumber + ' sent to ' + email, 'success');
             } else {
                 // No email on file — download the PDF so the admin can share it manually
                 if (typeof downloadInvoicePDF === 'function') {
-                    downloadInvoicePDF(invoiceData, bookingData, false, quotationNumber + '.pdf');
+                    downloadInvoicePDF(invoiceData, bookingData, isPaid, invoiceNumber + '.pdf');
                 }
-                showToast('Quotation ' + quotationNumber + ' downloaded — customer marked TBD (no email).', 'success');
+                showToast(docNoun + ' ' + invoiceNumber + ' downloaded — customer marked TBD (no email).', 'success');
             }
             resetForm();
 
@@ -1340,7 +1463,7 @@
             showToast('Error: ' + e.message, 'error');
         } finally {
             btn.disabled = false;
-            btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Generate Quotation`;
+            btn.innerHTML = SEND_ICON + (docMode === 'invoice' ? ' Generate Invoice' : ' Generate Quotation');
         }
     }
 

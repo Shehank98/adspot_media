@@ -204,7 +204,8 @@ function buildInvoiceDoc(invoiceData, bookingData, isPaid = true) {
         if (d.area) parts.push(`${d.area} cm²`);
         else if (d.size) parts.push(d.size);
         const c = d.colour || d.color || d.colorOption;
-        if (c) parts.push(c === 'colour' || c === 'color' || c === 'full' ? 'Full colour' : (c === 'bw' ? 'Black & white' : c));
+        if (c) parts.push(c === 'colour' || c === 'color' || c === 'full' ? 'Full colour' : (c === 'bw' || c === 'black' ? 'Black & white' : c));
+        if (d.positionPct > 0) parts.push(`${d.positionLabel || 'Special position'} +${d.positionPct}%`);
       } else {
         if (d.wordCount != null) parts.push(`${d.wordCount} words`);
         const extra = Math.max(0, (d.wordCount || 0) - (d.freeWords || 0));
